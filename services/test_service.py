@@ -8,7 +8,6 @@ from models.model_base import ModelBase
 from entities.model_checkpoint import ModelCheckpoint
 
 from enums.evaluation_type import EvaluationType
-from enums.output_format import OutputFormat
 
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.dataloader_service import DataLoaderService

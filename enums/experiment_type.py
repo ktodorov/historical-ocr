@@ -1,3 +1,4 @@
 from enums.argument_enum import ArgumentEnum
 
-# class ExperimentType(ArgumentEnum):
+class ExperimentType(ArgumentEnum):
+    pass

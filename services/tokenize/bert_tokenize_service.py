@@ -28,7 +28,7 @@ class BERTTokenizeService(BaseTokenizeService):
             raise Exception(f'Vocabulary not found in {vocabulary_path}')
 
         self._tokenizer: BertWordPieceTokenizer = BertWordPieceTokenizer(
-            vocabulary_path, lowercase=False, add_special_tokens=(arguments_service.configuration != Configuration.BiLSTMCRF))
+            vocabulary_path, lowercase=False)
 
     @overrides
     def encode_tokens(self, tokens: List[str]) -> List[int]:

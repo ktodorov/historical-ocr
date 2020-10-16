@@ -6,11 +6,11 @@ from entities.custom_argument_parser import CustomArgumentParser
 
 from enums.evaluation_type import EvaluationType
 from enums.language import Language
-from enums.output_format import OutputFormat
+# from enums.output_format import OutputFormat
 from enums.challenge import Challenge
 from enums.configuration import Configuration
 from enums.metric_type import MetricType
-from enums.experiment_type import ExperimentType
+# from enums.experiment_type import ExperimentType
 
 
 class ArgumentsServiceBase:
@@ -87,11 +87,11 @@ class ArgumentsServiceBase:
                             help='folder where checkpoints will be saved/loaded. If it is not provided, the output folder will be used')
         parser.add_argument('--evaluation-type', type=EvaluationType, choices=list(EvaluationType), nargs='*',
                             help='what type of evaluations should be performed')
-        parser.add_argument('--output-eval-format', type=OutputFormat, choices=list(OutputFormat),
-                            help='what the format of the output after evaluation will be')
+        # parser.add_argument('--output-eval-format', type=OutputFormat, choices=list(OutputFormat),
+        #                     help='what the format of the output after evaluation will be')
         parser.add_argument("--challenge", type=Challenge, choices=list(Challenge),
                             help='Optional challenge that the model is being trained for. If given, data and output results will be put into a specific folder')
-        parser.add_argument('--configuration', type=Configuration, choices=list(Configuration), default=Configuration.KBert,
+        parser.add_argument('--configuration', type=Configuration, choices=list(Configuration), default=Configuration.BERT,
                             help='Which configuration of model to load and use. Default is kbert')
         parser.add_argument('--metric-types', type=MetricType, choices=list(MetricType), default=MetricType.JaccardSimilarity, nargs='*',
                             help='What metrics should be calculated. Default is only Jaccard similarity')
@@ -109,8 +109,8 @@ class ArgumentsServiceBase:
                             help='Whether validation should be skipped, meaning no validation dataset is loaded and no evaluation is done while training. By default is false')
         parser.add_argument('--run-experiments', action='store_true',
                             help='Whether to run experiments instead of training or evaluation')
-        parser.add_argument('--experiment-types', type=ExperimentType, choices=list(ExperimentType), default=None, nargs='*',
-                            help='What types of experiments should be run')
+        # parser.add_argument('--experiment-types', type=ExperimentType, choices=list(ExperimentType), default=None, nargs='*',
+        #                     help='What types of experiments should be run')
         parser.add_argument('--reset-training-on-early-stop', action='store_true',
                             help='Whether resetting of training should be done if early stopping is activated and the first epoch has not yet been finished')
         parser.add_argument('--resets-limit', type=int, default=1,
@@ -225,9 +225,9 @@ class ArgumentsServiceBase:
     def evaluation_type(self) -> List[EvaluationType]:
         return self._get_argument('evaluation_type')
 
-    @property
-    def output_eval_format(self) -> OutputFormat:
-        return self._get_argument('output_eval_format')
+    # @property
+    # def output_eval_format(self) -> OutputFormat:
+    #     return self._get_argument('output_eval_format')
 
     @property
     def challenge(self) -> Challenge:
@@ -269,9 +269,9 @@ class ArgumentsServiceBase:
     def run_experiments(self) -> bool:
         return self._get_argument('run_experiments')
 
-    @property
-    def experiment_types(self) -> List[ExperimentType]:
-        return self._get_argument('experiment_types')
+    # @property
+    # def experiment_types(self) -> List[ExperimentType]:
+    #     return self._get_argument('experiment_types')
 
     @property
     def reset_training_on_early_stop(self) -> bool:

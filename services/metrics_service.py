@@ -4,9 +4,6 @@ import scipy.spatial.distance as scipy_distances
 
 from typing import Tuple
 
-from enums.tag_measure_type import TagMeasureType
-from enums.tag_measure_averaging import TagMeasureAveraging
-
 
 class MetricsService:
     def calculate_jaccard_similarity(self, list1: list, list2: list) -> float:
@@ -30,43 +27,31 @@ class MetricsService:
     def calculate_f1_score(
             self,
             predictions,
-            targets,
-            tag_measure_type: TagMeasureType = TagMeasureType.Strict,
-            tag_measure_averaging: TagMeasureAveraging = TagMeasureAveraging.Weighted) -> float:
-        result = f1_score(targets, predictions,
-                          average=tag_measure_averaging.value)
+            targets) -> float:
+        result = f1_score(targets, predictions)
         return result
 
     def calculate_precision_score(
             self,
             predictions,
-            targets,
-            tag_measure_type: TagMeasureType = TagMeasureType.Strict,
-            tag_measure_averaging: TagMeasureAveraging = TagMeasureAveraging.Weighted) -> float:
-        result = precision_score(targets, predictions,
-                                 average=tag_measure_averaging.value)
+            targets) -> float:
+        result = precision_score(targets, predictions)
         return result
 
     def calculate_recall_score(
             self,
             predictions,
-            targets,
-            tag_measure_type: TagMeasureType = TagMeasureType.Strict,
-            tag_measure_averaging: TagMeasureAveraging = TagMeasureAveraging.Weighted) -> float:
-        result = recall_score(targets, predictions,
-                              average=tag_measure_averaging.value)
+            targets) -> float:
+        result = recall_score(targets, predictions)
         return result
 
     def calculate_precision_recall_fscore_support(
             self,
             predictions,
-            targets,
-            tag_measure_type: TagMeasureType = TagMeasureType.Strict,
-            tag_measure_averaging: TagMeasureAveraging = TagMeasureAveraging.Weighted) -> Tuple[float, float, float, float]:
+            targets) -> Tuple[float, float, float, float]:
         result = precision_recall_fscore_support(
             targets,
             predictions,
-            average=tag_measure_averaging.value,
             warn_for=tuple())
 
         return result

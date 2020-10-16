@@ -11,24 +11,10 @@ from enums.configuration import Configuration
 from enums.challenge import Challenge
 from enums.pretrained_model import PretrainedModel
 
-from losses.sequence_loss import SequenceLoss
-from losses.transformer_sequence_loss import TransformerSequenceLoss
 from losses.loss_base import LossBase
-from losses.kbert_loss import KBertLoss
 from losses.joint_loss import JointLoss
-from losses.ner_loss import NERLoss
-from losses.cbow_loss import CBOWLoss
 
 from models.model_base import ModelBase
-from models.transformer_fine_tune.kbert_model import KBertModel
-from models.transformer_fine_tune.kxlnet_model import KXLNetModel
-from models.multifit.multifit_model import MultiFitModel
-from models.word2vec.cbow_model import CBOWModel
-from models.rnn_encoder_decoder.sequence_model import SequenceModel
-from models.transformer_encoder_decoder.transformer_model import TransformerModel
-from models.joint_model import JointModel
-from models.ner_rnn.ner_predictor import NERPredictor
-from models.rnn_char_to_char.char_to_char_model import CharToCharModel
 
 from optimizers.optimizer_base import OptimizerBase
 from optimizers.adam_optimizer import AdamOptimizer
@@ -37,25 +23,15 @@ from optimizers.sgd_optimizer import SGDOptimizer
 from optimizers.adamw_transformer_optimizer import AdamWTransformerOptimizer
 from optimizers.joint_adamw_transformer_optimizer import JointAdamWTransformerOptimizer
 
-from services.arguments.postocr_arguments_service import PostOCRArgumentsService
-from services.arguments.postocr_characters_arguments_service import PostOCRCharactersArgumentsService
-from services.arguments.transformer_arguments_service import TransformerArgumentsService
-from services.arguments.ner_arguments_service import NERArgumentsService
-from services.arguments.semantic_arguments_service import SemanticArgumentsService
+from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.arguments.pretrained_arguments_service import PretrainedArgumentsService
 
 from services.download.ocr_download_service import OCRDownloadService
 
 from services.process.process_service_base import ProcessServiceBase
-from services.process.ner_process_service import NERProcessService
-from services.process.cbow_process_service import CBOWProcessService
-from services.process.ocr_character_process_service import OCRCharacterProcessService
 
 from services.evaluation.base_evaluation_service import BaseEvaluationService
-from services.evaluation.semantic_change_evaluation_service import SemanticChangeEvaluationService
-from services.evaluation.ner_evaluation_service import NEREvaluationService
-from services.evaluation.ocr_evaluation_service import OCREvaluationService
 
 from services.data_service import DataService
 from services.dataloader_service import DataLoaderService
@@ -73,7 +49,6 @@ from services.train_service import TrainService
 from services.vocabulary_service import VocabularyService
 from services.plot_service import PlotService
 from services.experiment_service import ExperimentService
-from services.tag_metrics_service import TagMetricsService
 from services.cache_service import CacheService
 from services.string_process_service import StringProcessService
 
@@ -92,17 +67,8 @@ def initialize_seed(seed: int, device: str):
 
 def get_argument_service_type(challenge: Challenge, configuration: Configuration):
     argument_service_type = None
-    if challenge == Challenge.PostOCRCorrection:
-        if configuration == Configuration.TransformerSequence:
-            argument_service_type = TransformerArgumentsService
-        elif configuration == Configuration.SequenceToCharacter or configuration == Configuration.CharacterToCharacterEncoderDecoder:
-            argument_service_type = PostOCRArgumentsService
-        elif configuration == Configuration.CharacterToCharacter:
-            argument_service_type = PostOCRCharactersArgumentsService
-    elif challenge == Challenge.NamedEntityRecognition:
-        argument_service_type = NERArgumentsService
-    elif challenge == Challenge.SemanticChange:
-        argument_service_type = SemanticArgumentsService
+    if challenge == Challenge.OCREvaluation:
+        argument_service_type = OCRQualityArgumentsService
     else:
         raise Exception('Challenge not supported')
 
@@ -122,7 +88,6 @@ def register_optimizer(
 
     optimizer = None
 
-
     return optimizer
 
 
@@ -132,22 +97,10 @@ def register_loss(
         arguments_service: ArgumentsServiceBase):
     loss_function = None
 
-    if not joint_model:
-        if configuration == Configuration.KBert or configuration == Configuration.XLNet:
-            loss_function = providers.Singleton(KBertLoss)
-        elif (configuration == Configuration.MultiFit or
-              configuration == Configuration.SequenceToCharacter or
-              configuration == Configuration.CharacterToCharacter or
-              configuration == Configuration.CharacterToCharacterEncoderDecoder):
-            loss_function = providers.Singleton(SequenceLoss)
-        elif configuration == Configuration.TransformerSequence:
-            loss_function = providers.Singleton(TransformerSequenceLoss)
-        elif configuration == Configuration.BiLSTMCRF:
-            loss_function = providers.Singleton(NERLoss)
-        elif configuration == Configuration.CBOW:
-            loss_function = providers.Singleton(CBOWLoss)
-    elif configuration == Configuration.KBert or configuration == Configuration.XLNet:
-        loss_function = providers.Singleton(JointLoss)
+    if configuration == Configuration.BERT:
+        # loss_function = providers.Singleton()
+        pass
+        # TODO
 
     return loss_function
 
@@ -164,37 +117,6 @@ def register_evaluation_service(
         configuration: Configuration):
     evaluation_service = None
 
-    if (configuration == Configuration.KBert or configuration == Configuration.XLNet or configuration == Configuration.CBOW):
-        evaluation_service = providers.Factory(
-            SemanticChangeEvaluationService,
-            arguments_service=arguments_service,
-            file_service=file_service,
-            plot_service=plot_service,
-            metrics_service=metrics_service
-        )
-    elif configuration == Configuration.BiLSTMCRF:
-        evaluation_service = providers.Factory(
-            NEREvaluationService,
-            arguments_service=arguments_service,
-            file_service=file_service,
-            plot_service=plot_service,
-            metrics_service=metrics_service,
-            process_service=process_service
-        )
-    elif (configuration == Configuration.MultiFit or
-          configuration == Configuration.SequenceToCharacter or
-          configuration == Configuration.TransformerSequence or
-          configuration == Configuration.CharacterToCharacter or
-          configuration == Configuration.CharacterToCharacterEncoderDecoder):
-        evaluation_service = providers.Factory(
-            OCREvaluationService,
-            arguments_service=arguments_service,
-            vocabulary_service=vocabulary_service,
-            process_service=process_service,
-            metrics_service=metrics_service,
-            file_service=file_service,
-            data_service=data_service)
-
     return evaluation_service
 
 
@@ -209,88 +131,12 @@ def register_model(
         vocabulary_service: VocabularyService,
         model_service: ModelService,
         process_service: ProcessServiceBase,
-        tag_metrics_service: TagMetricsService,
         joint_model: bool,
         configuration: Configuration):
+    model = None
 
-    if not joint_model:
-        if configuration == Configuration.KBert or configuration == Configuration.XLNet:
-            model = providers.Singleton(
-                KBertModel if configuration == Configuration.KBert else KXLNetModel,
-                arguments_service=arguments_service,
-                data_service=data_service
-            )
-        elif configuration == Configuration.CBOW:
-            model = providers.Singleton(
-                CBOWModel,
-                arguments_service=arguments_service,
-                vocabulary_service=vocabulary_service,
-                data_service=data_service,
-                process_service=process_service,
-                file_service=file_service)
-        elif (configuration == Configuration.MultiFit or
-              configuration == Configuration.SequenceToCharacter or
-              configuration == Configuration.TransformerSequence or
-              configuration == Configuration.CharacterToCharacter or
-              configuration == Configuration.CharacterToCharacterEncoderDecoder):
-
-            if configuration == Configuration.MultiFit:
-                model = providers.Singleton(
-                    MultiFitModel,
-                    arguments_service=arguments_service,
-                    data_service=data_service,
-                    tokenize_service=tokenize_service,
-                    metrics_service=metrics_service,
-                    log_service=log_service)
-            elif configuration == Configuration.SequenceToCharacter or configuration == Configuration.CharacterToCharacterEncoderDecoder:
-                model = providers.Singleton(
-                    SequenceModel,
-                    arguments_service=arguments_service,
-                    data_service=data_service,
-                    metrics_service=metrics_service,
-                    vocabulary_service=vocabulary_service,
-                    file_service=file_service,
-                    process_service=process_service,
-                    log_service=log_service)
-            elif configuration == Configuration.TransformerSequence:
-                model = providers.Singleton(
-                    TransformerModel,
-                    arguments_service=arguments_service,
-                    data_service=data_service,
-                    vocabulary_service=vocabulary_service,
-                    metrics_service=metrics_service,
-                    log_service=log_service,
-                    tokenize_service=tokenize_service
-                )
-            elif configuration == Configuration.CharacterToCharacter:
-                model = providers.Singleton(
-                    CharToCharModel,
-                    arguments_service=arguments_service,
-                    vocabulary_service=vocabulary_service,
-                    data_service=data_service,
-                    metrics_service=metrics_service,
-                    file_service=file_service,
-                    log_service=log_service,
-                    process_service=process_service)
-        elif configuration == Configuration.BiLSTMCRF:
-            model = providers.Singleton(
-                NERPredictor,
-                arguments_service=arguments_service,
-                data_service=data_service,
-                metrics_service=metrics_service,
-                process_service=process_service,
-                tokenize_service=tokenize_service,
-                file_service=file_service,
-                tag_metrics_service=tag_metrics_service,
-                log_service=log_service)
-
-    elif joint_model:
-        model = providers.Singleton(
-            JointModel,
-            arguments_service=arguments_service,
-            data_service=data_service,
-            model_service=model_service
-        )
+    if configuration == Configuration.BERT:
+        model = None  # TODO
 
     return model
 
@@ -309,41 +155,13 @@ def register_process_service(
         ocr_download_service: OCRDownloadService,
         string_process_service: StringProcessService):
     process_service = None
-    if challenge == Challenge.NamedEntityRecognition:
-        process_service = providers.Singleton(
-            NERProcessService,
-            arguments_service=arguments_service,
-            vocabulary_service=vocabulary_service,
-            file_service=file_service,
-            tokenize_service=tokenize_service,
-            data_service=data_service,
-            cache_service=cache_service,
-            string_process_service=string_process_service)
-    elif challenge == Challenge.SemanticChange and configuration == Configuration.CBOW:
-        process_service = providers.Singleton(
-            CBOWProcessService,
-            arguments_service=arguments_service,
-            vocabulary_service=vocabulary_service,
-            file_service=file_service,
-            data_service=data_service)
-    elif challenge == Challenge.PostOCRCorrection:
-        process_service = providers.Singleton(
-            OCRCharacterProcessService,
-            arguments_service=arguments_service,
-            data_service=data_service,
-            file_service=file_service,
-            tokenize_service=tokenize_service,
-            metrics_service=metrics_service,
-            vocabulary_service=vocabulary_service,
-            log_service=log_service,
-            ocr_download_service=ocr_download_service,
-            cache_service=cache_service)
 
     return process_service
 
+
 def register_tokenize_service(
-    arguments_service: ArgumentsServiceBase,
-    pretrained_model_type: PretrainedModel):
+        arguments_service: ArgumentsServiceBase,
+        pretrained_model_type: PretrainedModel):
     tokenize_service = None
     if pretrained_model_type == PretrainedModel.BERT:
         tokenize_service = providers.Singleton(
@@ -480,10 +298,6 @@ class IocContainer(containers.DeclarativeContainer):
         process_service=process_service,
         file_service=file_service)
 
-    tag_metrics_service = providers.Factory(
-        TagMetricsService
-    )
-
     model = register_model(
         arguments_service=arguments_service,
         file_service=file_service,
@@ -495,7 +309,6 @@ class IocContainer(containers.DeclarativeContainer):
         vocabulary_service=vocabulary_service,
         model_service=model_service,
         process_service=process_service,
-        tag_metrics_service=tag_metrics_service,
         joint_model=joint_model,
         configuration=configuration)
 

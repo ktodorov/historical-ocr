@@ -13,7 +13,6 @@ from transformers import PreTrainedTokenizer
 
 from enums.language import Language
 
-from entities.language_data import LanguageData
 from services.data_service import DataService
 from services.string_process_service import StringProcessService
 from services.cache_service import CacheService
