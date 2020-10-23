@@ -1,8 +1,10 @@
+from enums.challenge import Challenge
 from enums.configuration import Configuration
 from enums.run_type import RunType
 
 from datasets.dataset_base import DatasetBase
 from datasets.joint_dataset import JointDataset
+from datasets.transformer_lm_dataset import TransformerLMDataset
 
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.file_service import FileService
@@ -51,12 +53,20 @@ class DatasetService:
         """
         joint_model: bool = self._arguments_service.joint_model
         configuration: Configuration = self._arguments_service.configuration
+        challenge: Challenge = self._arguments_service.challenge
+        result = None
 
         if run_type == RunType.Test:
             pass
 
         if not joint_model:
-            pass
+            if challenge == Challenge.OCREvaluation:
+                result = TransformerLMDataset(
+                    language=self._arguments_service.language,
+                    arguments_service=self._arguments_service,
+                    process_service=self._process_service,
+                    mask_service=self._mask_service,
+                    run_type=run_type)
         elif joint_model:
             number_of_models: int = self._arguments_service.joint_model_amount
             sub_datasets = self._create_datasets(language, number_of_models)
@@ -65,7 +75,7 @@ class DatasetService:
         return result
 
     def _create_datasets(self, language, number_of_datasets: int):
-        configuration = self._arguments_service.configuration
+        # configuration = self._arguments_service.configuration
 
         result = []
         pass # TODO

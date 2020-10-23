@@ -10,7 +10,7 @@ from collections import Counter
 
 plt.rcParams["figure.figsize"] = (20, 10)
 plt.rcParams["text.usetex"] = True
-plt.rcParams['text.latex.preamble'] = [r'\usepackage[cm]{sfmath}']
+plt.rcParams['text.latex.preamble'] = r'\usepackage[cm]{sfmath}'
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = 'cm'
 # plt.rcParams['text.latex.preamble'] = [

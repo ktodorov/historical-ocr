@@ -265,7 +265,6 @@ class TrainService:
 
         outputs = self._model.forward(batch)
 
-        accuracy = 0
         if train_mode:
             loss = self._loss_function.backward(outputs)
             self._model.clip_gradients()

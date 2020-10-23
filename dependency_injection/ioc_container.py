@@ -13,8 +13,10 @@ from enums.pretrained_model import PretrainedModel
 
 from losses.loss_base import LossBase
 from losses.joint_loss import JointLoss
+from losses.transformer_loss_base import TransformerLossBase
 
 from models.model_base import ModelBase
+from models.transformers.bert import BERT
 
 from optimizers.optimizer_base import OptimizerBase
 from optimizers.adam_optimizer import AdamOptimizer
@@ -30,6 +32,7 @@ from services.arguments.pretrained_arguments_service import PretrainedArgumentsS
 from services.download.ocr_download_service import OCRDownloadService
 
 from services.process.process_service_base import ProcessServiceBase
+from services.process.transformer_process_service import TransformerProcessService
 
 from services.evaluation.base_evaluation_service import BaseEvaluationService
 
@@ -87,6 +90,11 @@ def register_optimizer(
         return None
 
     optimizer = None
+    if configuration == Configuration.BERT:
+        optimizer = providers.Singleton(
+            AdamWTransformerOptimizer,
+            arguments_service=arguments_service,
+            model=model)
 
     return optimizer
 
@@ -98,9 +106,9 @@ def register_loss(
     loss_function = None
 
     if configuration == Configuration.BERT:
-        # loss_function = providers.Singleton()
-        pass
-        # TODO
+        loss_function = providers.Singleton(
+            TransformerLossBase
+        )
 
     return loss_function
 
@@ -136,7 +144,10 @@ def register_model(
     model = None
 
     if configuration == Configuration.BERT:
-        model = None  # TODO
+        model = providers.Singleton(
+            BERT,
+            arguments_service=arguments_service,
+            data_service=data_service)
 
     return model
 
@@ -155,6 +166,16 @@ def register_process_service(
         ocr_download_service: OCRDownloadService,
         string_process_service: StringProcessService):
     process_service = None
+
+    if challenge == Challenge.OCREvaluation:
+        process_service = providers.Singleton(
+            TransformerProcessService,
+            arguments_service=arguments_service,
+            ocr_download_service=ocr_download_service,
+            tokenize_service=tokenize_service,
+            cache_service=cache_service,
+            log_service=log_service)
+
 
     return process_service
 

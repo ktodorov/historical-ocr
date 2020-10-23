@@ -181,24 +181,24 @@ class ModelBase(nn.Module):
     def keep_frozen(self) -> bool:
         return False
 
-    @overrides
-    def train(self, mode=True):
-        # If fine-tuning is disabled, we don't set the module to train mode
-        if mode and self.keep_frozen:
-            self.requires_grad_(requires_grad=False)
+    # @overrides
+    # def train(self, mode=True):
+    #     # If fine-tuning is disabled, we don't set the module to train mode
+    #     if mode and self.keep_frozen:
+    #         self.requires_grad_(requires_grad=False)
 
-            return
+    #         return
 
-        if mode:
-            self.requires_grad_(requires_grad=True)
+    #     if mode:
+    #         self.requires_grad_(requires_grad=True)
 
-        super().train(mode)
+    #     super().train(mode)
 
-    @overrides
-    def eval(self):
-        super().eval()
+    # @overrides
+    # def eval(self):
+    #     super().eval()
 
-        self.requires_grad_(requires_grad=False)
+    #     self.requires_grad_(requires_grad=False)
 
     def optimizer_parameters(self):
         return self.parameters()

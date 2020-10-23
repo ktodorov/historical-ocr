@@ -90,7 +90,7 @@ class OCRDownloadService:
             language: Language,
             data_path: str,
             start_position: int = 14,
-            max_string_length: int = 50,
+            max_string_length: int = 500,
             subfolder_to_use: str = 'full'):
         ocr_sequences = []
         gs_sequences = []

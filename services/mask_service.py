@@ -48,7 +48,7 @@ class MaskService:
 
         probability_matrix.masked_fill_(masks, value=0.0)
         masked_indices = torch.bernoulli(probability_matrix).bool()
-        labels[~masked_indices] = -1 # We only compute loss on masked tokens
+        labels[~masked_indices] = -100 # We only compute loss on masked tokens
 
         # 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
         indices_replaced = torch.bernoulli(
@@ -76,4 +76,5 @@ class MaskService:
         inputs[indices_random] = random_words[indices_random]
 
         # The rest of the time (10% of the time) we keep the masked input tokens unchanged
-        return inputs, labels
+        attention_masks = (inputs > 0)
+        return inputs, labels, attention_masks
