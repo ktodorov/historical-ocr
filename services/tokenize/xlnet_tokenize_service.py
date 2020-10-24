@@ -4,7 +4,7 @@ from typing import Tuple, List
 
 from overrides import overrides
 
-from tokenizers import BertWordPieceTokenizer
+from tokenizers import SentencePieceBPETokenizer
 
 import sentencepiece as spm
 
@@ -13,22 +13,26 @@ from services.arguments.pretrained_arguments_service import PretrainedArgumentsS
 
 from services.tokenize.base_tokenize_service import BaseTokenizeService
 
-class BERTTokenizeService(BaseTokenizeService):
+class XLNetTokenizeService(BaseTokenizeService):
     def __init__(
             self,
             arguments_service: PretrainedArgumentsService):
         super().__init__()
 
         pretrained_weights = arguments_service.pretrained_weights
-        configuration = arguments_service.configuration
 
         self._arguments_service = arguments_service
-        vocabulary_path = os.path.join(arguments_service.data_folder, 'vocabularies', f'{pretrained_weights}-vocab.txt')
+        vocabulary_path = os.path.join(arguments_service.data_folder, 'vocabularies', f'{pretrained_weights}-vocab.json')
         if not os.path.exists(vocabulary_path):
             raise Exception(f'Vocabulary not found in {vocabulary_path}')
 
-        self._tokenizer: BertWordPieceTokenizer = BertWordPieceTokenizer(
-            vocabulary_path, lowercase=False)
+        merges_path = os.path.join(arguments_service.data_folder, 'vocabularies', f'{pretrained_weights}-merges.txt')
+        if not os.path.exists(merges_path):
+            raise Exception(f'Vocabulary not found in {merges_path}')
+
+        self._tokenizer: SentencePieceBPETokenizer = SentencePieceBPETokenizer(
+            vocab=vocabulary_path,
+            merges=merges_path)
 
     @overrides
     def encode_tokens(self, tokens: List[str]) -> List[int]:

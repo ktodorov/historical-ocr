@@ -1,12 +1,12 @@
 from overrides import overrides
 
 from models.transformers.transformer_base import TransformerBase
-from transformers import BertForMaskedLM
+from transformers import XLNetLMHeadModel
 
 from services.arguments.pretrained_arguments_service import PretrainedArgumentsService
 from services.data_service import DataService
 
-class BERT(TransformerBase):
+class XLNet(TransformerBase):
     def __init__(
             self,
             arguments_service: PretrainedArgumentsService,
@@ -22,8 +22,8 @@ class BERT(TransformerBase):
 
     @property
     def _model_type(self) -> type:
-        return BertForMaskedLM
+        return XLNetLMHeadModel
 
     @property
-    def transformer_model(self) -> BertForMaskedLM:
+    def transformer_model(self) -> XLNetLMHeadModel:
         return self._transformer_model
