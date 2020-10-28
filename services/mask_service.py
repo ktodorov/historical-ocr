@@ -14,7 +14,7 @@ class MaskService:
 
         self._tokenize_service = tokenize_service
         self._arguments_service = arguments_service
-        token_results = self._tokenize_service.encode_tokens(['[MASK]'])
+        token_results = self._tokenize_service.encode_tokens([tokenize_service.mask_token])
         if token_results and len(token_results) > 0:
             self._mask_token_id = token_results[0]
         else:
@@ -50,7 +50,7 @@ class MaskService:
         masked_indices = torch.bernoulli(probability_matrix).bool()
         labels[~masked_indices] = -100 # We only compute loss on masked tokens
 
-        # 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
+        # 80% of the time, we replace masked input tokens with tokenizer.mask_token
         indices_replaced = torch.bernoulli(
             torch.full(
                 labels.shape,
@@ -76,5 +76,5 @@ class MaskService:
         inputs[indices_random] = random_words[indices_random]
 
         # The rest of the time (10% of the time) we keep the masked input tokens unchanged
-        attention_masks = (inputs > 0)
+        attention_masks = (inputs > 0).double()
         return inputs, labels, attention_masks

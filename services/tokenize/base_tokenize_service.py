@@ -36,3 +36,7 @@ class BaseTokenizeService:
     @property
     def vocabulary_size(self) -> int:
         return 0
+
+    @property
+    def mask_token(self) -> str:
+        return '[MASK]'
