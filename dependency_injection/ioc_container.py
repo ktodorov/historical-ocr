@@ -18,6 +18,7 @@ from losses.transformer_loss_base import TransformerLossBase
 from models.model_base import ModelBase
 from models.transformers.bert import BERT
 from models.transformers.xlnet import XLNet
+from models.transformers.bart import BART
 
 from optimizers.optimizer_base import OptimizerBase
 from optimizers.adam_optimizer import AdamOptimizer
@@ -49,6 +50,7 @@ from services.test_service import TestService
 from services.tokenize.base_tokenize_service import BaseTokenizeService
 from services.tokenize.bert_tokenize_service import BERTTokenizeService
 from services.tokenize.xlnet_tokenize_service import XLNetTokenizeService
+from services.tokenize.bart_tokenize_service import BARTTokenizeService
 from services.tokenize.camembert_tokenize_service import CamembertTokenizeService
 from services.train_service import TrainService
 from services.vocabulary_service import VocabularyService
@@ -156,6 +158,11 @@ def register_model(
             XLNet,
             arguments_service=arguments_service,
             data_service=data_service)
+    elif configuration == Configuration.BART:
+        model = providers.Singleton(
+            BART,
+            arguments_service=arguments_service,
+            data_service=data_service)
 
     return model
 
@@ -199,6 +206,10 @@ def register_tokenize_service(
     if pretrained_model_type == PretrainedModel.XLNet:
         tokenize_service = providers.Singleton(
             XLNetTokenizeService,
+            arguments_service=arguments_service)
+    if pretrained_model_type == PretrainedModel.BART:
+        tokenize_service = providers.Singleton(
+            BARTTokenizeService,
             arguments_service=arguments_service)
     elif pretrained_model_type == PretrainedModel.CamemBERT:
         tokenize_service = providers.Singleton(

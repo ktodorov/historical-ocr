@@ -23,7 +23,7 @@ class TransformerBase(ModelBase):
         if arguments_service.resume_training or arguments_service.evaluate or arguments_service.run_experiments:
             self._transformer_model = None
         else:
-            config = PretrainedConfig.from_pretrained(arguments_service.pretrained_weights, return_dict=True)
+            config = self._config_type.from_pretrained(arguments_service.pretrained_weights, return_dict=True)
             config.output_hidden_states = output_hidden_states
 
             self._transformer_model: PreTrainedModel = self._model_type.from_pretrained(
@@ -108,6 +108,10 @@ class TransformerBase(ModelBase):
     @property
     def _model_type(self) -> type:
         return PreTrainedModel
+
+    @property
+    def _config_type(self) -> type:
+        return PretrainedConfig
 
     def _load_transformer_model(self, path: str, name_prefix: str):
         pretrained_weights_path = self._get_pretrained_path(path, name_prefix)
