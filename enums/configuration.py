@@ -5,3 +5,4 @@ class Configuration(ArgumentEnum):
     XLNet = 'xlnet'
     RoBERTa = 'roberta'
     BART = 'bart'
+    CBOW = 'cbow'

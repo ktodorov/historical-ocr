@@ -46,17 +46,6 @@ class LanguageData:
         ocr_ids, _, ocr_offsets, ocr_mask = tokenize_service.encode_sequence(ocr_text)
         gs_ids, _, gs_offsets, gs_mask = tokenize_service.encode_sequence(gs_text)
 
-        # ocr_vocab_ids = vocabulary_service.string_to_ids(ocr_text)
-        # ocr_vocab_ids.insert(0, vocabulary_service.cls_token)
-        # ocr_vocab_ids.append(vocabulary_service.eos_token)
-
-        # gs_vocab_ids = vocabulary_service.string_to_ids(gs_text)
-        # gs_vocab_ids.insert(0, vocabulary_service.cls_token)
-        # gs_vocab_ids.append(vocabulary_service.eos_token)
-
-        # self._ocr_texts.append(ocr_vocab_ids)
-        # self._gs_texts.append(gs_vocab_ids)
-
         self._ocr_aligned.append(ocr_ids)
         self._gs_aligned.append(gs_ids)
 
@@ -128,7 +117,6 @@ class LanguageData:
     @property
     def length(self) -> int:
         result = min(
-            math.inf,  # len(self._ocr_inputs),
             len(self._ocr_aligned),
             len(self._gs_aligned)
         )

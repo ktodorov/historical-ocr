@@ -35,21 +35,23 @@ class OCRDownloadService:
 
         self._use_trove = False
 
-    def download_training_data(self, language: Language):
+    def download_data(self, language: Language, max_string_length: int = None):
         newseye_path = os.path.join('data', 'newseye')
 
         if language in self._languages_2017:
             newseye_2017_key = 'newseye-2017-full-dataset'
             if not self._cache_service.item_exists(newseye_2017_key):
                 newseye_2017_path = os.path.join(newseye_path, '2017')
-                newseye_2017_data = self.process_newseye_files(language, newseye_2017_path)
-                self._cache_service.cache_item(newseye_2017_key, newseye_2017_data)
+                newseye_2017_data = self.process_newseye_files(
+                    language, newseye_2017_path, max_string_length=max_string_length)
+                self._cache_service.cache_item(
+                    newseye_2017_key, newseye_2017_data)
 
         newseye_2019_key = 'newseye-2019-train-dataset'
         if not self._cache_service.item_exists(newseye_2019_key):
             newseye_2019_path = os.path.join(newseye_path, '2019')
             newseye_2019_data = self.process_newseye_files(
-                language, newseye_2019_path, subfolder_to_use='train')
+                language, newseye_2019_path, subfolder_to_use='train', max_string_length=max_string_length)
             self._cache_service.cache_item(newseye_2019_key, newseye_2019_data)
 
         if language == Language.English and self._use_trove:
@@ -69,18 +71,24 @@ class OCRDownloadService:
         if self._cache_service.item_exists(newseye_eval_key):
             return
 
-        newseye_eval_data = self.process_newseye_files(language, newseye_path, subfolder_to_use='eval')
+        newseye_eval_data = self.process_newseye_files(
+            language, newseye_path, subfolder_to_use='eval')
         self._cache_service.cache_item(newseye_eval_key, newseye_eval_data)
 
     def _cut_string(
             self,
             text: str,
             chunk_length: int):
+        invalid_characters = ['#', '@']
+
+        if chunk_length is None:
+            return self._string_process_service.remove_string_characters(text, characters=invalid_characters)
+
         string_chunks = [
             self._string_process_service.convert_string_unicode_symbols(
                 self._string_process_service.remove_string_characters(
                     text=text[i:i+chunk_length],
-                    characters=['#', '@']))
+                    characters=invalid_characters))
             for i in range(0, len(text), chunk_length)]
 
         return string_chunks
@@ -111,12 +119,15 @@ class OCRDownloadService:
 
                 language_path = os.path.join(subdir_path, language_name)
                 subfolder_names = os.listdir(language_path)
-                subfolder_paths = [os.path.join(language_path, subfolder_name) for subfolder_name in subfolder_names]
-                subfolder_paths = [x for x in subfolder_paths if os.path.isdir(x)]
+                subfolder_paths = [os.path.join(
+                    language_path, subfolder_name) for subfolder_name in subfolder_names]
+                subfolder_paths = [
+                    x for x in subfolder_paths if os.path.isdir(x)]
                 subfolder_paths.append(language_path)
 
                 for subfolder_path in subfolder_paths:
-                    filepaths = [os.path.join(subfolder_path, x) for x in os.listdir(subfolder_path)]
+                    filepaths = [os.path.join(subfolder_path, x)
+                                 for x in os.listdir(subfolder_path)]
                     filepaths = [x for x in filepaths if os.path.isfile(x)]
                     for filepath in filepaths:
                         with open(filepath, 'r', encoding='utf-8') as data_file:
@@ -126,8 +137,15 @@ class OCRDownloadService:
                             gs_strings = self._cut_string(
                                 data_file_text[2][start_position:], max_string_length)
 
-                            ocr_sequences.extend(ocr_strings)
-                            gs_sequences.extend(gs_strings)
+                            if type(ocr_strings) is list:
+                                ocr_sequences.extend(ocr_strings)
+                            else:
+                                ocr_sequences.append(ocr_strings)
+
+                            if type(gs_strings) is list:
+                                gs_sequences.extend(gs_strings)
+                            else:
+                                gs_sequences.append(gs_strings)
 
         result = tuple(zip(*[
             (ocr_sequence, gs_sequence)

@@ -14,11 +14,13 @@ from enums.pretrained_model import PretrainedModel
 from losses.loss_base import LossBase
 from losses.joint_loss import JointLoss
 from losses.transformer_loss_base import TransformerLossBase
+from losses.cross_entropy_loss import CrossEntropyLoss
 
 from models.model_base import ModelBase
 from models.transformers.bert import BERT
 from models.transformers.xlnet import XLNet
 from models.transformers.bart import BART
+from models.simple.cbow import CBOW
 
 from optimizers.optimizer_base import OptimizerBase
 from optimizers.adam_optimizer import AdamOptimizer
@@ -35,6 +37,7 @@ from services.download.ocr_download_service import OCRDownloadService
 
 from services.process.process_service_base import ProcessServiceBase
 from services.process.transformer_process_service import TransformerProcessService
+from services.process.word2vec_process_service import Word2VecProcessService
 
 from services.evaluation.base_evaluation_service import BaseEvaluationService
 
@@ -95,10 +98,16 @@ def register_optimizer(
 
     optimizer = None
     if challenge == Challenge.OCREvaluation:
-        optimizer = providers.Singleton(
-            AdamWTransformerOptimizer,
-            arguments_service=arguments_service,
-            model=model)
+        if configuration == Configuration.CBOW:
+            optimizer = providers.Singleton(
+                SGDOptimizer,
+                arguments_service=arguments_service,
+                model=model)
+        else:
+            optimizer = providers.Singleton(
+                AdamWTransformerOptimizer,
+                arguments_service=arguments_service,
+                model=model)
 
     return optimizer
 
@@ -111,9 +120,14 @@ def register_loss(
     loss_function = None
 
     if challenge == Challenge.OCREvaluation:
-        loss_function = providers.Singleton(
-            TransformerLossBase
-        )
+        if configuration == Configuration.CBOW:
+            loss_function = providers.Singleton(
+                CrossEntropyLoss
+            )
+        else:
+            loss_function = providers.Singleton(
+                TransformerLossBase
+            )
 
     return loss_function
 
@@ -163,6 +177,13 @@ def register_model(
             BART,
             arguments_service=arguments_service,
             data_service=data_service)
+    elif configuration == Configuration.CBOW:
+        model = providers.Singleton(
+            CBOW,
+            arguments_service=arguments_service,
+            process_service=process_service,
+            data_service=data_service,
+            vocabulary_service=vocabulary_service)
 
     return model
 
@@ -183,13 +204,23 @@ def register_process_service(
     process_service = None
 
     if challenge == Challenge.OCREvaluation:
-        process_service = providers.Singleton(
-            TransformerProcessService,
-            arguments_service=arguments_service,
-            ocr_download_service=ocr_download_service,
-            tokenize_service=tokenize_service,
-            cache_service=cache_service,
-            log_service=log_service)
+        if configuration == Configuration.CBOW:
+            process_service = providers.Singleton(
+                Word2VecProcessService,
+                arguments_service=arguments_service,
+                ocr_download_service=ocr_download_service,
+                cache_service=cache_service,
+                log_service=log_service,
+                vocabulary_service=vocabulary_service,
+                file_service=file_service)
+        else:
+            process_service = providers.Singleton(
+                TransformerProcessService,
+                arguments_service=arguments_service,
+                ocr_download_service=ocr_download_service,
+                tokenize_service=tokenize_service,
+                cache_service=cache_service,
+                log_service=log_service)
 
 
     return process_service
@@ -215,8 +246,6 @@ def register_tokenize_service(
         tokenize_service = providers.Singleton(
             CamembertTokenizeService,
             arguments_service=arguments_service)
-    else:
-        raise Exception("Pretrained model type not supported")
 
     return tokenize_service
 
@@ -289,7 +318,8 @@ class IocContainer(containers.DeclarativeContainer):
     vocabulary_service = providers.Singleton(
         VocabularyService,
         data_service=data_service,
-        file_service=file_service
+        file_service=file_service,
+        cache_service=cache_service
     )
 
     string_process_service = providers.Factory(
