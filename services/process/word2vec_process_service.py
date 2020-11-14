@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from nltk.tokenize import RegexpTokenizer
 
-from enums.run_type import RunType
+from enums.ocr_output_type import OCROutputType
 
 from entities.cbow_corpus import CBOWCorpus
 
@@ -44,11 +44,11 @@ class Word2VecProcessService(ProcessServiceBase):
         self._tokenizer = RegexpTokenizer(r'\w+') # word tokenizer without punctuation
 
 
-    def get_text_corpus(self, run_type: RunType) -> CBOWCorpus:
+    def get_text_corpus(self, ocr_output_type: OCROutputType) -> CBOWCorpus:
         limit_size = self._arguments_service.train_dataset_limit_size
 
         text_corpus = self._load_text_corpus(
-            run_type,
+            ocr_output_type,
             limit_size)
 
         return text_corpus
@@ -110,22 +110,22 @@ class Word2VecProcessService(ProcessServiceBase):
 
     def _load_text_corpus(
             self,
-            run_type: RunType,
+            ocr_output_type: OCROutputType,
             reduction: int) -> CBOWCorpus:
         (ocr_corpus, gs_corpus) = self._cache_service.get_item_from_cache(
             item_key=f'word2vec-data-ws-2',
             callback_function=self._generate_ocr_corpora)
 
-        corpus = ocr_corpus if run_type == RunType.Train else gs_corpus
+        corpus = ocr_corpus if ocr_output_type == OCROutputType.Raw else gs_corpus
 
         total_amount = corpus.length
         if reduction is not None:
             corpus.cut_data(reduction)
 
         print(
-            f'Loaded {corpus.length:,} entries out of {total_amount:,} total for {run_type.to_str()}')
+            f'Loaded {corpus.length:,} entries out of {total_amount:,} total for {ocr_output_type.value}')
         self._log_service.log_summary(
-            key=f'\'{run_type.to_str()}\' entries amount', value=corpus.length)
+            key=f'\'{ocr_output_type.value}\' entries amount', value=corpus.length)
 
         return corpus
 

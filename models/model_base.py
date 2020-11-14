@@ -138,9 +138,9 @@ class ModelBase(nn.Module):
         return model_checkpoint
 
     def _get_model_name(self, name_prefix: str = None) -> str:
-        result = 'checkpoint'
+        result = self._arguments_service.get_configuration_name()
         if self._arguments_service.checkpoint_name is not None:
-            result = self._arguments_service.checkpoint_name
+            result += f'-{self._arguments_service.checkpoint_name}'
 
         if name_prefix:
             result = f'{name_prefix}_{result}'
@@ -180,25 +180,6 @@ class ModelBase(nn.Module):
     @property
     def keep_frozen(self) -> bool:
         return False
-
-    # @overrides
-    # def train(self, mode=True):
-    #     # If fine-tuning is disabled, we don't set the module to train mode
-    #     if mode and self.keep_frozen:
-    #         self.requires_grad_(requires_grad=False)
-
-    #         return
-
-    #     if mode:
-    #         self.requires_grad_(requires_grad=True)
-
-    #     super().train(mode)
-
-    # @overrides
-    # def eval(self):
-    #     super().eval()
-
-    #     self.requires_grad_(requires_grad=False)
 
     def optimizer_parameters(self):
         return self.parameters()

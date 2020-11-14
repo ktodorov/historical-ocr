@@ -1,7 +1,7 @@
 from typing import List
 import random
 
-from enums.run_type import RunType
+from enums.ocr_output_type import OCROutputType
 
 from entities.language_data import LanguageData
 
@@ -31,31 +31,21 @@ class TransformerProcessService(ProcessServiceBase):
         self._cache_service = cache_service
         self._log_service = log_service
 
-    def get_language_data(self, run_type: RunType):
+    def get_language_data(self):
         language_data: LanguageData = None
         limit_size = self._arguments_service.train_dataset_limit_size
 
         language_data = self._load_language_data(
-            run_type,
             limit_size)
 
         return language_data
 
-    def _generate_language_data(
-            self,
-            run_type: RunType):
-        if run_type == RunType.Test:
-            self._ocr_download_service.download_test_data(self._arguments_service.language)
+    def _generate_language_data(self):
+        self._ocr_download_service.download_data(self._arguments_service.language, max_string_length=500)
 
-            pairs = self._cache_service.get_item_from_cache(
-                item_key='test-pairs',
-                callback_function=self._load_eval_splits)
-        else:
-            self._ocr_download_service.download_training_data(self._arguments_service.language)
-
-            pairs = self._cache_service.get_item_from_cache(
-                item_key='train-validation-pairs',
-                callback_function=self._read_data)
+        pairs = self._cache_service.get_item_from_cache(
+            item_key='train-validation-pairs',
+            callback_function=self._read_data)
 
         language_data = LanguageData.from_pairs(
             self._tokenize_service,
@@ -65,20 +55,19 @@ class TransformerProcessService(ProcessServiceBase):
 
     def _load_language_data(
             self,
-            run_type: RunType,
             reduction: int) -> LanguageData:
         language_data = self._cache_service.get_item_from_cache(
-            item_key=f'language-data-{run_type.value}',
-            callback_function=lambda: self._generate_language_data(run_type))
+            item_key=f'language-data',
+            callback_function=self._generate_language_data)
 
         total_amount = language_data.length
         if reduction is not None:
             language_data.cut_data(reduction)
 
         print(
-            f'Loaded {language_data.length} entries out of {total_amount} total for {run_type.to_str()}')
+            f'Loaded {language_data.length} entries out of {total_amount} total')
         self._log_service.log_summary(
-            key=f'\'{run_type.to_str()}\' entries amount', value=language_data.length)
+            key=f'entries amount', value=language_data.length)
 
         return language_data
 

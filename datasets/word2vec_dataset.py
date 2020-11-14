@@ -1,4 +1,3 @@
-from enums.run_type import RunType
 import os
 import numpy as np
 import torch
@@ -22,13 +21,12 @@ class Word2VecDataset(DatasetBase):
             self,
             arguments_service: OCRQualityArgumentsService,
             process_service: Word2VecProcessService,
-            run_type: RunType,
             **kwargs):
         super().__init__()
 
         self._arguments_service = arguments_service
 
-        self._text_corpus = process_service.get_text_corpus(run_type=run_type)
+        self._text_corpus = process_service.get_text_corpus(ocr_output_type=self._arguments_service.ocr_output_type)
 
     @overrides
     def __len__(self):

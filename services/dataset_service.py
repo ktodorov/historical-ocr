@@ -65,15 +65,13 @@ class DatasetService:
                 if configuration == Configuration.CBOW:
                     result = Word2VecDataset(
                         arguments_service=self._arguments_service,
-                        process_service=self._process_service,
-                        run_type=run_type)
+                        process_service=self._process_service)
                 else:
                     result = TransformerLMDataset(
                         language=self._arguments_service.language,
                         arguments_service=self._arguments_service,
                         process_service=self._process_service,
-                        mask_service=self._mask_service,
-                        run_type=run_type)
+                        mask_service=self._mask_service)
         elif joint_model:
             number_of_models: int = self._arguments_service.joint_model_amount
             sub_datasets = self._create_datasets(language, number_of_models)

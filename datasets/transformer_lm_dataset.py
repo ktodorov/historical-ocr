@@ -1,3 +1,4 @@
+from enums.ocr_output_type import OCROutputType
 from enums.run_type import RunType
 import os
 import numpy as np
@@ -21,14 +22,13 @@ class TransformerLMDataset(DatasetBase):
             arguments_service: OCRQualityArgumentsService,
             process_service: TransformerProcessService,
             mask_service: MaskService,
-            run_type: RunType,
             **kwargs):
         super().__init__()
 
         self._mask_service = mask_service
         self._arguments_service = arguments_service
 
-        self._language_data = process_service.get_language_data(run_type=run_type)
+        self._language_data = process_service.get_language_data()
 
     @overrides
     def __len__(self):
@@ -38,8 +38,7 @@ class TransformerLMDataset(DatasetBase):
     def __getitem__(self, idx):
         ocr_aligned, gs_aligned, _, _, _, ocr_masks, gs_masks = self._language_data.get_entry(idx)
 
-        a = True
-        if a:
+        if self._arguments_service.ocr_output_type == OCROutputType.Raw:
             return ocr_aligned, ocr_masks
         else:
             return gs_aligned, gs_masks
