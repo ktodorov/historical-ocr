@@ -65,19 +65,16 @@ class TransformerBase(ModelBase):
             resets_left: int,
             name_prefix: str = None) -> bool:
 
-        checkpoint_name = self._arguments_service.checkpoint_name
-
-        if checkpoint_name:
-            name_prefix = f'{name_prefix}_{checkpoint_name}'
+        model_name = self._get_model_name(name_prefix)
 
         saved = super().save(path, epoch, iteration, best_metrics,
-                             resets_left, name_prefix, save_model_dict=False)
+                             resets_left, model_name, save_model_dict=False)
 
         if not saved:
             return saved
 
         pretrained_weights_path = self._get_pretrained_path(
-            path, name_prefix, create_if_missing=True)
+            path, model_name, create_if_missing=True)
 
         self._transformer_model.save_pretrained(pretrained_weights_path)
 
@@ -91,17 +88,14 @@ class TransformerBase(ModelBase):
             load_model_dict: bool = True,
             load_model_only: bool = False) -> ModelCheckpoint:
 
-        checkpoint_name = self._arguments_service.checkpoint_name
+        model_name = self._get_model_name(name_prefix)
 
-        if checkpoint_name:
-            name_prefix = f'{name_prefix}_{checkpoint_name}'
-
-        model_checkpoint = super().load(path, name_prefix, load_model_dict=False)
+        model_checkpoint = super().load(path, model_name, load_model_dict=False)
         if not load_model_only and not model_checkpoint:
             return None
 
         if load_model_dict:
-            self._load_transformer_model(path, name_prefix)
+            self._load_transformer_model(path, model_name)
 
         return model_checkpoint
 
@@ -123,7 +117,7 @@ class TransformerBase(ModelBase):
             pretrained_weights_path, config=config).to(self._arguments_service.device)
 
     def _get_pretrained_path(self, path: str, name_prefix: str, create_if_missing: bool = False):
-        file_name = f'{name_prefix}_pretrained_weights'
+        file_name = f'{name_prefix}_weights'
         pretrained_weights_path = os.path.join(path, file_name)
 
         if create_if_missing and not os.path.exists(pretrained_weights_path):
