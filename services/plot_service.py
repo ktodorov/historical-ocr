@@ -8,7 +8,7 @@ import matplotlib
 from matplotlib.pyplot import cm
 from collections import Counter
 
-plt.rcParams["figure.figsize"] = (20, 10)
+# plt.rcParams["figure.figsize"] = (20, 10)
 plt.rcParams["text.usetex"] = True
 plt.rcParams['text.latex.preamble'] = r'\usepackage[cm]{sfmath}'
 plt.rcParams['font.family'] = 'sans-serif'
@@ -25,8 +25,8 @@ class PlotService:
     def __init__(
             self,
             data_service: DataService):
-        # sns.set()
-        sns.set(font_scale=3)  # crazy big
+        sns.set()
+        # sns.set(font_scale=3)  # crazy big
         sns.set_style("ticks")
 
         self._data_service = data_service
@@ -50,7 +50,7 @@ class PlotService:
         if ax is None:
             ax = self.create_plot()
 
-        if not number_of_bins:
+        if number_of_bins is None:
             number_of_bins = len(set(values))
 
         if not start_x:
@@ -111,6 +111,7 @@ class PlotService:
             space_x_labels_vertically: bool = False,
             tight_layout: bool = True,
             external_legend: bool = False,
+            show_legend: bool = True,
             ax=None,
             hide_axis: bool = False):
 
@@ -147,10 +148,11 @@ class PlotService:
             for i, label in enumerate(labels):
                 label.set_y(label.get_position()[1] - (i % 2) * 0.075)
 
-        if external_legend:
-            ax.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
-        else:
-            ax.legend()
+        if show_legend:
+            if external_legend:
+                ax.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+            else:
+                ax.legend()
 
         # fontweight = 'bold'
         # fontproperties = {

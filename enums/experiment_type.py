@@ -1,4 +1,6 @@
 from enums.argument_enum import ArgumentEnum
 
 class ExperimentType(ArgumentEnum):
-    pass
+    CosineDistance = 'cosine-distance'
+    EuclideanDistance = 'euclidean-distance'
+    KLDivergence = 'kl-divergence'

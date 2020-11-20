@@ -1,4 +1,5 @@
 from overrides import overrides
+import torch
 
 from models.transformers.transformer_base import TransformerBase
 from transformers import BertForMaskedLM
@@ -27,3 +28,8 @@ class BERT(TransformerBase):
     @property
     def transformer_model(self) -> BertForMaskedLM:
         return self._transformer_model
+
+    @overrides
+    def get_embeddings(self, tokens: torch.Tensor) -> torch.Tensor:
+        outputs = self._transformer_model.forward(tokens)
+        return outputs[1][-1]

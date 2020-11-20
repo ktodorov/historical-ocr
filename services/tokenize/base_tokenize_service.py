@@ -33,6 +33,9 @@ class BaseTokenizeService:
     def encode_sequences(self, sequences: List[str]) -> List[Tuple[List[int], List[str], List[Tuple[int,int]], List[int]]]:
         pass
 
+    def tokenize_sequences(self, sequences: List[str]) -> List[List[int]]:
+        pass
+
     @property
     def vocabulary_size(self) -> int:
         return 0

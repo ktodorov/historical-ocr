@@ -6,6 +6,7 @@ from datasets.dataset_base import DatasetBase
 from datasets.joint_dataset import JointDataset
 from datasets.transformer_lm_dataset import TransformerLMDataset
 from datasets.word2vec_dataset import Word2VecDataset
+from datasets.evaluation_dataset import EvaluationDataset
 
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.file_service import FileService
@@ -73,16 +74,12 @@ class DatasetService:
                         process_service=self._process_service,
                         mask_service=self._mask_service)
         elif joint_model:
-            number_of_models: int = self._arguments_service.joint_model_amount
-            sub_datasets = self._create_datasets(language, number_of_models)
-            result = JointDataset(sub_datasets)
+            result = EvaluationDataset(
+                arguments_service=self._arguments_service,
+                process_service=self._process_service)
 
-        return result
-
-    def _create_datasets(self, language, number_of_datasets: int):
-        # configuration = self._arguments_service.configuration
-
-        result = []
-        pass # TODO
+            # number_of_models: int = self._arguments_service.joint_model_amount
+            # sub_datasets = self._create_datasets(language, number_of_models)
+            # result = JointDataset(sub_datasets)
 
         return result

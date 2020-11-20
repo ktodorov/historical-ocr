@@ -90,6 +90,7 @@ class ModelBase(nn.Module):
             self,
             path: str,
             name_prefix: str = None,
+            name_suffix: str = None,
             load_model_dict: bool = True,
             load_model_only: bool = False,
             use_checkpoint_name: bool = True,
@@ -103,7 +104,7 @@ class ModelBase(nn.Module):
             else:
                 checkpoint_name = self._arguments_service.resume_checkpoint_name
                 if checkpoint_name is None:
-                    checkpoint_name = self._get_model_name(name_prefix)
+                    checkpoint_name = self._get_model_name(name_prefix, name_suffix)
 
         if load_model_only:
             return None
@@ -137,13 +138,16 @@ class ModelBase(nn.Module):
 
         return model_checkpoint
 
-    def _get_model_name(self, name_prefix: str = None) -> str:
+    def _get_model_name(self, name_prefix: str = None, name_suffix: str = None) -> str:
         result = self._arguments_service.get_configuration_name()
         if self._arguments_service.checkpoint_name is not None:
             result += f'-{self._arguments_service.checkpoint_name}'
 
-        if name_prefix:
+        if name_prefix is not None:
             result = f'{name_prefix}_{result}'
+
+        if name_suffix is not None:
+            result = f'{result}{name_suffix}'
 
         return result
 
@@ -196,3 +200,6 @@ class ModelBase(nn.Module):
 
     def after_load(self):
         pass
+
+    def get_embeddings(self, tokens: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError()

@@ -1,3 +1,6 @@
+from gensim.utils import tokenize
+from torch.utils import data
+from models.joint_model import JointModel
 import torch
 import numpy as np
 import random
@@ -30,6 +33,7 @@ from optimizers.adamw_transformer_optimizer import AdamWTransformerOptimizer
 from optimizers.joint_adamw_transformer_optimizer import JointAdamWTransformerOptimizer
 
 from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
+from services.arguments.ocr_evaluation_arguments_service import OCREvaluationArgumentsService
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.arguments.pretrained_arguments_service import PretrainedArgumentsService
 
@@ -38,6 +42,7 @@ from services.download.ocr_download_service import OCRDownloadService
 from services.process.process_service_base import ProcessServiceBase
 from services.process.transformer_process_service import TransformerProcessService
 from services.process.word2vec_process_service import Word2VecProcessService
+from services.process.evaluation_process_service import EvaluationProcessService
 
 from services.evaluation.base_evaluation_service import BaseEvaluationService
 
@@ -50,15 +55,19 @@ from services.mask_service import MaskService
 from services.metrics_service import MetricsService
 from services.model_service import ModelService
 from services.test_service import TestService
+
 from services.tokenize.base_tokenize_service import BaseTokenizeService
 from services.tokenize.bert_tokenize_service import BERTTokenizeService
 from services.tokenize.xlnet_tokenize_service import XLNetTokenizeService
 from services.tokenize.bart_tokenize_service import BARTTokenizeService
 from services.tokenize.camembert_tokenize_service import CamembertTokenizeService
+from services.tokenize.cbow_tokenize_service import CBOWTokenizeService
+
 from services.train_service import TrainService
 from services.vocabulary_service import VocabularyService
 from services.plot_service import PlotService
-from services.experiment_service import ExperimentService
+from services.experiments.experiment_service_base import ExperimentServiceBase
+from services.experiments.ocr_quality_experiment_service import OCRQualityExperimentService
 from services.cache_service import CacheService
 from services.string_process_service import StringProcessService
 
@@ -75,10 +84,17 @@ def initialize_seed(seed: int, device: str):
         torch.cuda.manual_seed_all(seed)
 
 
-def get_argument_service_type(challenge: Challenge, configuration: Configuration):
+def get_argument_service_type(
+        challenge: Challenge,
+        configuration: Configuration,
+        run_experiments: bool):
     argument_service_type = None
+
     if challenge == Challenge.OCREvaluation:
-        argument_service_type = OCRQualityArgumentsService
+        if run_experiments:
+            argument_service_type = OCREvaluationArgumentsService
+        else:
+            argument_service_type = OCRQualityArgumentsService
     else:
         raise Exception('Challenge not supported')
 
@@ -159,10 +175,17 @@ def register_model(
         model_service: ModelService,
         process_service: ProcessServiceBase,
         joint_model: bool,
-        configuration: Configuration):
+        configuration: Configuration,
+        run_experiments: bool):
     model = None
 
-    if configuration == Configuration.BERT:
+    if run_experiments:
+        model = providers.Singleton(
+            JointModel,
+            arguments_service=arguments_service,
+            data_service=data_service,
+            vocabulary_service=vocabulary_service)
+    elif configuration == Configuration.BERT:
         model = providers.Singleton(
             BERT,
             arguments_service=arguments_service,
@@ -200,11 +223,20 @@ def register_process_service(
         log_service: LogService,
         cache_service: CacheService,
         ocr_download_service: OCRDownloadService,
-        string_process_service: StringProcessService):
+        string_process_service: StringProcessService,
+        run_experiments: bool):
     process_service = None
 
     if challenge == Challenge.OCREvaluation:
-        if configuration == Configuration.CBOW:
+        if run_experiments:
+            process_service = providers.Singleton(
+                EvaluationProcessService,
+                arguments_service=arguments_service,
+                cache_service=cache_service,
+                log_service=log_service,
+                vocabulary_service=vocabulary_service,
+                tokenize_service=tokenize_service)
+        elif configuration == Configuration.CBOW:
             process_service = providers.Singleton(
                 Word2VecProcessService,
                 arguments_service=arguments_service,
@@ -222,12 +254,12 @@ def register_process_service(
                 cache_service=cache_service,
                 log_service=log_service)
 
-
     return process_service
 
 
 def register_tokenize_service(
         arguments_service: ArgumentsServiceBase,
+        configuration: Configuration,
         pretrained_model_type: PretrainedModel):
     tokenize_service = None
     if pretrained_model_type == PretrainedModel.BERT:
@@ -246,8 +278,32 @@ def register_tokenize_service(
         tokenize_service = providers.Singleton(
             CamembertTokenizeService,
             arguments_service=arguments_service)
+    elif configuration == Configuration.CBOW:
+        tokenize_service = providers.Singleton(
+            CBOWTokenizeService)
 
     return tokenize_service
+
+
+def register_experiment_service(
+        arguments_service: ArgumentsServiceBase,
+        dataloader_service: DataLoaderService,
+        file_service: FileService,
+        metrics_service: MetricsService,
+        plot_service: PlotService,
+        model: ModelBase):
+
+    experiment_service = providers.Factory(
+        OCRQualityExperimentService,
+        arguments_service=arguments_service,
+        dataloader_service=dataloader_service,
+        file_service=file_service,
+        metrics_service=metrics_service,
+        plot_service=plot_service,
+        model=model
+    )
+
+    return experiment_service
 
 
 class IocContainer(containers.DeclarativeContainer):
@@ -270,7 +326,8 @@ class IocContainer(containers.DeclarativeContainer):
     external_logging_enabled = arguments_service_base.enable_external_logging
     pretrained_model_type = arguments_service_base.pretrained_model
 
-    argument_service_type = get_argument_service_type(challenge, configuration)
+    argument_service_type = get_argument_service_type(
+        challenge, configuration, run_experiments)
     arguments_service = providers.Singleton(
         argument_service_type
     )
@@ -303,6 +360,7 @@ class IocContainer(containers.DeclarativeContainer):
 
     tokenize_service = register_tokenize_service(
         arguments_service=arguments_service,
+        configuration=configuration,
         pretrained_model_type=pretrained_model_type)
 
     mask_service = providers.Factory(
@@ -344,7 +402,8 @@ class IocContainer(containers.DeclarativeContainer):
         log_service=log_service,
         cache_service=cache_service,
         ocr_download_service=ocr_download_service,
-        string_process_service=string_process_service)
+        string_process_service=string_process_service,
+        run_experiments=run_experiments)
 
     dataset_service = providers.Factory(
         DatasetService,
@@ -356,7 +415,7 @@ class IocContainer(containers.DeclarativeContainer):
         vocabulary_service=vocabulary_service,
         metrics_service=metrics_service,
         data_service=data_service,
-        process_service=process_service
+        process_service=process_service,
     )
 
     dataloader_service = providers.Factory(
@@ -384,7 +443,8 @@ class IocContainer(containers.DeclarativeContainer):
         model_service=model_service,
         process_service=process_service,
         joint_model=joint_model,
-        configuration=configuration)
+        configuration=configuration,
+        run_experiments=run_experiments)
 
     loss_function = register_loss(
         joint_model=joint_model,
@@ -413,16 +473,12 @@ class IocContainer(containers.DeclarativeContainer):
         joint_model=joint_model,
         configuration=configuration)
 
-    experiment_service = providers.Factory(
-        ExperimentService,
+    experiment_service = register_experiment_service(
         arguments_service=arguments_service,
-        metrics_service=metrics_service,
+        dataloader_service=dataloader_service,
         file_service=file_service,
-        tokenize_service=tokenize_service,
-        vocabulary_service=vocabulary_service,
+        metrics_service=metrics_service,
         plot_service=plot_service,
-        data_service=data_service,
-        cache_service=cache_service,
         model=model
     )
 

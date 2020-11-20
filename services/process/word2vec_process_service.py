@@ -5,11 +5,7 @@ from torch._C import dtype
 import gensim
 import numpy as np
 import torch
-import re
-import string
 from tqdm import tqdm
-
-from nltk.tokenize import RegexpTokenizer
 
 from enums.ocr_output_type import OCROutputType
 
@@ -22,7 +18,7 @@ from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.cache_service import CacheService
 from services.log_service import LogService
 from services.vocabulary_service import VocabularyService
-
+from services.tokenize.base_tokenize_service import BaseTokenizeService
 
 class Word2VecProcessService(ProcessServiceBase):
     def __init__(
@@ -32,7 +28,8 @@ class Word2VecProcessService(ProcessServiceBase):
             cache_service: CacheService,
             log_service: LogService,
             vocabulary_service: VocabularyService,
-            file_service: FileService):
+            file_service: FileService,
+            tokenize_service: BaseTokenizeService):
 
         self._arguments_service = arguments_service
         self._cache_service = cache_service
@@ -41,7 +38,7 @@ class Word2VecProcessService(ProcessServiceBase):
         self._vocabulary_service = vocabulary_service
         self._file_service = file_service
 
-        self._tokenizer = RegexpTokenizer(r'\w+') # word tokenizer without punctuation
+        self._tokenize_service = tokenize_service
 
 
     def get_text_corpus(self, ocr_output_type: OCROutputType) -> CBOWCorpus:
@@ -53,16 +50,6 @@ class Word2VecProcessService(ProcessServiceBase):
 
         return text_corpus
 
-    def _clean_text(self, text):
-        # remove numbers
-        text_nonum = re.sub(r'\d+', '', text)
-        # remove punctuations and convert characters to lower case
-        text_nopunct = "".join([char.lower() for char in text_nonum if char not in string.punctuation])
-        # substitute multiple whitespace with single whitespace
-        # Also, removes leading and trailing whitespaces
-        text_no_doublespace = re.sub('\s+', ' ', text_nopunct).strip()
-        return text_no_doublespace
-
     def _generate_ocr_corpora(self):
         self._ocr_download_service.download_data(self._arguments_service.language)
 
@@ -70,9 +57,8 @@ class Word2VecProcessService(ProcessServiceBase):
             item_key='train-validation-pairs',
             callback_function=self._read_data)
 
-
-        tokenized_ocr_data = [self._tokenizer.tokenize(self._clean_text(x)) for x in ocr_data]
-        tokenized_gs_data = [self._tokenizer.tokenize(self._clean_text(x)) for x in gs_data]
+        tokenized_ocr_data = self._tokenize_service.tokenize_sequences(ocr_data)
+        tokenized_gs_data = self._tokenize_service.tokenize_sequences(gs_data)
 
         self._vocabulary_service.initialize_vocabulary_from_corpus(tokenized_ocr_data + tokenized_gs_data)
 
@@ -159,10 +145,3 @@ class Word2VecProcessService(ProcessServiceBase):
             callback_function=self._load_file_data)
 
         return ocr_file_data, gs_file_data
-
-        # decoded_pairs_cache_key = f'data-pairs'
-        # decoded_pairs = self._cache_service.get_item_from_cache(
-        #     item_key=decoded_pairs_cache_key,
-        #     callback_function=lambda: (list(zip(ocr_file_data, gs_file_data))))
-
-        # return decoded_pairs

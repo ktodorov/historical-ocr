@@ -1,7 +1,6 @@
 from typing import List, Dict
 
 import torch
-from scipy import spatial
 
 from entities.batch_representation import BatchRepresentation
 

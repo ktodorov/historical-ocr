@@ -1,4 +1,5 @@
 import os 
+import torch
 from overrides import overrides
 
 from models.model_base import ModelBase
@@ -85,10 +86,11 @@ class TransformerBase(ModelBase):
             self,
             path: str,
             name_prefix: str = None,
+            name_suffix: str = None,
             load_model_dict: bool = True,
             load_model_only: bool = False) -> ModelCheckpoint:
 
-        model_name = self._get_model_name(name_prefix)
+        model_name = self._get_model_name(name_prefix, name_suffix)
 
         model_checkpoint = super().load(path, model_name, load_model_dict=False)
         if not load_model_only and not model_checkpoint:

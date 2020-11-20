@@ -17,8 +17,6 @@ class MaskService:
         token_results = self._tokenize_service.encode_tokens([tokenize_service.mask_token])
         if token_results and len(token_results) > 0:
             self._mask_token_id = token_results[0]
-        else:
-            raise Exception('Mask token not found')
 
         self._masking_percentage = 0.8
 

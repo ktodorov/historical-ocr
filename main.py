@@ -8,7 +8,7 @@ from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.data_service import DataService
 from services.train_service import TrainService
 from services.test_service import TestService
-from services.experiment_service import ExperimentService
+from services.experiments.experiment_service_base import ExperimentServiceBase
 
 
 def main(
@@ -16,7 +16,7 @@ def main(
         arguments_service: ArgumentsServiceBase,
         train_service: TrainService,
         test_service: TestService,
-        experiment_service: ExperimentService):
+        experiment_service: ExperimentServiceBase):
 
     # print the arguments that the program was initialized with
     arguments_service.print_arguments()
