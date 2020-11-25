@@ -1,4 +1,5 @@
 import re
+from services.vocabulary_service import VocabularyService
 import string
 from typing import List, Tuple
 from nltk.tokenize import RegexpTokenizer
@@ -7,16 +8,20 @@ from nltk.tokenize import RegexpTokenizer
 from services.tokenize.base_tokenize_service import BaseTokenizeService
 
 class CBOWTokenizeService(BaseTokenizeService):
-    def __init__(self):
+    def __init__(
+        self,
+        vocabulary_service: VocabularyService):
         super().__init__()
 
+        self._vocabulary_service = vocabulary_service
         self._tokenizer = RegexpTokenizer(r'\w+')
 
     def encode_tokens(self, tokens: List[str]) -> List[int]:
         pass
 
     def decode_tokens(self, character_ids: List[int]) -> List[str]:
-        pass
+        result = self._vocabulary_service.ids_to_strings(character_ids)
+        return result
 
     def decode_string(self, character_ids: List[int]) -> List[str]:
         pass

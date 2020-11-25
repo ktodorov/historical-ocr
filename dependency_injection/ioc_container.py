@@ -1,3 +1,4 @@
+from gensim.models.keyedvectors import Vocab
 from gensim.utils import tokenize
 from torch.utils import data
 from models.joint_model import JointModel
@@ -244,7 +245,8 @@ def register_process_service(
                 cache_service=cache_service,
                 log_service=log_service,
                 vocabulary_service=vocabulary_service,
-                file_service=file_service)
+                file_service=file_service,
+                tokenize_service=tokenize_service)
         else:
             process_service = providers.Singleton(
                 TransformerProcessService,
@@ -259,6 +261,7 @@ def register_process_service(
 
 def register_tokenize_service(
         arguments_service: ArgumentsServiceBase,
+        vocabulary_service: VocabularyService,
         configuration: Configuration,
         pretrained_model_type: PretrainedModel):
     tokenize_service = None
@@ -280,7 +283,8 @@ def register_tokenize_service(
             arguments_service=arguments_service)
     elif configuration == Configuration.CBOW:
         tokenize_service = providers.Singleton(
-            CBOWTokenizeService)
+            CBOWTokenizeService,
+            vocabulary_service=vocabulary_service)
 
     return tokenize_service
 
@@ -362,8 +366,16 @@ class IocContainer(containers.DeclarativeContainer):
         data_service=data_service
     )
 
+    vocabulary_service = providers.Singleton(
+        VocabularyService,
+        data_service=data_service,
+        file_service=file_service,
+        cache_service=cache_service
+    )
+
     tokenize_service = register_tokenize_service(
         arguments_service=arguments_service,
+        vocabulary_service=vocabulary_service,
         configuration=configuration,
         pretrained_model_type=pretrained_model_type)
 
@@ -375,13 +387,6 @@ class IocContainer(containers.DeclarativeContainer):
 
     metrics_service = providers.Factory(
         MetricsService
-    )
-
-    vocabulary_service = providers.Singleton(
-        VocabularyService,
-        data_service=data_service,
-        file_service=file_service,
-        cache_service=cache_service
     )
 
     string_process_service = providers.Factory(

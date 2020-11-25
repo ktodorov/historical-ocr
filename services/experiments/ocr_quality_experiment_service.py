@@ -74,7 +74,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
     def _save_experiment_results(self, result: Dict[ExperimentType, Dict[str, float]]):
         experiments_folder = self._file_service.get_experiments_path()
         distances_folder = self._file_service.combine_path(
-            experiments_folder, 'distances', create_if_missing=True)
+            experiments_folder, 'distances', self._arguments_service.language.value, create_if_missing=True)
 
         for experiment_type, word_value_pairs in result.items():
             values = list(word_value_pairs.values())

@@ -31,7 +31,7 @@ class ExperimentServiceBase:
         self._dataloader = self._dataloader_service.get_test_dataloader()
 
         checkpoints_path = self._file_service.get_checkpoints_path()
-        self._model.load(checkpoints_path, 'BEST')
+        self._model.load(checkpoints_path, 'BEST', load_model_only=True)
         self._model.eval()
 
     def execute_experiments(self, experiment_types: List[ExperimentType]):

@@ -146,6 +146,9 @@ class VocabularyService:
 
     def _load_cached_vocabulary(self):
         return self._cache_service.get_item_from_cache(self._vocabulary_cache_key)
+        
+    def vocabulary_is_initialized(self) -> bool:
+        return self._id2token is not None and len(self._id2token) > 0 and self._token2idx is not None and len(self._token2idx) > 0
 
     @property
     def cls_token(self) -> int:

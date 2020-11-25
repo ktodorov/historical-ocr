@@ -40,6 +40,9 @@ class Word2VecProcessService(ProcessServiceBase):
 
         self._tokenize_service = tokenize_service
 
+        if not self._vocabulary_service.vocabulary_is_initialized():
+            self._initialize_vocabulary()
+
 
     def get_text_corpus(self, ocr_output_type: OCROutputType) -> CBOWCorpus:
         limit_size = self._arguments_service.train_dataset_limit_size
@@ -50,11 +53,11 @@ class Word2VecProcessService(ProcessServiceBase):
 
         return text_corpus
 
-    def _generate_ocr_corpora(self):
+    def _initialize_vocabulary(self):
         self._ocr_download_service.download_data(self._arguments_service.language)
 
         ocr_data, gs_data = self._cache_service.get_item_from_cache(
-            item_key='train-validation-pairs',
+            item_key='train-validation-data',
             callback_function=self._read_data)
 
         tokenized_ocr_data = self._tokenize_service.tokenize_sequences(ocr_data)
@@ -62,8 +65,18 @@ class Word2VecProcessService(ProcessServiceBase):
 
         self._vocabulary_service.initialize_vocabulary_from_corpus(tokenized_ocr_data + tokenized_gs_data)
 
+    def _generate_ocr_corpora(self):
+        (ocr_data, gs_data) = self._cache_service.get_item_from_cache(item_key='train-validation-data')
+
+        tokenized_ocr_data = self._tokenize_service.tokenize_sequences(ocr_data)
+        tokenized_gs_data = self._tokenize_service.tokenize_sequences(gs_data)
+
         ocr_data_ids = [self._vocabulary_service.string_to_ids(x) for x in tokenized_ocr_data]
         gs_data_ids = [self._vocabulary_service.string_to_ids(x) for x in tokenized_gs_data]
+
+        self._cache_service.cache_item(
+            item_key='token-ids',
+            item=(ocr_data_ids, gs_data_ids))
 
         ocr_corpus = CBOWCorpus(ocr_data_ids, window_size=2)
         gs_corpus = CBOWCorpus(gs_data_ids, window_size=2)
@@ -71,6 +84,9 @@ class Word2VecProcessService(ProcessServiceBase):
         return (ocr_corpus, gs_corpus)
 
     def get_pretrained_matrix(self) -> torch.Tensor:
+        if not self._vocabulary_service.vocabulary_is_initialized():
+            raise Exception('Vocabulary not initialized')
+
         token_matrix = self._cache_service.get_item_from_cache(
             item_key='word-matrix',
             callback_function=self._generate_token_matrix)

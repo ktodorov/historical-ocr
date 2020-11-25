@@ -98,6 +98,7 @@ class TransformerBase(ModelBase):
             path,
             model_name,
             load_model_dict=False,
+            load_model_only=True,
             use_checkpoint_name=False)
         if not load_model_only and not model_checkpoint:
             return None
