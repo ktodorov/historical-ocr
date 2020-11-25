@@ -82,10 +82,11 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             if values is None or len(values) == 0:
                 continue
 
-            exponents = [Decimal(str(x)).as_tuple().exponent for x in values]
+            exponents = [format(x, '.0e') for x in values]
+            exponents.sort(key=float)
             counter = Counter(exponents)
             counter = Counter(
-                {f'e{str(key)}': value for key, value in counter.items()})
+                {float(key): value for key, value in counter.items()})
 
             filename = f'{self._arguments_service.configuration.value}-{experiment_type.value}'
             self._plot_service.plot_counters_histogram(
