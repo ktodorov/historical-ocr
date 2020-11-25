@@ -29,6 +29,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             model: ModelBase):
         super().__init__(arguments_service, dataloader_service, file_service, model)
 
+        self._arguments_service = arguments_service
         self._metrics_service = metrics_service
         self._plot_service = plot_service
 
@@ -77,7 +78,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         for experiment_type, word_value_pairs in result.items():
             values = list(word_value_pairs.values())
-            
+
             if values is None or len(values) == 0:
                 continue
 
@@ -86,6 +87,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             counter = Counter(
                 {f'e{str(key)}': value for key, value in counter.items()})
 
+            filename = f'{self._arguments_service.configuration.value}-{experiment_type.value}'
             self._plot_service.plot_counters_histogram(
                 counter_labels=['a'],
                 counters=[counter],
@@ -93,4 +95,4 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 show_legend=False,
                 plot_values_above_bars=True,
                 save_path=distances_folder,
-                filename=experiment_type.value)
+                filename=filename)

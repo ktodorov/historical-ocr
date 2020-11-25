@@ -3,7 +3,7 @@ import random
 
 from enums.ocr_output_type import OCROutputType
 
-from entities.language_data import LanguageData
+from entities.transformer_entry import TransformerEntry
 
 from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
 from services.process.process_service_base import ProcessServiceBase
@@ -31,45 +31,58 @@ class TransformerProcessService(ProcessServiceBase):
         self._cache_service = cache_service
         self._log_service = log_service
 
-    def get_language_data(self):
-        language_data: LanguageData = None
+    def get_entries(self, ocr_output_type: OCROutputType):
+        entries = None
         limit_size = self._arguments_service.train_dataset_limit_size
 
-        language_data = self._load_language_data(
+        entries = self._load_transformer_entries(
+            ocr_output_type,
             limit_size)
 
-        return language_data
+        return entries
 
-    def _generate_language_data(self):
+    def _generate_entries(self):
         self._ocr_download_service.download_data(self._arguments_service.language, max_string_length=500)
 
-        pairs = self._cache_service.get_item_from_cache(
-            item_key='train-validation-pairs',
+        ocr_file_data, gs_file_data = self._cache_service.get_item_from_cache(
+            item_key='train-validation-data',
             callback_function=self._read_data)
 
-        language_data = LanguageData.from_pairs(
-            self._tokenize_service,
-            pairs)
+        encoded_ocr_sequences = self._tokenize_service.encode_sequences(ocr_file_data)
+        encoded_gs_sequences = self._tokenize_service.encode_sequences(gs_file_data)
 
-        return language_data
+        ocr_entries = [TransformerEntry(ids, special_tokens_mask) for ids, _, _, special_tokens_mask in encoded_ocr_sequences]
+        gs_entries = [TransformerEntry(ids, special_tokens_mask) for ids, _, _, special_tokens_mask in encoded_gs_sequences]
 
-    def _load_language_data(
+        ocr_ids = [x.token_ids for x in ocr_entries]
+        gs_ids = [x.token_ids for x in gs_entries]
+
+        self._cache_service.cache_item(
+            item_key='token-ids',
+            item=(ocr_ids, gs_ids))
+
+        return ocr_entries, gs_entries
+
+    def _load_transformer_entries(
             self,
-            reduction: int) -> LanguageData:
-        language_data = self._cache_service.get_item_from_cache(
-            item_key=f'language-data',
-            callback_function=self._generate_language_data)
+            ocr_output_type: OCROutputType,
+            reduction: int) -> List[TransformerEntry]:
+        ocr_entries, gs_entries = self._cache_service.get_item_from_cache(
+            item_key=f'entries',
+            callback_function=self._generate_entries)
 
-        total_amount = language_data.length
+        entries = ocr_entries if ocr_output_type == OCROutputType.Raw else gs_entries
+
+        total_amount = len(entries)
         if reduction is not None:
-            language_data.cut_data(reduction)
+            entries = entries[:reduction]
 
         print(
-            f'Loaded {language_data.length} entries out of {total_amount} total')
+            f'Loaded {len(entries)} entries out of {total_amount} total')
         self._log_service.log_summary(
-            key=f'entries amount', value=language_data.length)
+            key=f'entries amount', value=len(entries))
 
-        return language_data
+        return entries
 
     def _load_file_data(self):
         cache_keys = [
@@ -100,9 +113,4 @@ class TransformerProcessService(ProcessServiceBase):
             item_key=ocr_gs_file_data_cache_key,
             callback_function=self._load_file_data)
 
-        decoded_pairs_cache_key = f'metrics-decoded-pairs'
-        decoded_pairs = self._cache_service.get_item_from_cache(
-            item_key=decoded_pairs_cache_key,
-            callback_function=lambda: (list(zip(ocr_file_data, gs_file_data))))
-
-        return decoded_pairs
+        return ocr_file_data, gs_file_data

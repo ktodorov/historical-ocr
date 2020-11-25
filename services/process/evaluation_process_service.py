@@ -44,19 +44,17 @@ class EvaluationProcessService(ProcessServiceBase):
         return result
 
     def get_common_words(self) -> List[int]:
-        pairs = self._cache_service.get_item_from_cache(
-            item_key=f'train-validation-pairs')
+        token_ids = self._cache_service.get_item_from_cache(
+            item_key='token-ids')
 
-        if pairs is None:
+        if token_ids is None:
             return []
 
-        (ocr_data, gs_data) = pairs
-        tokenized_ocr_data = self._tokenize_service.tokenize_sequences(ocr_data)
-        ocr_unique_token_set = set([item for sublist in tokenized_ocr_data for item in sublist])
-        tokenized_gs_data = self._tokenize_service.tokenize_sequences(gs_data)
-        gs_unique_token_set = set([item for sublist in tokenized_gs_data for item in sublist])
+        (ocr_ids, gs_ids) = token_ids
+        ocr_unique_token_ids = set([item for sublist in ocr_ids for item in sublist])
+        gs_unique_token_ids = set([item for sublist in gs_ids for item in sublist])
 
-        common_words = list(ocr_unique_token_set & gs_unique_token_set)
-        common_word_ids = self._vocabulary_service.string_to_ids(common_words)
+        common_ids = list(ocr_unique_token_ids & gs_unique_token_ids)
+        common_words = self._tokenize_service.decode_tokens(common_ids)
 
-        return (common_words, common_word_ids)
+        return (common_words, common_ids)

@@ -291,7 +291,11 @@ def register_experiment_service(
         file_service: FileService,
         metrics_service: MetricsService,
         plot_service: PlotService,
-        model: ModelBase):
+        model: ModelBase,
+        run_experiments: bool):
+
+    if not run_experiments:
+        return None
 
     experiment_service = providers.Factory(
         OCRQualityExperimentService,
@@ -479,8 +483,8 @@ class IocContainer(containers.DeclarativeContainer):
         file_service=file_service,
         metrics_service=metrics_service,
         plot_service=plot_service,
-        model=model
-    )
+        model=model,
+        run_experiments=run_experiments)
 
     test_service = providers.Factory(
         TestService,

@@ -31,5 +31,6 @@ class BERT(TransformerBase):
 
     @overrides
     def get_embeddings(self, tokens: torch.Tensor) -> torch.Tensor:
-        outputs = self._transformer_model.forward(tokens)
-        return outputs[1][-1]
+        unsqueezed_tokens = tokens.unsqueeze(-1)
+        outputs = self._transformer_model.forward(unsqueezed_tokens)
+        return outputs[1][-1].cpu().tolist()

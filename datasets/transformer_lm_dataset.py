@@ -28,20 +28,16 @@ class TransformerLMDataset(DatasetBase):
         self._mask_service = mask_service
         self._arguments_service = arguments_service
 
-        self._language_data = process_service.get_language_data()
+        self._entries = process_service.get_entries(self._arguments_service.ocr_output_type)
 
     @overrides
     def __len__(self):
-        return self._language_data.length
+        return len(self._entries)
 
     @overrides
     def __getitem__(self, idx):
-        ocr_aligned, gs_aligned, _, _, _, ocr_masks, gs_masks = self._language_data.get_entry(idx)
-
-        if self._arguments_service.ocr_output_type == OCROutputType.Raw:
-            return ocr_aligned, ocr_masks
-        else:
-            return gs_aligned, gs_masks
+        entry = self._entries[idx]
+        return (entry.token_ids, entry.mask_ids)
 
     @overrides
     def use_collate_function(self) -> bool:
