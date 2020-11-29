@@ -33,7 +33,7 @@ class BaseTokenizeService:
     def encode_sequences(self, sequences: List[str]) -> List[Tuple[List[int], List[str], List[Tuple[int,int]], List[int]]]:
         pass
 
-    def tokenize_sequences(self, sequences: List[str]) -> List[List[int]]:
+    def tokenize_sequences(self, sequences: List[str]) -> List[List[str]]:
         pass
 
     @property

@@ -33,7 +33,8 @@ class CBOWTokenizeService(BaseTokenizeService):
         pass
 
     def encode_sequences(self, sequences: List[str]) -> List[Tuple[List[int], List[str], List[Tuple[int,int]], List[int]]]:
-        pass
+        result = [[self._vocabulary_service.string_to_id(x)] for x in sequences]
+        return (result, None, None, None)
 
     def tokenize_sequences(self, sequences: List[str]) -> List[List[str]]:
         result = [self._tokenizer.tokenize(self._clean_text(sequence)) for sequence in sequences]

@@ -113,6 +113,7 @@ class PlotService:
             external_legend: bool = False,
             show_legend: bool = True,
             ax=None,
+            xticks_count: int = None,
             hide_axis: bool = False):
 
         if ax is None:
@@ -140,9 +141,19 @@ class PlotService:
             rects.append(
                 ax.bar(x + (i * dimw), counter_values, dimw, label=counter_labels[i], color=counter_colors[i]))
 
-        ax.set_xticks(x + (total_width - dimw) / 2)
+        xticks = x + (total_width - dimw) / 2
+        xtick_labels = unique_labels
+        if xticks_count is not None:
+
+            indices = np.round(np.linspace(0, len(xticks) - 1, xticks_count)).astype(int)
+            leftover_ticks = [xticks[idx] for idx in indices]
+            xtick_labels = [unique_labels[idx] for idx in indices]
+
+            xticks = leftover_ticks
+
+        ax.set_xticks(xticks)
         labels = ax.set_xticklabels(
-            unique_labels, rotation=x_labels_rotation_angle)
+            xtick_labels, rotation=x_labels_rotation_angle)
 
         if space_x_labels_vertically:
             for i, label in enumerate(labels):

@@ -6,6 +6,7 @@ import gensim
 import numpy as np
 import torch
 from tqdm import tqdm
+from typing import List
 
 from enums.ocr_output_type import OCROutputType
 
@@ -71,6 +72,8 @@ class Word2VecProcessService(ProcessServiceBase):
         tokenized_ocr_data = self._tokenize_service.tokenize_sequences(ocr_data)
         tokenized_gs_data = self._tokenize_service.tokenize_sequences(gs_data)
 
+        self._save_common_words(tokenized_ocr_data, tokenized_gs_data)
+
         ocr_data_ids = [self._vocabulary_service.string_to_ids(x) for x in tokenized_ocr_data]
         gs_data_ids = [self._vocabulary_service.string_to_ids(x) for x in tokenized_gs_data]
 
@@ -82,6 +85,17 @@ class Word2VecProcessService(ProcessServiceBase):
         gs_corpus = CBOWCorpus(gs_data_ids, window_size=2)
 
         return (ocr_corpus, gs_corpus)
+
+    def _save_common_words(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
+        ocr_unique_tokens = set([item for sublist in tokenized_ocr_data for item in sublist])
+        gs_unique_tokens = set([item for sublist in tokenized_gs_data for item in sublist])
+
+        common_tokens = list(ocr_unique_tokens & gs_unique_tokens)
+        self._cache_service.cache_item(
+            item_key=f'common-tokens-{self._arguments_service.language.value}',
+            item=common_tokens,
+            configuration_specific=False)
+
 
     def get_pretrained_matrix(self) -> torch.Tensor:
         if not self._vocabulary_service.vocabulary_is_initialized():

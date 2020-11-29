@@ -34,9 +34,18 @@ class EvaluationDataset(DatasetBase):
         return self._pad_and_sort_batch(sequences)
 
     def _pad_and_sort_batch(self, DataLoaderBatch):
+        batch_size = len(DataLoaderBatch)
         batch_split = list(zip(*DataLoaderBatch))
 
         words, token_ids = batch_split
+
+        lengths = [len(sequence) for sequence in token_ids]
+        max_length = max(lengths)
+        padded_sequences = np.zeros((batch_size, max_length), dtype=np.int64)
+
+        for i, l in enumerate(lengths):
+            padded_sequences[i][0:l] = token_ids[i][0:l]
+
         return (
             words,
-            torch.LongTensor(token_ids).to(self._arguments_service.device))
+            torch.LongTensor(padded_sequences).to(self._arguments_service.device))

@@ -31,6 +31,9 @@ class BERT(TransformerBase):
 
     @overrides
     def get_embeddings(self, tokens: torch.Tensor) -> torch.Tensor:
-        unsqueezed_tokens = tokens.unsqueeze(-1)
-        outputs = self._transformer_model.forward(unsqueezed_tokens)
-        return outputs[1][-1].cpu().tolist()
+        outputs = self._transformer_model.forward(tokens)
+        padded_embeddings = outputs[1][-1] # BatchSize X MaxLength X EmbeddingSize
+        mask = (tokens > 0).unsqueeze(-1).repeat(1, 1, 768).float()
+        means = (torch.sum(padded_embeddings * mask, dim=1) / mask.sum(dim=1)).cpu().tolist()
+
+        return means

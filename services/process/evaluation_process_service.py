@@ -44,17 +44,14 @@ class EvaluationProcessService(ProcessServiceBase):
         return result
 
     def get_common_words(self) -> List[int]:
-        token_ids = self._cache_service.get_item_from_cache(
-            item_key='token-ids')
+        common_words = self._cache_service.get_item_from_cache(
+            item_key=f'common-tokens-{self._arguments_service.language.value}',
+            configuration_specific=False)
 
-        if token_ids is None:
+        if common_words is None:
             return []
 
-        (ocr_ids, gs_ids) = token_ids
-        ocr_unique_token_ids = set([item for sublist in ocr_ids for item in sublist])
-        gs_unique_token_ids = set([item for sublist in gs_ids for item in sublist])
-
-        common_ids = list(ocr_unique_token_ids & gs_unique_token_ids)
-        common_words = self._tokenize_service.decode_tokens(common_ids)
+        encoded_sequences = self._tokenize_service.encode_sequences(common_words)
+        common_ids = [x[0] for x in encoded_sequences]
 
         return (common_words, common_ids)

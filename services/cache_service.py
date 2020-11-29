@@ -23,9 +23,16 @@ class CacheService:
         self._file_service = file_service
         self._data_service = data_service
 
-        self._cache_folder = self._file_service.combine_path(
-            '.cache',
+        self._global_cache_folder = self._file_service.combine_path(
+            '.cache', create_if_missing=True)
+
+        self._challenge_cache_folder = self._file_service.combine_path(
+            self._global_cache_folder,
             self._arguments_service.challenge.value.lower(),
+            create_if_missing=True)
+
+        self._internal_cache_folder = self._file_service.combine_path(
+            self._challenge_cache_folder,
             self._arguments_service.configuration.value.lower(),
             self._arguments_service.language.value.lower(),
             create_if_missing=True)
@@ -34,15 +41,21 @@ class CacheService:
             self,
             item_key: str,
             callback_function: Callable = None,
-            time_to_keep: Timespan = None) -> object:
+            time_to_keep: Timespan = None,
+            configuration_specific: bool = True,
+            challenge_specific: bool = True) -> object:
+        cache_folder = self._get_cache_folder_path(
+            configuration_specific=configuration_specific,
+            challenge_specific=challenge_specific)
+
         # try to get the cached object
         cached_object = self._data_service.load_python_obj(
-            self._cache_folder,
+            cache_folder,
             item_key,
             print_on_error=False,
             print_on_success=False)
 
-        if cached_object is None or self._cache_has_expired(item_key, time_to_keep):
+        if cached_object is None or self._cache_has_expired(item_key, time_to_keep, configuration_specific, challenge_specific):
             # if the cached object does not exist or has expired we call
             # the callback function to calculate it and then cache it to the file system
             if callback_function is None:
@@ -55,32 +68,69 @@ class CacheService:
 
     def load_file_from_cache(
             self,
-            item_key: str) -> object:
-        filepath = os.path.join(self._cache_folder, item_key)
+            item_key: str,
+            configuration_specific: bool = True,
+            challenge_specific: bool = True) -> object:
+        cache_folder = self._get_cache_folder_path(
+            configuration_specific=configuration_specific,
+            challenge_specific=challenge_specific)
+
+        filepath = os.path.join(cache_folder, item_key)
         with open(filepath, 'rb') as cached_file:
             result = cached_file.read()
             return result
 
-    def cache_item(self, item_key: str, item: object, overwrite: bool = True):
+    def cache_item(
+            self,
+            item_key: str,
+            item: object,
+            overwrite: bool = True,
+            configuration_specific: bool = True,
+            challenge_specific: bool = True):
         if not overwrite and self.item_exists(item_key):
             return
 
+        cache_folder = self._get_cache_folder_path(
+            configuration_specific=configuration_specific,
+            challenge_specific=challenge_specific)
+
         self._data_service.save_python_obj(
             item,
-            self._cache_folder,
+            cache_folder,
             item_key,
             print_success=False)
 
-    def item_exists(self, item_key: str) -> bool:
-        result = self._data_service.check_python_object(self._cache_folder, item_key)
+    def item_exists(
+            self,
+            item_key: str,
+            configuration_specific: bool = True,
+            challenge_specific: bool = True) -> bool:
+        cache_folder = self._get_cache_folder_path(
+            configuration_specific=configuration_specific,
+            challenge_specific=challenge_specific)
+
+        result = self._data_service.check_python_object(
+            cache_folder,
+            item_key)
+
         return result
 
-    def download_and_cache(self, item_key: str, download_url: str, overwrite: bool = True) -> bool:
+    def download_and_cache(
+            self,
+            item_key: str,
+            download_url: str,
+            overwrite: bool = True,
+            configuration_specific: bool = True,
+            challenge_specific: bool = True) -> bool:
         if not overwrite and self.item_exists(item_key):
             return True
 
+        cache_folder = self._get_cache_folder_path(
+            configuration_specific=configuration_specific,
+            challenge_specific=challenge_specific)
+
         try:
-            download_file_path = os.path.join(self._cache_folder, item_key)
+            download_file_path = os.path.join(cache_folder, item_key)
             urllib.request.urlretrieve(
                 download_url,
                 download_file_path)
@@ -92,14 +142,32 @@ class CacheService:
 
         return True
 
+    def _get_cache_folder_path(
+            self,
+            challenge_specific: bool,
+            configuration_specific: bool):
+        if not challenge_specific:
+            return self._global_cache_folder
+
+        if not configuration_specific:
+            return self._challenge_cache_folder
+
+        return self._internal_cache_folder
+
     def _cache_has_expired(
             self,
             item_key: str,
-            time_to_keep: Timespan) -> bool:
+            time_to_keep: Timespan,
+            configuration_specific: bool,
+            challenge_specific: bool) -> bool:
         if time_to_keep is None:
             return False
 
-        item_path = os.path.join(self._cache_folder, f'{item_key}.pickle')
+        cache_folder = self._get_cache_folder_path(
+            configuration_specific=configuration_specific,
+            challenge_specific=challenge_specific)
+
+        item_path = os.path.join(cache_folder, f'{item_key}.pickle')
 
         if not os.path.exists(item_path):
             return True

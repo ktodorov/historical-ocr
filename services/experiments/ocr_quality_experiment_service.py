@@ -1,4 +1,5 @@
 import math
+from matplotlib.pyplot import xticks
 from overrides.overrides import overrides
 from typing import Counter, List, Dict
 from overrides import overrides
@@ -82,11 +83,15 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             if values is None or len(values) == 0:
                 continue
 
-            exponents = [format(x, '.0e') for x in values]
+            exponents = [format(x, '.1e') for x in values]
             exponents.sort(key=float)
             counter = Counter(exponents)
             counter = Counter(
                 {float(key): value for key, value in counter.items()})
+
+            # ensure that the plot starts from 0
+            if 0.0 not in counter.keys():
+                counter[0.0] = 0
 
             filename = f'{self._arguments_service.configuration.value}-{experiment_type.value}'
             self._plot_service.plot_counters_histogram(
@@ -94,6 +99,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 counters=[counter],
                 title=experiment_type.value,
                 show_legend=False,
-                plot_values_above_bars=True,
+                xticks_count=3,
+                counter_colors=['royalblue'],
                 save_path=distances_folder,
                 filename=filename)
