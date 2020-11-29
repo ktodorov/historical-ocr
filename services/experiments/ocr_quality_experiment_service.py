@@ -101,5 +101,6 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 show_legend=False,
                 xticks_count=3,
                 counter_colors=['royalblue'],
+                bars_padding=0,
                 save_path=distances_folder,
                 filename=filename)

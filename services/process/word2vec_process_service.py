@@ -6,9 +6,10 @@ import gensim
 import numpy as np
 import torch
 from tqdm import tqdm
-from typing import List
+from typing import List, Tuple
 
 from enums.ocr_output_type import OCROutputType
+from enums.language import Language
 
 from entities.cbow_corpus import CBOWCorpus
 
@@ -96,6 +97,13 @@ class Word2VecProcessService(ProcessServiceBase):
             item=common_tokens,
             configuration_specific=False)
 
+    def get_embedding_size(self) -> int:
+        if self._arguments_service.language == Language.English:
+            return 300
+        elif self._arguments_service.language == Language.Dutch:
+            return 320
+
+        raise Exception('Unsupported word2vec language')
 
     def get_pretrained_matrix(self) -> torch.Tensor:
         if not self._vocabulary_service.vocabulary_is_initialized():
@@ -110,8 +118,9 @@ class Word2VecProcessService(ProcessServiceBase):
 
     def _generate_token_matrix(self):
         data_path = self._file_service.get_data_path()
-        word2vec_model_path = os.path.join(data_path, 'GoogleNews-vectors-negative300.bin')
-        word2vec_weights = gensim.models.KeyedVectors.load_word2vec_format(word2vec_model_path, binary = True)
+        word2vec_model_name, word2vec_binary = self._get_word2vec_model_info()
+        word2vec_model_path = os.path.join(data_path, word2vec_model_name)
+        word2vec_weights = gensim.models.KeyedVectors.load_word2vec_format(word2vec_model_path, binary = word2vec_binary)
         pretrained_weight_matrix = np.random.rand(
             self._vocabulary_service.vocabulary_size(),
             word2vec_weights.vector_size)
@@ -123,6 +132,14 @@ class Word2VecProcessService(ProcessServiceBase):
 
         result = torch.from_numpy(pretrained_weight_matrix).float()
         return result
+
+    def _get_word2vec_model_info(self) -> Tuple[str, bool]:
+        if self._arguments_service.language == Language.English:
+            return 'GoogleNews-vectors-negative300.bin', True
+        elif self._arguments_service.language == Language.Dutch:
+            return 'combined-320.txt', False
+
+        raise Exception('Unsupported word2vec language')
 
     def _load_text_corpus(
             self,

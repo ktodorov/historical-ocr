@@ -113,6 +113,7 @@ class PlotService:
             external_legend: bool = False,
             show_legend: bool = True,
             ax=None,
+            bars_padding: float = 0.2,
             xticks_count: int = None,
             hide_axis: bool = False):
 
@@ -127,7 +128,10 @@ class PlotService:
             values.append([(counter[label] if label in counter.keys() else 0)
                            for label in unique_labels])
 
-        total_width = 0.8  # the width of the bars
+        if bars_padding >= 1 or bars_padding < 0:
+            raise Exception('bars_padding must be between 0 and 1')
+
+        total_width = 1 - bars_padding  # the width of the bars
         dim = len(counters)
         dimw = total_width / dim
 

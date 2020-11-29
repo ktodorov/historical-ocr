@@ -31,7 +31,7 @@ class CBOW(ModelBase):
 
         self._arguments_service = arguments_service
 
-        embedding_size = 300
+        embedding_size = process_service.get_embedding_size()
         if process_service is not None:
             token_matrix = process_service.get_pretrained_matrix()
             embedding_size = token_matrix.shape[-1]
