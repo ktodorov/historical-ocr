@@ -1,3 +1,4 @@
+from enums.language import Language
 import os
 from overrides import overrides
 
@@ -31,8 +32,8 @@ class CBOW(ModelBase):
 
         self._arguments_service = arguments_service
 
-        embedding_size = process_service.get_embedding_size()
         if process_service is not None:
+            embedding_size = process_service.get_embedding_size()
             token_matrix = process_service.get_pretrained_matrix()
             embedding_size = token_matrix.shape[-1]
             self._embeddings = nn.Embedding.from_pretrained(
@@ -40,13 +41,14 @@ class CBOW(ModelBase):
                 freeze=False,
                 padding_idx=vocabulary_service.pad_token)
         else:
+            embedding_size = self._get_embedding_size(arguments_service.language)
             self._embeddings = nn.Embedding(
                 num_embeddings=vocabulary_service.vocabulary_size(),
                 embedding_dim=embedding_size,
                 padding_idx=vocabulary_service.pad_token)
 
-        self._linear = nn.Linear(embedding_size, vocabulary_service.vocabulary_size())
-
+        self._linear = nn.Linear(
+            embedding_size, vocabulary_service.vocabulary_size())
 
     @overrides
     def forward(self, input_batch, **kwargs):
@@ -59,13 +61,13 @@ class CBOW(ModelBase):
 
         return (output, targets)
 
+    def _get_embedding_size(self, language: Language):
+        if language == Language.English:
+            return 300
+        elif language == Language.Dutch:
+            return 320
 
-    # @overrides
-    # def compare_metric(self, best_metric: Metric, new_metrics: Metric) -> bool:
-    #     if best_metric.is_new or best_metric.get_current_loss() > new_metrics.get_current_loss():
-    #         return True
-
-    #     return False
+        raise NotImplemented()
 
     @overrides
     def get_embeddings(self, tokens: torch.Tensor) -> torch.Tensor:
