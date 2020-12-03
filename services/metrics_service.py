@@ -63,3 +63,19 @@ class MetricsService:
     def calculate_euclidean_distance(self, list1: list, list2: list) -> float:
         euclidean_distance = scipy_distances.euclidean(list1, list2)
         return euclidean_distance
+
+    def calculate_cosine_similarity(self, list1: list, list2: list) -> float:
+        """
+        Calculates cosine similarity using scipy cosine distance.
+
+        Original formula is `cosine_distance = 1 - cosine_similarity`.
+        Thus `cosine_similarity = cosine_distance + 1`
+
+        Results are to be described as
+        - −1 meaning exactly opposite
+        - +1 meaning exactly the same
+        - 0 indicating orthogonality
+        """
+
+        cosine_distance = scipy_distances.cosine(list1, list2)
+        return cosine_distance - 1

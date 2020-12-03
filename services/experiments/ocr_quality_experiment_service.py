@@ -1,4 +1,6 @@
+from entities.word_evaluation import WordEvaluation
 import math
+from services.cache_service import CacheService
 from matplotlib.pyplot import xticks
 from overrides.overrides import overrides
 from typing import Counter, List, Dict
@@ -27,20 +29,41 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             file_service: FileService,
             metrics_service: MetricsService,
             plot_service: PlotService,
+            cache_service: CacheService,
             model: ModelBase):
         super().__init__(arguments_service, dataloader_service, file_service, model)
 
         self._arguments_service = arguments_service
         self._metrics_service = metrics_service
         self._plot_service = plot_service
+        self._cache_service = cache_service
 
     @overrides
     def execute_experiments(self, experiment_types: List[ExperimentType]):
 
         result = {experiment_type: {} for experiment_type in experiment_types}
 
-        model1_embeddings = []
-        model2_embeddings = []
+        word_evaluations: List[WordEvaluation] = self._cache_service.get_item_from_cache(
+            item_key='word-evaluations',
+            callback_function=self._generate_embeddings)
+
+        for word_evaluation in word_evaluations:
+            if ExperimentType.CosineSimilarity in experiment_types:
+                result[ExperimentType.CosineSimilarity][word_evaluation.word] = self._metrics_service.calculate_cosine_similarity(
+                    list1=word_evaluation.embeddings_1,
+                    list2=word_evaluation.embeddings_2)
+
+            if ExperimentType.EuclideanDistance in experiment_types:
+                result[ExperimentType.EuclideanDistance][word_evaluation.word] = self._metrics_service.calculate_euclidean_distance(
+                    list1=word_evaluation.embeddings_1,
+                    list2=word_evaluation.embeddings_2)
+
+        # a, b, c = procrustes(model1_embeddings, model2_embeddings)
+
+        self._save_experiment_results(result)
+
+    def _generate_embeddings(self) -> List[WordEvaluation]:
+        result = []
 
         dataloader_length = len(self._dataloader)
         for i, batch in enumerate(self._dataloader):
@@ -49,28 +72,9 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             words, token_ids = batch
             outputs = self._model.get_embeddings(token_ids)
 
-            model1_embeddings.extend(outputs[0])
-            model2_embeddings.extend(outputs[1])
+            result.extend([WordEvaluation(word, embeddings_1, embeddings_2) for word, embeddings_1, embeddings_2 in zip(words, outputs[0], outputs[1])])
 
-            for i, word in enumerate(words):
-                if ExperimentType.CosineDistance in experiment_types:
-                    result[ExperimentType.CosineDistance][word] = self._metrics_service.calculate_cosine_distance(
-                        list1=outputs[0][i],
-                        list2=outputs[1][i])
-
-                if ExperimentType.EuclideanDistance in experiment_types:
-                    result[ExperimentType.EuclideanDistance][word] = self._metrics_service.calculate_euclidean_distance(
-                        list1=outputs[0][i],
-                        list2=outputs[1][i])
-
-                # if ExperimentType.KLDivergence in experiment_types:
-                #     result[ExperimentType.KLDivergence][word] = self._metrics_service.calculate_KL_divergence(
-                #         list1=outputs[0][i],
-                #         list2=outputs[1][i])
-
-        # a, b, c = procrustes(model1_embeddings, model2_embeddings)
-
-        self._save_experiment_results(result)
+        return result
 
     def _save_experiment_results(self, result: Dict[ExperimentType, Dict[str, float]]):
         experiments_folder = self._file_service.get_experiments_path()
@@ -78,20 +82,12 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             experiments_folder, 'distances', self._arguments_service.language.value, create_if_missing=True)
 
         for experiment_type, word_value_pairs in result.items():
-            values = list(word_value_pairs.values())
+            values = [round(x, 1) for x in word_value_pairs.values()]
 
             if values is None or len(values) == 0:
                 continue
 
-            exponents = [format(x, '.1e') for x in values]
-            exponents.sort(key=float)
-            counter = Counter(exponents)
-            counter = Counter(
-                {float(key): value for key, value in counter.items()})
-
-            # ensure that the plot starts from 0
-            if 0.0 not in counter.keys():
-                counter[0.0] = 0
+            counter = Counter(values)
 
             filename = f'{self._arguments_service.configuration.value}-{experiment_type.value}'
             self._plot_service.plot_counters_histogram(

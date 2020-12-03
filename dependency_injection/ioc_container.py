@@ -295,6 +295,7 @@ def register_experiment_service(
         file_service: FileService,
         metrics_service: MetricsService,
         plot_service: PlotService,
+        cache_service: CacheService,
         model: ModelBase,
         run_experiments: bool):
 
@@ -308,6 +309,7 @@ def register_experiment_service(
         file_service=file_service,
         metrics_service=metrics_service,
         plot_service=plot_service,
+        cache_service=cache_service,
         model=model
     )
 
@@ -488,6 +490,7 @@ class IocContainer(containers.DeclarativeContainer):
         file_service=file_service,
         metrics_service=metrics_service,
         plot_service=plot_service,
+        cache_service=cache_service,
         model=model,
         run_experiments=run_experiments)
 
