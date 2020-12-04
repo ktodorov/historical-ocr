@@ -1,9 +1,10 @@
+import numpy as np
 from entities.word_evaluation import WordEvaluation
 import math
 from services.cache_service import CacheService
 from matplotlib.pyplot import xticks
 from overrides.overrides import overrides
-from typing import Counter, List, Dict
+from typing import Counter, List, Dict, Tuple
 from overrides import overrides
 from scipy.spatial import procrustes
 
@@ -19,6 +20,7 @@ from services.experiments.experiment_service_base import ExperimentServiceBase
 from services.file_service import FileService
 from services.metrics_service import MetricsService
 from services.plot_service import PlotService
+from services.word_neighbourhood_service import WordNeighbourhoodService
 
 
 class OCRQualityExperimentService(ExperimentServiceBase):
@@ -30,6 +32,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             metrics_service: MetricsService,
             plot_service: PlotService,
             cache_service: CacheService,
+            word_neighbourhood_service: WordNeighbourhoodService,
             model: ModelBase):
         super().__init__(arguments_service, dataloader_service, file_service, model)
 
@@ -37,6 +40,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._metrics_service = metrics_service
         self._plot_service = plot_service
         self._cache_service = cache_service
+        self._word_neighbourhood_service = word_neighbourhood_service
 
     @overrides
     def execute_experiments(self, experiment_types: List[ExperimentType]):
@@ -47,20 +51,55 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             item_key='word-evaluations',
             callback_function=self._generate_embeddings)
 
-        for word_evaluation in word_evaluations:
-            if ExperimentType.CosineSimilarity in experiment_types:
-                result[ExperimentType.CosineSimilarity][word_evaluation.word] = self._metrics_service.calculate_cosine_similarity(
-                    list1=word_evaluation.embeddings_1,
-                    list2=word_evaluation.embeddings_2)
+        # if ExperimentType.CosineSimilarity in experiment_types:
+        #     result[ExperimentType.CosineSimilarity] = self._cache_service.get_item_from_cache(
+        #         item_key='cosine-similarities',
+        #         callback_function=lambda: self._calculate_cosine_similarities(word_evaluations))
 
-            if ExperimentType.EuclideanDistance in experiment_types:
-                result[ExperimentType.EuclideanDistance][word_evaluation.word] = self._metrics_service.calculate_euclidean_distance(
-                    list1=word_evaluation.embeddings_1,
-                    list2=word_evaluation.embeddings_2)
+        if ExperimentType.CosineDistance in experiment_types:
+            result[ExperimentType.CosineDistance] = self._cache_service.get_item_from_cache(
+                item_key='cosine-distances',
+                callback_function=lambda: self._calculate_cosine_distances(word_evaluations))
+
+        if ExperimentType.EuclideanDistance in experiment_types:
+            result[ExperimentType.EuclideanDistance] = self._cache_service.get_item_from_cache(
+                item_key='euclidean-distances',
+                callback_function=lambda: self._calculate_euclidean_distances(word_evaluations))
 
         # a, b, c = procrustes(model1_embeddings, model2_embeddings)
 
+        self._generate_neighbourhood_similarity_results(
+            result, word_evaluations)
+
         self._save_experiment_results(result)
+
+    def _calculate_cosine_similarities(self, word_evaluations) -> Dict[str, float]:
+        result = {}
+        for word_evaluation in word_evaluations:
+            result[word_evaluation.word] = self._metrics_service.calculate_cosine_similarity(
+                list1=word_evaluation.embeddings_1,
+                list2=word_evaluation.embeddings_2)
+
+        return result
+
+    def _calculate_cosine_distances(self, word_evaluations) -> Dict[str, float]:
+        result = {}
+        for word_evaluation in word_evaluations:
+            result[word_evaluation.word] = self._metrics_service.calculate_cosine_distance(
+                list1=word_evaluation.embeddings_1,
+                list2=word_evaluation.embeddings_2)
+
+        return result
+
+    def _calculate_euclidean_distances(self, word_evaluations) -> Dict[str, float]:
+        result = {}
+
+        for word_evaluation in word_evaluations:
+            result[word_evaluation.word] = self._metrics_service.calculate_euclidean_distance(
+                list1=word_evaluation.embeddings_1,
+                list2=word_evaluation.embeddings_2)
+
+        return result
 
     def _generate_embeddings(self) -> List[WordEvaluation]:
         result = []
@@ -72,7 +111,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             words, token_ids = batch
             outputs = self._model.get_embeddings(token_ids)
 
-            result.extend([WordEvaluation(word, embeddings_1, embeddings_2) for word, embeddings_1, embeddings_2 in zip(words, outputs[0], outputs[1])])
+            result.extend([WordEvaluation(word, embeddings_1, embeddings_2)
+                           for word, embeddings_1, embeddings_2 in zip(words, outputs[0], outputs[1])])
 
         return result
 
@@ -95,8 +135,39 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 counters=[counter],
                 title=experiment_type.value,
                 show_legend=False,
-                xticks_count=3,
                 counter_colors=['royalblue'],
                 bars_padding=0,
+                plot_values_above_bars=True,
                 save_path=distances_folder,
                 filename=filename)
+
+    def _generate_neighbourhood_similarity_results(self, result: Dict[ExperimentType, Dict[str, float]], word_evaluations: List[WordEvaluation]):
+        most_changed = self._get_most_changed_words(result)
+        for (changed_word, _) in most_changed:
+            target_word = next(
+                (w for w in word_evaluations if w.word == changed_word), None)
+            if target_word is None:
+                raise Exception('Could not find target word')
+
+            remaining_words = [
+                word_evaluation
+                for word_evaluation in word_evaluations
+                if word_evaluation.word != target_word.word]
+
+            word_neighbourhoods = self._word_neighbourhood_service.get_word_neighbourhoods(
+                target_word, remaining_words)
+
+            self._word_neighbourhood_service.plot_word_neighbourhoods(
+                target_word,
+                word_neighbourhoods=list(word_neighbourhoods))
+
+    def _get_most_changed_words(self, result, metric: ExperimentType = ExperimentType.CosineDistance) -> List[Tuple[str, float]]:
+        if metric not in result.keys():
+            raise Exception(f'Metric {metric} not calculated')
+
+        metric_results = [(word, distance)
+                          for word, distance in result[metric].items()]
+        metric_results.sort(key=lambda x: x[1])
+
+        most_changed = metric_results[-15:][::-1]
+        return most_changed

@@ -4,6 +4,14 @@ class WordEvaluation:
         self._embeddings_1 = embeddings_1
         self._embeddings_2 = embeddings_2
 
+    def get_embeddings(self, idx: int) -> list:
+        if idx == 0:
+            return self.embeddings_1
+        elif idx == 1:
+            return self.embeddings_2
+
+        raise Exception('Invalid embeddings index')
+
     @property
     def word(self) -> str:
         return self._word
@@ -15,3 +23,6 @@ class WordEvaluation:
     @property
     def embeddings_2(self) -> list:
         return self._embeddings_2
+
+    def __str__(self):
+        return self._word

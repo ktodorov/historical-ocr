@@ -1,3 +1,4 @@
+import sys
 import seaborn as sns
 import numpy as np
 from sklearn.metrics import confusion_matrix
@@ -8,7 +9,7 @@ import matplotlib
 from matplotlib.pyplot import cm
 from collections import Counter
 
-# plt.rcParams["figure.figsize"] = (20, 10)
+plt.rcParams["figure.figsize"] = (15, 10)
 plt.rcParams["text.usetex"] = True
 plt.rcParams['text.latex.preamble'] = r'\usepackage[cm]{sfmath}'
 plt.rcParams['font.family'] = 'sans-serif'
@@ -26,13 +27,16 @@ class PlotService:
             self,
             data_service: DataService):
         sns.set()
-        # sns.set(font_scale=3)  # crazy big
+        # sns.set(font_scale=2)  # crazy big
         sns.set_style("ticks")
 
         self._data_service = data_service
 
     def create_plot(self) -> matplotlib.axes.Axes:
-        ax = plt.subplot()
+        fig = plt.figure()
+        fig.canvas.start_event_loop(sys.float_info.min) #workaround for Exception in Tkinter callback
+        ax = fig.add_subplot(1,1,1)
+        # ax = plt.subplot()
         return ax
 
     def plot_histogram(
@@ -541,15 +545,16 @@ class PlotService:
 
         return ax
 
-    def _add_properties(
-            self,
-            ax: matplotlib.axes.Axes,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            hide_axis: bool = False,
-            tight_layout: bool = True):
+    def show_plot(self):
+        plt.show()
+
+    def set_plot_properties(
+        self,
+        ax: matplotlib.axes.Axes,
+        title: str = None,
+        title_padding: float = None,
+        hide_axis: bool = False,
+        tight_layout: bool = True):
 
         if tight_layout:
             plt.tight_layout()
@@ -561,5 +566,29 @@ class PlotService:
             ax.set_title(title, pad=title_padding,
                          fontdict={'fontweight': 'bold'})
 
+
+    def save_plot(
+        self,
+        save_path: str,
+        filename: str):
+        self._data_service.save_figure(save_path, filename, no_axis=False)
+
+    def _add_properties(
+            self,
+            ax: matplotlib.axes.Axes,
+            title: str = None,
+            title_padding: float = None,
+            save_path: str = None,
+            filename: str = None,
+            hide_axis: bool = False,
+            tight_layout: bool = True):
+
+        self.set_plot_properties(
+            ax,
+            title,
+            title_padding,
+            hide_axis,
+            tight_layout)
+
         if save_path is not None and filename is not None:
-            self._data_service.save_figure(save_path, filename, no_axis=False)
+            self.save_plot(save_path, filename)

@@ -1,3 +1,4 @@
+from services.word_neighbourhood_service import WordNeighbourhoodService
 from gensim.models.keyedvectors import Vocab
 from gensim.utils import tokenize
 from torch.utils import data
@@ -296,6 +297,7 @@ def register_experiment_service(
         metrics_service: MetricsService,
         plot_service: PlotService,
         cache_service: CacheService,
+        word_neighbourhood_service: WordNeighbourhoodService,
         model: ModelBase,
         run_experiments: bool):
 
@@ -310,6 +312,7 @@ def register_experiment_service(
         metrics_service=metrics_service,
         plot_service=plot_service,
         cache_service=cache_service,
+        word_neighbourhood_service=word_neighbourhood_service,
         model=model
     )
 
@@ -484,6 +487,13 @@ class IocContainer(containers.DeclarativeContainer):
         joint_model=joint_model,
         configuration=configuration)
 
+    word_neighbourhood_service = providers.Factory(
+        WordNeighbourhoodService,
+        arguments_service=arguments_service,
+        metrics_service=metrics_service,
+        plot_service=plot_service,
+        file_service=file_service)
+
     experiment_service = register_experiment_service(
         arguments_service=arguments_service,
         dataloader_service=dataloader_service,
@@ -491,6 +501,7 @@ class IocContainer(containers.DeclarativeContainer):
         metrics_service=metrics_service,
         plot_service=plot_service,
         cache_service=cache_service,
+        word_neighbourhood_service=word_neighbourhood_service,
         model=model,
         run_experiments=run_experiments)
 
