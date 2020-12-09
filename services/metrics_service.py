@@ -57,6 +57,9 @@ class MetricsService:
         return result
 
     def calculate_cosine_distance(self, list1: list, list2: list) -> float:
+        if all(x == 0 for x in list1) and all(x == 0 for x in list2):
+            return 0
+
         cosine_distance = scipy_distances.cosine(list1, list2)
         return cosine_distance
 

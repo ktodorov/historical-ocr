@@ -1,17 +1,43 @@
+from tests.fakes.log_service_fake import LogServiceFake
+from enums.language import Language
+from enums.configuration import Configuration
+from enums.challenge import Challenge
+from enums.ocr_output_type import OCROutputType
+import os
+from tests.fakes.argument_service_fake import ArgumentServiceFake
+from dependency_injection.ioc_container import IocContainer
+import dependency_injector.providers as providers
 import torch
-from tests.containers.test_container import TestContainer
 import unittest
 
+def initialize_container(ocr_output_type: OCROutputType = None) -> IocContainer:
+    custom_args={
+        'data_folder': os.path.join('tests', 'data'),
+        'challenge': Challenge.OCREvaluation,
+        'configuration': Configuration.CBOW,
+        'language': Language.English,
+        'output_folder': os.path.join('tests', 'results'),
+        'ocr_output_type': ocr_output_type
+    }
+
+    container = IocContainer()
+    container.arguments_service.override(
+        providers.Factory(
+            ArgumentServiceFake,
+            custom_args))
+
+    container.log_service.override(providers.Factory(LogServiceFake))
+
+    return container
 
 class CBOWTest(unittest.TestCase):
 
     def test_embedding_matrix_initialization(self):
-        main_container = TestContainer()
+        main_container = initialize_container()
         metrics_service = main_container.metrics_service()
 
-
-        # Model 1
-        container_1 = TestContainer()
+        # Raw model
+        container_1 = initialize_container(ocr_output_type=OCROutputType.Raw)
         vocabulary_service_1 = container_1.vocabulary_service()
 
         tokens_1 = vocabulary_service_1.get_vocabulary_tokens()
@@ -22,8 +48,8 @@ class CBOWTest(unittest.TestCase):
         model_1 = container_1.model()
         embeddings_1 = model_1.get_embeddings(ids_tensor_1)
 
-        # Model 2
-        container_2 = TestContainer()
+        # Ground truth model
+        container_2 = initialize_container(ocr_output_type=OCROutputType.GroundTruth)
         vocabulary_service_2 = container_2.vocabulary_service()
 
         tokens_2 = vocabulary_service_2.get_vocabulary_tokens()
@@ -34,6 +60,7 @@ class CBOWTest(unittest.TestCase):
         model_2 = container_2.model()
         embeddings_2 = model_2.get_embeddings(ids_tensor_2)
 
+        # Assert
         for embedding_1, embedding_2 in zip(embeddings_1, embeddings_2):
             self.assertEqual(embedding_1, embedding_2)
             self.assertEqual(metrics_service.calculate_cosine_distance(embedding_1, embedding_2), 0.0)

@@ -1,8 +1,7 @@
+from services.arguments.pretrained_arguments_service import PretrainedArgumentsService
 from overrides import overrides
 
-from services.arguments.arguments_service_base import ArgumentsServiceBase
-
-class ArgumentServiceFake(ArgumentsServiceBase):
+class ArgumentServiceFake(PretrainedArgumentsService):
     def __init__(self, custom_values = {}):
         super().__init__(raise_errors_on_invalid_args=True)
 

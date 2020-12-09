@@ -89,9 +89,9 @@ class ArgumentsServiceBase:
                             help='what type of evaluations should be performed')
         # parser.add_argument('--output-eval-format', type=OutputFormat, choices=list(OutputFormat),
         #                     help='what the format of the output after evaluation will be')
-        parser.add_argument("--challenge", type=Challenge, choices=list(Challenge),
+        parser.add_argument("--challenge", type=Challenge, choices=list(Challenge), required=True,
                             help='Optional challenge that the model is being trained for. If given, data and output results will be put into a specific folder')
-        parser.add_argument('--configuration', type=Configuration, choices=list(Configuration), default=Configuration.BERT,
+        parser.add_argument('--configuration', type=Configuration, choices=list(Configuration), required=True,
                             help='Which configuration of model to load and use. Default is kbert')
         parser.add_argument('--metric-types', type=MetricType, choices=list(MetricType), default=MetricType.JaccardSimilarity, nargs='*',
                             help='What metrics should be calculated. Default is only Jaccard similarity')

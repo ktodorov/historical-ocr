@@ -76,247 +76,118 @@ from services.string_process_service import StringProcessService
 import logging
 
 
-def initialize_seed(seed: int, device: str):
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-
-    if device == 'cuda':
-        torch.backends.cudnn.benchmark = False
-        torch.cuda.manual_seed_all(seed)
-
-
-def get_argument_service_type(
-        challenge: Challenge,
-        configuration: Configuration,
-        run_experiments: bool):
-    argument_service_type = None
+def get_arguments_service(arguments_service: ArgumentsServiceBase):
+    result = 'base'
+    challenge = arguments_service.challenge
+    run_experiments = arguments_service.run_experiments
 
     if challenge == Challenge.OCREvaluation:
         if run_experiments:
-            argument_service_type = OCREvaluationArgumentsService
+            result = 'evaluation'
         else:
-            argument_service_type = OCRQualityArgumentsService
-    else:
-        raise Exception('Challenge not supported')
+            result = 'ocr_quality'
 
-    return argument_service_type
+    return result
 
 
-def register_optimizer(
-        joint_model: bool,
-        evaluate: bool,
-        run_experiments: bool,
-        challenge: Challenge,
-        configuration: Configuration,
-        model: ModelBase,
-        arguments_service: ArgumentsServiceBase):
-    if evaluate or run_experiments:
+def get_optimizer(arguments_service: ArgumentsServiceBase):
+    if arguments_service.evaluate or arguments_service.run_experiments:
         return None
 
-    optimizer = None
+    result = None
+    challenge = arguments_service.challenge
+    configuration = arguments_service.configuration
     if challenge == Challenge.OCREvaluation:
         if configuration == Configuration.CBOW:
-            optimizer = providers.Singleton(
-                SGDOptimizer,
-                arguments_service=arguments_service,
-                model=model)
+            result = 'cbow'
         else:
-            optimizer = providers.Singleton(
-                AdamWTransformerOptimizer,
-                arguments_service=arguments_service,
-                model=model)
+            result = 'transformer'
 
-    return optimizer
+    return result
 
 
-def register_loss(
-        joint_model: bool,
-        configuration: Configuration,
-        challenge: Challenge,
-        arguments_service: ArgumentsServiceBase):
+def get_loss_function(arguments_service: ArgumentsServiceBase):
     loss_function = None
+    challenge = arguments_service.challenge
+    configuration = arguments_service.configuration
 
     if challenge == Challenge.OCREvaluation:
         if configuration == Configuration.CBOW:
-            loss_function = providers.Singleton(
-                CrossEntropyLoss
-            )
+            return 'cbow'
         else:
-            loss_function = providers.Singleton(
-                TransformerLossBase
-            )
+            return 'transformer'
 
     return loss_function
 
 
-def register_evaluation_service(
-        arguments_service: ArgumentsServiceBase,
-        file_service: FileService,
-        plot_service: PlotService,
-        metrics_service: MetricsService,
-        process_service: ProcessServiceBase,
-        vocabulary_service: VocabularyService,
-        data_service: DataService,
-        joint_model: bool,
-        configuration: Configuration):
-    evaluation_service = None
+# def register_evaluation_service(
+#         arguments_service: ArgumentsServiceBase,
+#         file_service: FileService,
+#         plot_service: PlotService,
+#         metrics_service: MetricsService,
+#         process_service: ProcessServiceBase,
+#         vocabulary_service: VocabularyService,
+#         data_service: DataService,
+#         joint_model: bool,
+#         configuration: Configuration):
+#     evaluation_service = None
 
-    return evaluation_service
+#     return evaluation_service
 
 
-def register_model(
-        arguments_service: ArgumentsServiceBase,
-        file_service: FileService,
-        plot_service: PlotService,
-        metrics_service: MetricsService,
-        data_service: DataService,
-        tokenize_service: BaseTokenizeService,
-        log_service: LogService,
-        vocabulary_service: VocabularyService,
-        model_service: ModelService,
-        process_service: ProcessServiceBase,
-        joint_model: bool,
-        configuration: Configuration,
-        run_experiments: bool):
+def get_model_type(arguments_service: ArgumentsServiceBase):
+
+    run_experiments = arguments_service.run_experiments
+    configuration = arguments_service.configuration
+
     model = None
 
     if run_experiments:
-        model = providers.Singleton(
-            JointModel,
-            arguments_service=arguments_service,
-            data_service=data_service,
-            vocabulary_service=vocabulary_service)
-    elif configuration == Configuration.BERT:
-        model = providers.Singleton(
-            BERT,
-            arguments_service=arguments_service,
-            data_service=data_service)
-    elif configuration == Configuration.XLNet:
-        model = providers.Singleton(
-            XLNet,
-            arguments_service=arguments_service,
-            data_service=data_service)
-    elif configuration == Configuration.BART:
-        model = providers.Singleton(
-            BART,
-            arguments_service=arguments_service,
-            data_service=data_service)
-    elif configuration == Configuration.CBOW:
-        model = providers.Singleton(
-            CBOW,
-            arguments_service=arguments_service,
-            process_service=process_service,
-            data_service=data_service,
-            vocabulary_service=vocabulary_service)
+        model = 'joint'
+    else:
+        model = configuration.value
 
     return model
 
 
-def register_process_service(
-        challenge: Challenge,
-        configuration: Configuration,
-        arguments_service: ArgumentsServiceBase,
-        file_service: FileService,
-        tokenize_service: BaseTokenizeService,
-        vocabulary_service: VocabularyService,
-        data_service: DataService,
-        metrics_service: MetricsService,
-        log_service: LogService,
-        cache_service: CacheService,
-        ocr_download_service: OCRDownloadService,
-        string_process_service: StringProcessService,
-        run_experiments: bool):
-    process_service = None
+def get_process_service(arguments_service: ArgumentsServiceBase):
+    result = None
+
+    challenge = arguments_service.challenge
+    run_experiments = arguments_service.run_experiments
+    configuration = arguments_service.configuration
 
     if challenge == Challenge.OCREvaluation:
         if run_experiments:
-            process_service = providers.Singleton(
-                EvaluationProcessService,
-                arguments_service=arguments_service,
-                cache_service=cache_service,
-                log_service=log_service,
-                vocabulary_service=vocabulary_service,
-                tokenize_service=tokenize_service)
+            result = 'evaluation'
         elif configuration == Configuration.CBOW:
-            process_service = providers.Singleton(
-                Word2VecProcessService,
-                arguments_service=arguments_service,
-                ocr_download_service=ocr_download_service,
-                cache_service=cache_service,
-                log_service=log_service,
-                vocabulary_service=vocabulary_service,
-                file_service=file_service,
-                tokenize_service=tokenize_service)
+            result = 'cbow'
         else:
-            process_service = providers.Singleton(
-                TransformerProcessService,
-                arguments_service=arguments_service,
-                ocr_download_service=ocr_download_service,
-                tokenize_service=tokenize_service,
-                cache_service=cache_service,
-                log_service=log_service)
+            result = 'transformer'
 
-    return process_service
+    return result
 
 
-def register_tokenize_service(
-        arguments_service: ArgumentsServiceBase,
-        vocabulary_service: VocabularyService,
-        configuration: Configuration,
-        pretrained_model_type: PretrainedModel):
-    tokenize_service = None
-    if pretrained_model_type == PretrainedModel.BERT:
-        tokenize_service = providers.Singleton(
-            BERTTokenizeService,
-            arguments_service=arguments_service)
-    if pretrained_model_type == PretrainedModel.XLNet:
-        tokenize_service = providers.Singleton(
-            XLNetTokenizeService,
-            arguments_service=arguments_service)
-    if pretrained_model_type == PretrainedModel.BART:
-        tokenize_service = providers.Singleton(
-            BARTTokenizeService,
-            arguments_service=arguments_service)
-    elif pretrained_model_type == PretrainedModel.CamemBERT:
-        tokenize_service = providers.Singleton(
-            CamembertTokenizeService,
-            arguments_service=arguments_service)
-    elif configuration == Configuration.CBOW:
-        tokenize_service = providers.Singleton(
-            CBOWTokenizeService,
-            vocabulary_service=vocabulary_service)
+def get_tokenize_service(arguments_service: ArgumentsServiceBase) -> str:
+    pretrained_model_type = None
+    if isinstance(arguments_service, PretrainedArgumentsService):
+        pretrained_model_type = arguments_service.pretrained_model
 
-    return tokenize_service
+    if pretrained_model_type is None:
+        configuration = arguments_service.configuration
+        return configuration.value
+
+    return pretrained_model_type.value
 
 
-def register_experiment_service(
-        arguments_service: ArgumentsServiceBase,
-        dataloader_service: DataLoaderService,
-        file_service: FileService,
-        metrics_service: MetricsService,
-        plot_service: PlotService,
-        cache_service: CacheService,
-        word_neighbourhood_service: WordNeighbourhoodService,
-        model: ModelBase,
-        run_experiments: bool):
+def get_experiment_service(arguments_service: ArgumentsServiceBase):
+
+    run_experiments = arguments_service.run_experiments
 
     if not run_experiments:
-        return None
+        return 'base'
 
-    experiment_service = providers.Factory(
-        OCRQualityExperimentService,
-        arguments_service=arguments_service,
-        dataloader_service=dataloader_service,
-        file_service=file_service,
-        metrics_service=metrics_service,
-        plot_service=plot_service,
-        cache_service=cache_service,
-        word_neighbourhood_service=word_neighbourhood_service,
-        model=model
-    )
-
-    return experiment_service
+    return 'ocr_quality'
 
 
 class IocContainer(containers.DeclarativeContainer):
@@ -326,31 +197,24 @@ class IocContainer(containers.DeclarativeContainer):
 
     # Services
 
-    arguments_service_base = PretrainedArgumentsService(
+    arguments_service_base = providers.Singleton(
+        ArgumentsServiceBase,
         raise_errors_on_invalid_args=False)
 
-    challenge = arguments_service_base.challenge
-    seed = arguments_service_base.seed
-    device = arguments_service_base.device
-    configuration = arguments_service_base.configuration
-    joint_model = arguments_service_base.joint_model
-    evaluate = arguments_service_base.evaluate
-    run_experiments = arguments_service_base.run_experiments
-    external_logging_enabled = arguments_service_base.enable_external_logging
-    pretrained_model_type = arguments_service_base.pretrained_model
+    argument_service_selector = providers.Callable(
+        get_arguments_service,
+        arguments_service=arguments_service_base)
 
-    argument_service_type = get_argument_service_type(
-        challenge, configuration, run_experiments)
-    arguments_service = providers.Singleton(
-        argument_service_type
-    )
-
-    initialize_seed(seed, device)
+    arguments_service: providers.Provider[ArgumentsServiceBase] = providers.Selector(
+        argument_service_selector,
+        base=providers.Singleton(ArgumentsServiceBase),
+        evaluation=providers.Singleton(OCREvaluationArgumentsService),
+        ocr_quality=providers.Singleton(OCRQualityArgumentsService))
 
     log_service = providers.Singleton(
         LogService,
         arguments_service=arguments_service,
-        external_logging_enabled=external_logging_enabled
+        external_logging_enabled=False  # external_logging_enabled
     )
 
     data_service = providers.Factory(DataService)
@@ -378,11 +242,27 @@ class IocContainer(containers.DeclarativeContainer):
         cache_service=cache_service
     )
 
-    tokenize_service = register_tokenize_service(
-        arguments_service=arguments_service,
-        vocabulary_service=vocabulary_service,
-        configuration=configuration,
-        pretrained_model_type=pretrained_model_type)
+    tokenize_service_selector = providers.Callable(
+        get_tokenize_service,
+        arguments_service=arguments_service)
+
+    tokenize_service: providers.Provider[BaseTokenizeService] = providers.Selector(
+        tokenize_service_selector,
+        bert=providers.Singleton(
+            BERTTokenizeService,
+            arguments_service=arguments_service),
+        xlnet=providers.Singleton(
+            XLNetTokenizeService,
+            arguments_service=arguments_service),
+        bart=providers.Singleton(
+            BARTTokenizeService,
+            arguments_service=arguments_service),
+        camembert=providers.Singleton(
+            CamembertTokenizeService,
+            arguments_service=arguments_service),
+        cbow=providers.Singleton(
+            CBOWTokenizeService,
+            vocabulary_service=vocabulary_service))
 
     mask_service = providers.Factory(
         MaskService,
@@ -390,13 +270,9 @@ class IocContainer(containers.DeclarativeContainer):
         arguments_service=arguments_service
     )
 
-    metrics_service = providers.Factory(
-        MetricsService
-    )
+    metrics_service = providers.Factory(MetricsService)
 
-    string_process_service = providers.Factory(
-        StringProcessService
-    )
+    string_process_service = providers.Factory(StringProcessService)
 
     ocr_download_service = providers.Factory(
         OCRDownloadService,
@@ -404,20 +280,35 @@ class IocContainer(containers.DeclarativeContainer):
         string_process_service=string_process_service,
         cache_service=cache_service)
 
-    process_service = register_process_service(
-        challenge,
-        configuration,
-        arguments_service=arguments_service,
-        file_service=file_service,
-        tokenize_service=tokenize_service,
-        vocabulary_service=vocabulary_service,
-        data_service=data_service,
-        metrics_service=metrics_service,
-        log_service=log_service,
-        cache_service=cache_service,
-        ocr_download_service=ocr_download_service,
-        string_process_service=string_process_service,
-        run_experiments=run_experiments)
+    process_service_selector = providers.Callable(
+        get_process_service,
+        arguments_service=arguments_service)
+
+    process_service: providers.Provider[ProcessServiceBase] = providers.Selector(
+        process_service_selector,
+        evaluation=providers.Singleton(
+            EvaluationProcessService,
+            arguments_service=arguments_service,
+            cache_service=cache_service,
+            log_service=log_service,
+            vocabulary_service=vocabulary_service,
+            tokenize_service=tokenize_service),
+        cbow=providers.Singleton(
+            Word2VecProcessService,
+            arguments_service=arguments_service,
+            ocr_download_service=ocr_download_service,
+            cache_service=cache_service,
+            log_service=log_service,
+            vocabulary_service=vocabulary_service,
+            file_service=file_service,
+            tokenize_service=tokenize_service),
+        transformer=providers.Singleton(
+            TransformerProcessService,
+            arguments_service=arguments_service,
+            ocr_download_service=ocr_download_service,
+            tokenize_service=tokenize_service,
+            cache_service=cache_service,
+            log_service=log_service))
 
     dataset_service = providers.Factory(
         DatasetService,
@@ -445,47 +336,71 @@ class IocContainer(containers.DeclarativeContainer):
         process_service=process_service,
         file_service=file_service)
 
-    model = register_model(
-        arguments_service=arguments_service,
-        file_service=file_service,
-        plot_service=plot_service,
-        metrics_service=metrics_service,
-        data_service=data_service,
-        tokenize_service=tokenize_service,
-        log_service=log_service,
-        vocabulary_service=vocabulary_service,
-        model_service=model_service,
-        process_service=process_service,
-        joint_model=joint_model,
-        configuration=configuration,
-        run_experiments=run_experiments)
-
-    loss_function = register_loss(
-        joint_model=joint_model,
-        configuration=configuration,
-        challenge=challenge,
+    model_selector = providers.Callable(
+        get_model_type,
         arguments_service=arguments_service)
 
-    optimizer = register_optimizer(
-        joint_model,
-        evaluate,
-        run_experiments,
-        challenge,
-        configuration,
-        model,
-        arguments_service
-    )
+    model: providers.Provider[ModelBase] = providers.Selector(
+        model_selector,
+        joint=providers.Singleton(
+            JointModel,
+            arguments_service=arguments_service,
+            data_service=data_service,
+            vocabulary_service=vocabulary_service),
+        bert=providers.Singleton(
+            BERT,
+            arguments_service=arguments_service,
+            data_service=data_service),
+        xlnet=providers.Singleton(
+            XLNet,
+            arguments_service=arguments_service,
+            data_service=data_service),
+        bart=providers.Singleton(
+            BART,
+            arguments_service=arguments_service,
+            data_service=data_service),
+        cbow=providers.Singleton(
+            CBOW,
+            arguments_service=arguments_service,
+            process_service=process_service,
+            data_service=data_service,
+            vocabulary_service=vocabulary_service))
 
-    evaluation_service = register_evaluation_service(
-        arguments_service=arguments_service,
-        file_service=file_service,
-        plot_service=plot_service,
-        metrics_service=metrics_service,
-        process_service=process_service,
-        vocabulary_service=vocabulary_service,
-        data_service=data_service,
-        joint_model=joint_model,
-        configuration=configuration)
+    loss_selector = providers.Callable(
+        get_loss_function,
+        arguments_service=arguments_service)
+
+    loss_function: providers.Provider[LossBase] = providers.Selector(
+        loss_selector,
+        cbow=providers.Singleton(CrossEntropyLoss),
+        transformer=providers.Singleton(TransformerLossBase))
+
+    optimizer_selector = providers.Callable(
+        get_optimizer,
+        arguments_service=arguments_service)
+
+    optimizer: providers.Provider[OptimizerBase] = providers.Selector(
+        optimizer_selector,
+        cbow=providers.Singleton(
+            SGDOptimizer,
+            arguments_service=arguments_service,
+            model=model),
+        transformer=providers.Singleton(
+            AdamWTransformerOptimizer,
+            arguments_service=arguments_service,
+            model=model))
+
+    evaluation_service = None
+    # evaluation_service = register_evaluation_service(
+    #     arguments_service=arguments_service,
+    #     file_service=file_service,
+    #     plot_service=plot_service,
+    #     metrics_service=metrics_service,
+    #     process_service=process_service,
+    #     vocabulary_service=vocabulary_service,
+    #     data_service=data_service,
+    #     joint_model=joint_model,
+    #     configuration=configuration)
 
     word_neighbourhood_service = providers.Factory(
         WordNeighbourhoodService,
@@ -494,16 +409,28 @@ class IocContainer(containers.DeclarativeContainer):
         plot_service=plot_service,
         file_service=file_service)
 
-    experiment_service = register_experiment_service(
-        arguments_service=arguments_service,
-        dataloader_service=dataloader_service,
-        file_service=file_service,
-        metrics_service=metrics_service,
-        plot_service=plot_service,
-        cache_service=cache_service,
-        word_neighbourhood_service=word_neighbourhood_service,
-        model=model,
-        run_experiments=run_experiments)
+    experiment_service_selector = providers.Callable(
+        get_experiment_service,
+        arguments_service=arguments_service)
+
+    experiment_service = providers.Selector(
+        experiment_service_selector,
+        ocr_quality=providers.Factory(
+            OCRQualityExperimentService,
+            arguments_service=arguments_service,
+            dataloader_service=dataloader_service,
+            file_service=file_service,
+            metrics_service=metrics_service,
+            plot_service=plot_service,
+            cache_service=cache_service,
+            word_neighbourhood_service=word_neighbourhood_service,
+            model=model),
+        base=providers.Factory(
+            ExperimentServiceBase,
+            arguments_service=arguments_service,
+            dataloader_service=dataloader_service,
+            file_service=file_service,
+            model=model))
 
     test_service = providers.Factory(
         TestService,

@@ -1,12 +1,32 @@
+from tests.fakes.log_service_fake import LogServiceFake
+from enums.language import Language
+from enums.configuration import Configuration
+from enums.challenge import Challenge
 import os
-from tests.containers.test_container import TestContainer
+from tests.fakes.argument_service_fake import ArgumentServiceFake
+from dependency_injection.ioc_container import IocContainer
+import dependency_injector.providers as providers
 import unittest
+
+def initialize_container() -> IocContainer:
+    container = IocContainer()
+    container.arguments_service.override(
+        providers.Factory(ArgumentServiceFake,
+            custom_values={
+                'data_folder': os.path.join('tests', 'data'),
+                'challenge': Challenge.OCREvaluation,
+                'configuration': Configuration.CBOW,
+                'language': Language.English,
+                'output_folder': os.path.join('tests', 'results')
+            }))
+
+    container.log_service.override(providers.Factory(LogServiceFake))
+    return container
 
 
 class FileServiceTest(unittest.TestCase):
     def test_combine_path_missing(self):
-        container = TestContainer()
-
+        container = initialize_container()
         file_service = container.file_service()
 
         path_to_test = os.path.join('tests', 'results', 'temp')
@@ -18,7 +38,7 @@ class FileServiceTest(unittest.TestCase):
         self.assertFalse(os.path.exists(path_to_test))
 
     def test_combine_path_create(self):
-        container = TestContainer()
+        container = initialize_container()
         file_service = container.file_service()
 
         path_to_test = os.path.join('tests', 'results', 'temp')
