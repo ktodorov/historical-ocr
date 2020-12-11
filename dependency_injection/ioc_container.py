@@ -235,7 +235,7 @@ class IocContainer(containers.DeclarativeContainer):
         data_service=data_service
     )
 
-    vocabulary_service = providers.Singleton(
+    vocabulary_service: providers.Provider[VocabularyService] = providers.Singleton(
         VocabularyService,
         data_service=data_service,
         file_service=file_service,

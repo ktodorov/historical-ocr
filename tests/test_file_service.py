@@ -24,7 +24,7 @@ def initialize_container() -> IocContainer:
     return container
 
 
-class FileServiceTest(unittest.TestCase):
+class TestFileService(unittest.TestCase):
     def test_combine_path_missing(self):
         container = initialize_container()
         file_service = container.file_service()
