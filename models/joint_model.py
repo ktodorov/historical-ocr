@@ -1,3 +1,4 @@
+from models.simple.skip_gram import SkipGram
 from torch.utils import data
 from enums.configuration import Configuration
 import os
@@ -59,6 +60,11 @@ class JointModel(ModelBase):
                 data_service=self._data_service)
         elif configuration == Configuration.CBOW:
             result = CBOW(
+                arguments_service=self._arguments_service,
+                vocabulary_service=self._vocabulary_service,
+                data_service=self._data_service)
+        elif configuration == Configuration.SkipGram:
+            result = SkipGram(
                 arguments_service=self._arguments_service,
                 vocabulary_service=self._vocabulary_service,
                 data_service=self._data_service)

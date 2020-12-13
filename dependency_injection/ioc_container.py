@@ -196,6 +196,12 @@ def get_experiment_service(arguments_service: ArgumentsServiceBase):
 
     return 'ocr_quality'
 
+def include_train_service(arguments_service: ArgumentsServiceBase):
+    if arguments_service.run_experiments or arguments_service.evaluate:
+        return 'exclude'
+
+    return 'include'
+
 
 class IocContainer(containers.DeclarativeContainer):
     """Application IoC container."""
@@ -467,16 +473,22 @@ class IocContainer(containers.DeclarativeContainer):
         model=model
     )
 
-    train_service = providers.Factory(
-        TrainService,
-        arguments_service=arguments_service,
-        dataloader_service=dataloader_service,
-        loss_function=loss_function,
-        optimizer=optimizer,
-        log_service=log_service,
-        model=model,
-        file_service=file_service
-    )
+    train_service_selector = providers.Callable(
+        include_train_service,
+        arguments_service=arguments_service)
+
+    train_service: providers.Provider[TrainService] = providers.Selector(
+        train_service_selector,
+        include=providers.Factory(
+            TrainService,
+            arguments_service=arguments_service,
+            dataloader_service=dataloader_service,
+            loss_function=loss_function,
+            optimizer=optimizer,
+            log_service=log_service,
+            model=model,
+            file_service=file_service),
+        exclude=providers.Object(None))
 
     # Misc
 
