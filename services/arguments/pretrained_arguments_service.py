@@ -33,7 +33,7 @@ class PretrainedArgumentsService(ArgumentsServiceBase):
                             help='Should a fasttext model be used to provide more information')
         parser.add_argument('--fasttext-model-size', type=int, default=300,
                             help='The hidden size dimension of the fasttext model. Default is 300')
-        parser.add_argument("--pretrained-model", type=PretrainedModel, choices=list(PretrainedModel), default=PretrainedModel.BERT,
+        parser.add_argument("--pretrained-model", type=PretrainedModel, choices=list(PretrainedModel), default=None,
                             help="Pretrained model that will be used to tokenize strings and generate embeddings")
         parser.add_argument('--fine-tune-pretrained', action='store_true',
                             help='If true, the loaded pre-trained model will be fine-tuned instead of being frozen. Default is `false`')

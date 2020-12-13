@@ -82,9 +82,12 @@ class Word2VecProcessService(ProcessServiceBase):
             item_key='token-ids',
             item=(ocr_data_ids, gs_data_ids))
 
-        ocr_corpus = CBOWCorpus(ocr_data_ids, window_size=2)
-        gs_corpus = CBOWCorpus(gs_data_ids, window_size=2)
+        (ocr_corpus, gs_corpus) = self._generate_corpora_entries(ocr_data_ids, gs_data_ids)
+        return (ocr_corpus, gs_corpus)
 
+    def _generate_corpora_entries(self, ocr_data_ids, gs_data_ids):
+        ocr_corpus = CBOWCorpus(ocr_data_ids, window_size=1)
+        gs_corpus = CBOWCorpus(gs_data_ids, window_size=1)
         return (ocr_corpus, gs_corpus)
 
     def _save_common_words(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
@@ -117,7 +120,7 @@ class Word2VecProcessService(ProcessServiceBase):
         return token_matrix
 
     def _generate_token_matrix(self):
-        data_path = self._file_service.get_data_path()
+        data_path = self._file_service.combine_path(self._file_service.get_challenge_path(), 'word2vec', self._arguments_service.language.value)
         word2vec_model_name, word2vec_binary = self._get_word2vec_model_info()
         word2vec_model_path = os.path.join(data_path, word2vec_model_name)
         word2vec_weights = gensim.models.KeyedVectors.load_word2vec_format(word2vec_model_path, binary = word2vec_binary)

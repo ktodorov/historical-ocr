@@ -6,3 +6,4 @@ class Configuration(ArgumentEnum):
     RoBERTa = 'roberta'
     BART = 'bart'
     CBOW = 'cbow'
+    SkipGram = 'skip-gram'

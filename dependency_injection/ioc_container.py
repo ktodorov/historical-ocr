@@ -1,3 +1,4 @@
+from losses.simple_loss import SimpleLoss
 from services.word_neighbourhood_service import WordNeighbourhoodService
 from gensim.models.keyedvectors import Vocab
 from gensim.utils import tokenize
@@ -26,6 +27,7 @@ from models.transformers.bert import BERT
 from models.transformers.xlnet import XLNet
 from models.transformers.bart import BART
 from models.simple.cbow import CBOW
+from models.simple.skip_gram import SkipGram
 
 from optimizers.optimizer_base import OptimizerBase
 from optimizers.adam_optimizer import AdamOptimizer
@@ -44,6 +46,7 @@ from services.download.ocr_download_service import OCRDownloadService
 from services.process.process_service_base import ProcessServiceBase
 from services.process.transformer_process_service import TransformerProcessService
 from services.process.word2vec_process_service import Word2VecProcessService
+from services.process.skip_gram_process_service import SkipGramProcessService
 from services.process.evaluation_process_service import EvaluationProcessService
 
 from services.evaluation.base_evaluation_service import BaseEvaluationService
@@ -98,8 +101,8 @@ def get_optimizer(arguments_service: ArgumentsServiceBase):
     challenge = arguments_service.challenge
     configuration = arguments_service.configuration
     if challenge == Challenge.OCREvaluation:
-        if configuration == Configuration.CBOW:
-            result = 'cbow'
+        if configuration == Configuration.CBOW or configuration == Configuration.SkipGram:
+            result = 'sgd'
         else:
             result = 'transformer'
 
@@ -113,7 +116,9 @@ def get_loss_function(arguments_service: ArgumentsServiceBase):
 
     if challenge == Challenge.OCREvaluation:
         if configuration == Configuration.CBOW:
-            return 'cbow'
+            return 'cross_entropy'
+        elif configuration == Configuration.SkipGram:
+            return 'simple'
         else:
             return 'transformer'
 
@@ -145,7 +150,7 @@ def get_model_type(arguments_service: ArgumentsServiceBase):
     if run_experiments:
         model = 'joint'
     else:
-        model = configuration.value
+        model = str(configuration.value).replace('-', '_')
 
     return model
 
@@ -162,6 +167,8 @@ def get_process_service(arguments_service: ArgumentsServiceBase):
             result = 'evaluation'
         elif configuration == Configuration.CBOW:
             result = 'cbow'
+        elif configuration == Configuration.SkipGram:
+            result = 'skip_gram'
         else:
             result = 'transformer'
 
@@ -175,7 +182,7 @@ def get_tokenize_service(arguments_service: ArgumentsServiceBase) -> str:
 
     if pretrained_model_type is None:
         configuration = arguments_service.configuration
-        return configuration.value
+        return str(configuration.value).replace('-', '_')
 
     return pretrained_model_type.value
 
@@ -262,6 +269,9 @@ class IocContainer(containers.DeclarativeContainer):
             arguments_service=arguments_service),
         cbow=providers.Singleton(
             CBOWTokenizeService,
+            vocabulary_service=vocabulary_service),
+        skip_gram=providers.Singleton(
+            CBOWTokenizeService,
             vocabulary_service=vocabulary_service))
 
     mask_service = providers.Factory(
@@ -295,6 +305,15 @@ class IocContainer(containers.DeclarativeContainer):
             tokenize_service=tokenize_service),
         cbow=providers.Singleton(
             Word2VecProcessService,
+            arguments_service=arguments_service,
+            ocr_download_service=ocr_download_service,
+            cache_service=cache_service,
+            log_service=log_service,
+            vocabulary_service=vocabulary_service,
+            file_service=file_service,
+            tokenize_service=tokenize_service),
+        skip_gram=providers.Singleton(
+            SkipGramProcessService,
             arguments_service=arguments_service,
             ocr_download_service=ocr_download_service,
             cache_service=cache_service,
@@ -364,6 +383,12 @@ class IocContainer(containers.DeclarativeContainer):
             arguments_service=arguments_service,
             process_service=process_service,
             data_service=data_service,
+            vocabulary_service=vocabulary_service),
+        skip_gram=providers.Singleton(
+            SkipGram,
+            arguments_service=arguments_service,
+            process_service=process_service,
+            data_service=data_service,
             vocabulary_service=vocabulary_service))
 
     loss_selector = providers.Callable(
@@ -372,7 +397,8 @@ class IocContainer(containers.DeclarativeContainer):
 
     loss_function: providers.Provider[LossBase] = providers.Selector(
         loss_selector,
-        cbow=providers.Singleton(CrossEntropyLoss),
+        cross_entropy=providers.Singleton(CrossEntropyLoss),
+        simple=providers.Singleton(SimpleLoss),
         transformer=providers.Singleton(TransformerLossBase))
 
     optimizer_selector = providers.Callable(
@@ -381,7 +407,7 @@ class IocContainer(containers.DeclarativeContainer):
 
     optimizer: providers.Provider[OptimizerBase] = providers.Selector(
         optimizer_selector,
-        cbow=providers.Singleton(
+        sgd=providers.Singleton(
             SGDOptimizer,
             arguments_service=arguments_service,
             model=model),

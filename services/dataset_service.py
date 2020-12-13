@@ -6,6 +6,7 @@ from datasets.dataset_base import DatasetBase
 from datasets.joint_dataset import JointDataset
 from datasets.transformer_lm_dataset import TransformerLMDataset
 from datasets.word2vec_dataset import Word2VecDataset
+from datasets.skip_gram_dataset import SkipGramDataset
 from datasets.evaluation_dataset import EvaluationDataset
 
 from services.arguments.arguments_service_base import ArgumentsServiceBase
@@ -65,6 +66,10 @@ class DatasetService:
             if challenge == Challenge.OCREvaluation:
                 if configuration == Configuration.CBOW:
                     result = Word2VecDataset(
+                        arguments_service=self._arguments_service,
+                        process_service=self._process_service)
+                elif configuration == Configuration.SkipGram:
+                    result = SkipGramDataset(
                         arguments_service=self._arguments_service,
                         process_service=self._process_service)
                 else:

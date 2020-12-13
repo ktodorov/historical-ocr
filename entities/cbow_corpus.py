@@ -1,6 +1,6 @@
 from typing import List
 
-from entities.skip_gram_entry import SkipGramEntry
+from entities.cbow_entry import CBOWEntry
 
 class CBOWCorpus:
     def __init__(self, text_lines: List[List[int]], window_size: int = 2):
@@ -18,13 +18,13 @@ class CBOWCorpus:
                 window_start = max(0, target_idx-self._window_size)
                 window_end = min(len(text_line), target_idx+self._window_size+1)
                 context_tokens = text_line[window_start:target_idx] + text_line[target_idx+1:window_end]
-                result.append(SkipGramEntry(
+                result.append(CBOWEntry(
                     target_token=text_line[target_idx],
                     context_tokens=context_tokens))
 
         return result
 
-    def get_entry(self, idx: int) -> SkipGramEntry:
+    def get_entry(self, idx: int) -> CBOWEntry:
         return self._entries[idx]
 
     @property
