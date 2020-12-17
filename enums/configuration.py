@@ -7,3 +7,4 @@ class Configuration(ArgumentEnum):
     BART = 'bart'
     CBOW = 'cbow'
     SkipGram = 'skip-gram'
+    PPMI = 'ppmi'

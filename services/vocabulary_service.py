@@ -1,8 +1,10 @@
 import os
-from typing import List, Dict, Tuple
+from typing import Counter, List, Dict, Tuple
 
 import nltk
 from nltk.corpus import wordnet as wn
+from numpy.core.numeric import full
+from numpy.lib.arraysetops import unique
 
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.data_service import DataService
@@ -47,11 +49,11 @@ class VocabularyService:
         return self.unk_token
 
     def ids_to_string(
-        self,
-        input: List[int],
-        exclude_special_tokens: bool = True,
-        join_str: str = '',
-        cut_after_end_token: bool = False) -> str:
+            self,
+            input: List[int],
+            exclude_special_tokens: bool = True,
+            join_str: str = '',
+            cut_after_end_token: bool = False) -> str:
         if join_str is None:
             raise Exception('`join_str` must be a valid string')
 
@@ -72,9 +74,9 @@ class VocabularyService:
         return result
 
     def ids_to_strings(
-        self,
-        input: List[int],
-        exclude_pad_tokens: bool = True) -> List[str]:
+            self,
+            input: List[int],
+            exclude_pad_tokens: bool = True) -> List[str]:
         result = [self._id2token[x] for x in input]
 
         if exclude_pad_tokens:
@@ -114,13 +116,17 @@ class VocabularyService:
         for index, token in self._id2token.items():
             yield (index, token)
 
-    def initialize_vocabulary_from_corpus(self, tokenized_corpus: List[List[str]]):
+    def initialize_vocabulary_from_corpus(self, tokenized_corpus: List[List[str]], min_occurrence_limit: int = None):
         if len(self._token2idx) > 0 and len(self._id2token) > 0:
             return
 
-        unique_tokens = list(set([token for sentence in tokenized_corpus for token in sentence]))
-        unique_tokens = list(sorted(unique_tokens))
+        unique_tokens = list(
+            set([token for sentence in tokenized_corpus for token in sentence]))
 
+        if min_occurrence_limit is not None:
+            unique_tokens = self._filter_tokens_by_occurrence(tokenized_corpus, unique_tokens, min_occurrence_limit)
+
+        unique_tokens = list(sorted(unique_tokens))
         vocabulary = [
             '[PAD]',
             '[CLS]',
@@ -135,6 +141,13 @@ class VocabularyService:
 
         self._cache_vocabulary()
 
+    def _filter_tokens_by_occurrence(self, full_corpus: List[List[str]], unique_tokens: List[str], min_occurrence_limit: int) -> List[str]:
+        all_tokens = [inner for outer in full_corpus for inner in outer]
+        tokens_counter = Counter(all_tokens)
+        limit_tokens = [token for token in unique_tokens if tokens_counter[token] > min_occurrence_limit]
+        return limit_tokens
+
+
     def _cache_vocabulary(self):
         self._cache_service.cache_item(
             self._vocabulary_cache_key,
@@ -146,7 +159,7 @@ class VocabularyService:
 
     def _load_cached_vocabulary(self):
         return self._cache_service.get_item_from_cache(self._vocabulary_cache_key)
-        
+
     def vocabulary_is_initialized(self) -> bool:
         return self._id2token is not None and len(self._id2token) > 0 and self._token2idx is not None and len(self._token2idx) > 0
 

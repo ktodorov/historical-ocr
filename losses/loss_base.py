@@ -5,10 +5,10 @@ class LossBase(nn.Module):
         super(LossBase, self).__init__()
 
     def backward(self, model_output):
-        pass
+        return 0.0
 
     def calculate_loss(self, model_output):
-        pass
+        return 0.0
 
     @property
     def criterion(self) -> nn.Module:

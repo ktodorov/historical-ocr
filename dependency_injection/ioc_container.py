@@ -1,3 +1,4 @@
+from services.process.ppmi_process_service import PPMIProcessService
 from losses.simple_loss import SimpleLoss
 from services.word_neighbourhood_service import WordNeighbourhoodService
 from gensim.models.keyedvectors import Vocab
@@ -28,6 +29,7 @@ from models.transformers.xlnet import XLNet
 from models.transformers.bart import BART
 from models.simple.cbow import CBOW
 from models.simple.skip_gram import SkipGram
+from models.simple.ppmi import PPMI
 
 from optimizers.optimizer_base import OptimizerBase
 from optimizers.adam_optimizer import AdamOptimizer
@@ -97,12 +99,14 @@ def get_optimizer(arguments_service: ArgumentsServiceBase):
     if arguments_service.evaluate or arguments_service.run_experiments:
         return None
 
-    result = None
+    result = 'base'
     challenge = arguments_service.challenge
     configuration = arguments_service.configuration
     if challenge == Challenge.OCREvaluation:
         if configuration == Configuration.CBOW or configuration == Configuration.SkipGram:
             result = 'sgd'
+        elif configuration == Configuration.PPMI:
+            result = 'base'
         else:
             result = 'transformer'
 
@@ -119,6 +123,8 @@ def get_loss_function(arguments_service: ArgumentsServiceBase):
             return 'cross_entropy'
         elif configuration == Configuration.SkipGram:
             return 'simple'
+        elif configuration == Configuration.PPMI:
+            return 'base'
         else:
             return 'transformer'
 
@@ -169,6 +175,8 @@ def get_process_service(arguments_service: ArgumentsServiceBase):
             result = 'cbow'
         elif configuration == Configuration.SkipGram:
             result = 'skip_gram'
+        elif configuration == Configuration.PPMI:
+            result = 'ppmi'
         else:
             result = 'transformer'
 
@@ -278,6 +286,9 @@ class IocContainer(containers.DeclarativeContainer):
             vocabulary_service=vocabulary_service),
         skip_gram=providers.Singleton(
             CBOWTokenizeService,
+            vocabulary_service=vocabulary_service),
+        ppmi=providers.Singleton(
+            CBOWTokenizeService,
             vocabulary_service=vocabulary_service))
 
     mask_service = providers.Factory(
@@ -333,7 +344,14 @@ class IocContainer(containers.DeclarativeContainer):
             ocr_download_service=ocr_download_service,
             tokenize_service=tokenize_service,
             cache_service=cache_service,
-            log_service=log_service))
+            log_service=log_service),
+        ppmi=providers.Singleton(
+            PPMIProcessService,
+            ocr_download_service=ocr_download_service,
+            arguments_service=arguments_service,
+            cache_service=cache_service,
+            vocabulary_service=vocabulary_service,
+            tokenize_service=tokenize_service))
 
     dataset_service = providers.Factory(
         DatasetService,
@@ -395,6 +413,11 @@ class IocContainer(containers.DeclarativeContainer):
             arguments_service=arguments_service,
             process_service=process_service,
             data_service=data_service,
+            vocabulary_service=vocabulary_service),
+        ppmi=providers.Singleton(
+            PPMI,
+            arguments_service=arguments_service,
+            data_service=data_service,
             vocabulary_service=vocabulary_service))
 
     loss_selector = providers.Callable(
@@ -403,6 +426,7 @@ class IocContainer(containers.DeclarativeContainer):
 
     loss_function: providers.Provider[LossBase] = providers.Selector(
         loss_selector,
+        base=providers.Singleton(LossBase),
         cross_entropy=providers.Singleton(CrossEntropyLoss),
         simple=providers.Singleton(SimpleLoss),
         transformer=providers.Singleton(TransformerLossBase))
@@ -413,6 +437,10 @@ class IocContainer(containers.DeclarativeContainer):
 
     optimizer: providers.Provider[OptimizerBase] = providers.Selector(
         optimizer_selector,
+        base=providers.Singleton(
+            OptimizerBase,
+            arguments_service=arguments_service,
+            model=model),
         sgd=providers.Singleton(
             SGDOptimizer,
             arguments_service=arguments_service,

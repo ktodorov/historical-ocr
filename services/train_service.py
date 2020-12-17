@@ -259,7 +259,8 @@ class TrainService:
 
         if train_mode:
             self._model.train()
-            self._optimizer.zero_grad()
+            if self._optimizer is not None:
+                self._optimizer.zero_grad()
         else:
             self._model.eval()
 
@@ -268,7 +269,9 @@ class TrainService:
         if train_mode:
             loss = self._loss_function.backward(outputs)
             self._model.clip_gradients()
-            self._optimizer.step()
+            if self._optimizer is not None:
+                self._optimizer.step()
+
             self._model.zero_grad()
         else:
             loss = self._loss_function.calculate_loss(outputs)

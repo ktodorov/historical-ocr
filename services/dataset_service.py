@@ -8,6 +8,7 @@ from datasets.transformer_lm_dataset import TransformerLMDataset
 from datasets.word2vec_dataset import Word2VecDataset
 from datasets.skip_gram_dataset import SkipGramDataset
 from datasets.evaluation_dataset import EvaluationDataset
+from datasets.ppmi_dataset import PPMIDataset
 
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.file_service import FileService
@@ -70,6 +71,10 @@ class DatasetService:
                         process_service=self._process_service)
                 elif configuration == Configuration.SkipGram:
                     result = SkipGramDataset(
+                        arguments_service=self._arguments_service,
+                        process_service=self._process_service)
+                elif configuration == Configuration.PPMI:
+                    result = PPMIDataset(
                         arguments_service=self._arguments_service,
                         process_service=self._process_service)
                 else:

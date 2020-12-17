@@ -1,6 +1,7 @@
 import os
 from services.file_service import FileService
 
+from overrides import overrides
 from torch._C import dtype
 import gensim
 import numpy as np
@@ -13,7 +14,7 @@ from enums.language import Language
 
 from entities.cbow_corpus import CBOWCorpus
 
-from services.process.process_service_base import ProcessServiceBase
+from services.process.icdar_process_service import ICDARProcessService
 
 from services.download.ocr_download_service import OCRDownloadService
 from services.arguments.arguments_service_base import ArgumentsServiceBase
@@ -22,7 +23,8 @@ from services.log_service import LogService
 from services.vocabulary_service import VocabularyService
 from services.tokenize.base_tokenize_service import BaseTokenizeService
 
-class Word2VecProcessService(ProcessServiceBase):
+
+class Word2VecProcessService(ICDARProcessService):
     def __init__(
             self,
             ocr_download_service: OCRDownloadService,
@@ -32,19 +34,18 @@ class Word2VecProcessService(ProcessServiceBase):
             vocabulary_service: VocabularyService,
             file_service: FileService,
             tokenize_service: BaseTokenizeService):
+        super().__init__(
+            ocr_download_service=ocr_download_service,
+            arguments_service=arguments_service,
+            cache_service=cache_service,
+            vocabulary_service=vocabulary_service,
+            tokenize_service=tokenize_service)
 
         self._arguments_service = arguments_service
         self._cache_service = cache_service
-        self._ocr_download_service = ocr_download_service
         self._log_service = log_service
         self._vocabulary_service = vocabulary_service
         self._file_service = file_service
-
-        self._tokenize_service = tokenize_service
-
-        if not self._vocabulary_service.vocabulary_is_initialized():
-            self._initialize_vocabulary()
-
 
     def get_text_corpus(self, ocr_output_type: OCROutputType) -> CBOWCorpus:
         limit_size = self._arguments_service.train_dataset_limit_size
@@ -55,50 +56,11 @@ class Word2VecProcessService(ProcessServiceBase):
 
         return text_corpus
 
-    def _initialize_vocabulary(self):
-        self._ocr_download_service.download_data(self._arguments_service.language)
-
-        ocr_data, gs_data = self._cache_service.get_item_from_cache(
-            item_key='train-validation-data',
-            callback_function=self._read_data)
-
-        tokenized_ocr_data = self._tokenize_service.tokenize_sequences(ocr_data)
-        tokenized_gs_data = self._tokenize_service.tokenize_sequences(gs_data)
-
-        self._vocabulary_service.initialize_vocabulary_from_corpus(tokenized_ocr_data + tokenized_gs_data)
-
-    def _generate_ocr_corpora(self):
-        (ocr_data, gs_data) = self._cache_service.get_item_from_cache(item_key='train-validation-data')
-
-        tokenized_ocr_data = self._tokenize_service.tokenize_sequences(ocr_data)
-        tokenized_gs_data = self._tokenize_service.tokenize_sequences(gs_data)
-
-        self._save_common_words(tokenized_ocr_data, tokenized_gs_data)
-
-        ocr_data_ids = [self._vocabulary_service.string_to_ids(x) for x in tokenized_ocr_data]
-        gs_data_ids = [self._vocabulary_service.string_to_ids(x) for x in tokenized_gs_data]
-
-        self._cache_service.cache_item(
-            item_key='token-ids',
-            item=(ocr_data_ids, gs_data_ids))
-
-        (ocr_corpus, gs_corpus) = self._generate_corpora_entries(ocr_data_ids, gs_data_ids)
-        return (ocr_corpus, gs_corpus)
-
+    @overrides
     def _generate_corpora_entries(self, ocr_data_ids, gs_data_ids):
         ocr_corpus = CBOWCorpus(ocr_data_ids, window_size=1)
         gs_corpus = CBOWCorpus(gs_data_ids, window_size=1)
         return (ocr_corpus, gs_corpus)
-
-    def _save_common_words(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
-        ocr_unique_tokens = set([item for sublist in tokenized_ocr_data for item in sublist])
-        gs_unique_tokens = set([item for sublist in tokenized_gs_data for item in sublist])
-
-        common_tokens = list(ocr_unique_tokens & gs_unique_tokens)
-        self._cache_service.cache_item(
-            item_key=f'common-tokens-{self._arguments_service.language.value}',
-            item=common_tokens,
-            configuration_specific=False)
 
     def get_embedding_size(self) -> int:
         if self._arguments_service.language == Language.English:
@@ -120,15 +82,18 @@ class Word2VecProcessService(ProcessServiceBase):
         return token_matrix
 
     def _generate_token_matrix(self):
-        data_path = self._file_service.combine_path(self._file_service.get_challenge_path(), 'word2vec', self._arguments_service.language.value)
+        data_path = self._file_service.combine_path(self._file_service.get_challenge_path(
+        ), 'word2vec', self._arguments_service.language.value)
         word2vec_model_name, word2vec_binary = self._get_word2vec_model_info()
         word2vec_model_path = os.path.join(data_path, word2vec_model_name)
-        word2vec_weights = gensim.models.KeyedVectors.load_word2vec_format(word2vec_model_path, binary = word2vec_binary)
+        word2vec_weights = gensim.models.KeyedVectors.load_word2vec_format(
+            word2vec_model_path, binary=word2vec_binary)
         pretrained_weight_matrix = np.random.rand(
             self._vocabulary_service.vocabulary_size(),
             word2vec_weights.vector_size)
 
-        vocabulary_items = tqdm(self._vocabulary_service.get_vocabulary_tokens(), desc="Generating pre-trained matrix", total=self._vocabulary_service.vocabulary_size())
+        vocabulary_items = tqdm(self._vocabulary_service.get_vocabulary_tokens(
+        ), desc="Generating pre-trained matrix", total=self._vocabulary_service.vocabulary_size())
         for (index, token) in vocabulary_items:
             if token in word2vec_weights.vocab:
                 pretrained_weight_matrix[index] = word2vec_weights.wv[token]
@@ -164,34 +129,3 @@ class Word2VecProcessService(ProcessServiceBase):
             key=f'\'{ocr_output_type.value}\' entries amount', value=corpus.length)
 
         return corpus
-
-    def _load_file_data(self):
-        cache_keys = [
-            'trove-dataset',
-            'newseye-2017-full-dataset',
-            'newseye-2019-train-dataset',
-            'newseye-2019-eval-dataset']
-
-        number_of_files = len(cache_keys)
-
-        ocr_file_data = []
-        gs_file_data = []
-
-        for i, cache_key in enumerate(cache_keys):
-            print(f'{i}/{number_of_files}             \r', end='')
-            result = self._cache_service.get_item_from_cache(cache_key)
-            if result is None:
-                continue
-
-            ocr_file_data.extend(result[0])
-            gs_file_data.extend(result[1])
-
-        return ocr_file_data, gs_file_data
-
-    def _read_data(self):
-        ocr_gs_file_data_cache_key = f'ocr-gs-file-data'
-        ocr_file_data, gs_file_data = self._cache_service.get_item_from_cache(
-            item_key=ocr_gs_file_data_cache_key,
-            callback_function=self._load_file_data)
-
-        return ocr_file_data, gs_file_data
