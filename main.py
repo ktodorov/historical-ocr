@@ -12,7 +12,6 @@ from services.experiments.experiment_service_base import ExperimentServiceBase
 
 
 def main(
-        data_service: DataService,
         arguments_service: ArgumentsServiceBase,
         train_service: TrainService,
         test_service: TestService,

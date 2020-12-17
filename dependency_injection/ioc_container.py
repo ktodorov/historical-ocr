@@ -1,25 +1,23 @@
+from datasets.evaluation_dataset import EvaluationDataset
+from datasets.ppmi_dataset import PPMIDataset
+from datasets.transformer_lm_dataset import TransformerLMDataset
+from datasets.skip_gram_dataset import SkipGramDataset
+from datasets.word2vec_dataset import Word2VecDataset
+from datasets.dataset_base import DatasetBase
 from services.process.ppmi_process_service import PPMIProcessService
 from losses.simple_loss import SimpleLoss
 from services.word_neighbourhood_service import WordNeighbourhoodService
-from gensim.models.keyedvectors import Vocab
-from gensim.utils import tokenize
-from torch.utils import data
 from models.joint_model import JointModel
-import torch
-import numpy as np
-import random
 
 import dependency_injector.containers as containers
 import dependency_injector.providers as providers
 
+from dependency_injection.selector_utils import *
+
 import main
 
-from enums.configuration import Configuration
-from enums.challenge import Challenge
-from enums.pretrained_model import PretrainedModel
 
 from losses.loss_base import LossBase
-from losses.joint_loss import JointLoss
 from losses.transformer_loss_base import TransformerLossBase
 from losses.cross_entropy_loss import CrossEntropyLoss
 
@@ -32,16 +30,12 @@ from models.simple.skip_gram import SkipGram
 from models.simple.ppmi import PPMI
 
 from optimizers.optimizer_base import OptimizerBase
-from optimizers.adam_optimizer import AdamOptimizer
-from optimizers.adamw_optimizer import AdamWOptimizer
 from optimizers.sgd_optimizer import SGDOptimizer
 from optimizers.adamw_transformer_optimizer import AdamWTransformerOptimizer
-from optimizers.joint_adamw_transformer_optimizer import JointAdamWTransformerOptimizer
 
 from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
 from services.arguments.ocr_evaluation_arguments_service import OCREvaluationArgumentsService
 from services.arguments.arguments_service_base import ArgumentsServiceBase
-from services.arguments.pretrained_arguments_service import PretrainedArgumentsService
 
 from services.download.ocr_download_service import OCRDownloadService
 
@@ -50,8 +44,6 @@ from services.process.transformer_process_service import TransformerProcessServi
 from services.process.word2vec_process_service import Word2VecProcessService
 from services.process.skip_gram_process_service import SkipGramProcessService
 from services.process.evaluation_process_service import EvaluationProcessService
-
-from services.evaluation.base_evaluation_service import BaseEvaluationService
 
 from services.data_service import DataService
 from services.dataloader_service import DataLoaderService
@@ -79,136 +71,6 @@ from services.cache_service import CacheService
 from services.string_process_service import StringProcessService
 
 import logging
-
-
-def get_arguments_service(arguments_service: ArgumentsServiceBase):
-    result = 'base'
-    challenge = arguments_service.challenge
-    run_experiments = arguments_service.run_experiments
-
-    if challenge == Challenge.OCREvaluation:
-        if run_experiments:
-            result = 'evaluation'
-        else:
-            result = 'ocr_quality'
-
-    return result
-
-
-def get_optimizer(arguments_service: ArgumentsServiceBase):
-    if arguments_service.evaluate or arguments_service.run_experiments:
-        return None
-
-    result = 'base'
-    challenge = arguments_service.challenge
-    configuration = arguments_service.configuration
-    if challenge == Challenge.OCREvaluation:
-        if configuration == Configuration.CBOW or configuration == Configuration.SkipGram:
-            result = 'sgd'
-        elif configuration == Configuration.PPMI:
-            result = 'base'
-        else:
-            result = 'transformer'
-
-    return result
-
-
-def get_loss_function(arguments_service: ArgumentsServiceBase):
-    loss_function = None
-    challenge = arguments_service.challenge
-    configuration = arguments_service.configuration
-
-    if challenge == Challenge.OCREvaluation:
-        if configuration == Configuration.CBOW:
-            return 'cross_entropy'
-        elif configuration == Configuration.SkipGram:
-            return 'simple'
-        elif configuration == Configuration.PPMI:
-            return 'base'
-        else:
-            return 'transformer'
-
-    return loss_function
-
-
-# def register_evaluation_service(
-#         arguments_service: ArgumentsServiceBase,
-#         file_service: FileService,
-#         plot_service: PlotService,
-#         metrics_service: MetricsService,
-#         process_service: ProcessServiceBase,
-#         vocabulary_service: VocabularyService,
-#         data_service: DataService,
-#         joint_model: bool,
-#         configuration: Configuration):
-#     evaluation_service = None
-
-#     return evaluation_service
-
-
-def get_model_type(arguments_service: ArgumentsServiceBase):
-
-    run_experiments = arguments_service.run_experiments
-    configuration = arguments_service.configuration
-
-    model = None
-
-    if run_experiments:
-        model = 'joint'
-    else:
-        model = str(configuration.value).replace('-', '_')
-
-    return model
-
-
-def get_process_service(arguments_service: ArgumentsServiceBase):
-    result = None
-
-    challenge = arguments_service.challenge
-    run_experiments = arguments_service.run_experiments
-    configuration = arguments_service.configuration
-
-    if challenge == Challenge.OCREvaluation:
-        if run_experiments:
-            result = 'evaluation'
-        elif configuration == Configuration.CBOW:
-            result = 'cbow'
-        elif configuration == Configuration.SkipGram:
-            result = 'skip_gram'
-        elif configuration == Configuration.PPMI:
-            result = 'ppmi'
-        else:
-            result = 'transformer'
-
-    return result
-
-
-def get_tokenize_service(arguments_service: ArgumentsServiceBase) -> str:
-    pretrained_model_type = None
-    if isinstance(arguments_service, PretrainedArgumentsService):
-        pretrained_model_type = arguments_service.pretrained_model
-
-    if pretrained_model_type is None:
-        configuration = arguments_service.configuration
-        return str(configuration.value).replace('-', '_')
-
-    return pretrained_model_type.value
-
-
-def get_experiment_service(arguments_service: ArgumentsServiceBase):
-
-    run_experiments = arguments_service.run_experiments
-
-    if not run_experiments:
-        return 'base'
-
-    return 'ocr_quality'
-
-def include_train_service(arguments_service: ArgumentsServiceBase):
-    if arguments_service.run_experiments or arguments_service.evaluate:
-        return 'exclude'
-
-    return 'include'
 
 
 class IocContainer(containers.DeclarativeContainer):
@@ -357,12 +219,6 @@ class IocContainer(containers.DeclarativeContainer):
         DatasetService,
         arguments_service=arguments_service,
         mask_service=mask_service,
-        tokenize_service=tokenize_service,
-        file_service=file_service,
-        log_service=log_service,
-        vocabulary_service=vocabulary_service,
-        metrics_service=metrics_service,
-        data_service=data_service,
         process_service=process_service,
     )
 
@@ -522,9 +378,7 @@ class IocContainer(containers.DeclarativeContainer):
 
     main = providers.Callable(
         main.main,
-        data_service=data_service,
         arguments_service=arguments_service,
         train_service=train_service,
         test_service=test_service,
-        experiment_service=experiment_service
-    )
+        experiment_service=experiment_service)

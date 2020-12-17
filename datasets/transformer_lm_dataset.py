@@ -18,7 +18,6 @@ from services.process.transformer_process_service import TransformerProcessServi
 class TransformerLMDataset(DatasetBase):
     def __init__(
             self,
-            language: str,
             arguments_service: OCRQualityArgumentsService,
             process_service: TransformerProcessService,
             mask_service: MaskService,

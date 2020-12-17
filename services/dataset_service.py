@@ -26,33 +26,17 @@ class DatasetService:
             self,
             arguments_service: ArgumentsServiceBase,
             mask_service: MaskService,
-            tokenize_service: BaseTokenizeService,
-            file_service: FileService,
-            log_service: LogService,
-            metrics_service: MetricsService,
-            vocabulary_service: VocabularyService,
-            data_service: DataService,
             process_service: ProcessServiceBase):
 
         self._arguments_service = arguments_service
         self._mask_service = mask_service
-        self._tokenize_service = tokenize_service
-        self._file_service = file_service
-        self._log_service = log_service
-        self._vocabulary_service = vocabulary_service
-        self._metrics_service = metrics_service
-        self._data_service = data_service
         self._process_service = process_service
 
-    def get_dataset(self, run_type: RunType, language: str) -> DatasetBase:
+    def initialize_dataset(self, run_type: RunType) -> DatasetBase:
         """Loads and returns the dataset based on run type ``(Train, Validation, Test)`` and the language
 
         :param run_type: used to distinguish which dataset should be returned
         :type run_type: RunType
-        :param language: language of the text that will be used
-        :type language: str
-        :raises Exception: if the chosen configuration is not supported, exception will be thrown
-        :return: the dataset
         :rtype: DatasetBase
         """
         joint_model: bool = self._arguments_service.joint_model
@@ -79,7 +63,6 @@ class DatasetService:
                         process_service=self._process_service)
                 else:
                     result = TransformerLMDataset(
-                        language=self._arguments_service.language,
                         arguments_service=self._arguments_service,
                         process_service=self._process_service,
                         mask_service=self._mask_service)

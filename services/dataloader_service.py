@@ -13,6 +13,7 @@ from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.dataset_service import DatasetService
 from services.tokenize.base_tokenize_service import BaseTokenizeService
 
+
 class DataLoaderService:
 
     def __init__(
@@ -29,33 +30,17 @@ class DataLoaderService:
         :return: the dataloaders
         :rtype: Tuple[DataLoader, DataLoader]
         """
-
-        language = self._arguments_service.language
-
-        train_dataset = self._dataset_service.get_dataset(
-            RunType.Train, language)
-
-        data_loader_train: DataLoader = DataLoader(
-            train_dataset,
+        data_loader_train = self._initialize_dataloader(
+            run_type=RunType.Train,
             batch_size=self._arguments_service.batch_size,
             shuffle=self._arguments_service.shuffle)
 
-        if train_dataset.use_collate_function():
-            data_loader_train.collate_fn = train_dataset.collate_function
-
+        data_loader_validation = None
         if not self._arguments_service.skip_validation:
-            validation_dataset = self._dataset_service.get_dataset(
-                RunType.Validation, language)
-
-            data_loader_validation = DataLoader(
-                validation_dataset,
+            data_loader_validation = self._initialize_dataloader(
+                run_type=RunType.Validation,
                 batch_size=self._arguments_service.batch_size,
                 shuffle=False)
-
-            if validation_dataset.use_collate_function():
-                data_loader_validation.collate_fn = validation_dataset.collate_function
-        else:
-            data_loader_validation = None
 
         return (data_loader_train, data_loader_validation)
 
@@ -65,17 +50,26 @@ class DataLoaderService:
         :return: the test dataloader
         :rtype: DataLoader
         """
-        language = self._arguments_service.language
-
-        test_dataset = self._dataset_service.get_dataset(
-            RunType.Test, language)
-
-        data_loader_test: DataLoader = DataLoader(
-            test_dataset,
+        data_loader_test = self._initialize_dataloader(
+            run_type=RunType.Test,
             batch_size=self._arguments_service.batch_size,
             shuffle=False)
 
-        if test_dataset.use_collate_function():
-            data_loader_test.collate_fn = test_dataset.collate_function
-
         return data_loader_test
+
+    def _initialize_dataloader(
+            self,
+            run_type: RunType,
+            batch_size: int,
+            shuffle: bool) -> DataLoader:
+        dataset = self._dataset_service.initialize_dataset(run_type)
+
+        data_loader: DataLoader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle)
+
+        if dataset.use_collate_function():
+            data_loader.collate_fn = dataset.collate_function
+
+        return data_loader
