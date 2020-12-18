@@ -29,8 +29,14 @@ class PPMIDataset(DatasetBase):
 
     @overrides
     def __getitem__(self, idx):
-        return (self._occurrence_stats.mutual_occurrences, self._occurrence_stats.token_occurrences)
+        return self._occurrence_stats
 
     @overrides
     def use_collate_function(self) -> bool:
-        return False
+        return True
+
+    @overrides
+    def collate_function(self, sequences):
+        stats = sequences[0]
+        return stats
+        

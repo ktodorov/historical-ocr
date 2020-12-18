@@ -36,31 +36,27 @@ class PPMI(ModelBase):
             dtype=np.float32)
 
     @overrides
-    def forward(self, stats):
+    def forward(self, stats: TokensOccurrenceStats):
         if self._initialized:
             return
 
         result = self._calculate_pmi(
-            stats[0].squeeze().numpy(),
+            stats.mutual_occurrences.todense(),
             positive=True)
 
         self._ppmi_matrix = sparse.dok_matrix(result)
 
         self._initialized = True
 
-    def _calculate_expected(
-        self,
-        matrix):
-        col_totals = matrix.sum(axis=0)
-        total = col_totals.sum()
-        row_totals = matrix.sum(axis=1)
-        return np.outer(row_totals, col_totals) / total
-
     def _calculate_pmi(
             self,
             matrix,
             positive=True):
-        matrix = matrix / self._calculate_expected(matrix)
+        col_totals = matrix.sum(axis=0)
+        total = col_totals.sum()
+        row_totals = matrix.sum(axis=1)
+        expected = np.outer(row_totals, col_totals) / total
+        matrix = matrix / expected
         # Silence distracting warnings about log(0):
         with np.errstate(divide='ignore'):
             matrix = np.log(matrix)

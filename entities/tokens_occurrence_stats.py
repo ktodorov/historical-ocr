@@ -1,4 +1,5 @@
 from typing import List
+from scipy import sparse
 import numpy as np
 
 class TokensOccurrenceStats:
@@ -7,25 +8,22 @@ class TokensOccurrenceStats:
         sentences: List[List[int]],
         vocabulary_size: int):
 
-        self._mutual_occurrences = np.zeros((vocabulary_size, vocabulary_size))
-        self._token_occurrences = np.zeros(vocabulary_size)
+        
+        mutual_occurrences = np.zeros((vocabulary_size, vocabulary_size), dtype=np.int32)
 
         for sentence in sentences:
             for i in range(len(sentence)):
-                self._token_occurrences[sentence[i]] = self._token_occurrences[sentence[i]] + 1
 
                 if i > 0:
-                    self._mutual_occurrences[sentence[i], sentence[i-1]] = self._mutual_occurrences[sentence[i], sentence[i-1]] + 1
-                    self._mutual_occurrences[sentence[i-1], sentence[i]] = self._mutual_occurrences[sentence[i-1], sentence[i]] + 1
+                    mutual_occurrences[sentence[i], sentence[i-1]] = mutual_occurrences[sentence[i], sentence[i-1]] + 1
+                    mutual_occurrences[sentence[i-1], sentence[i]] = mutual_occurrences[sentence[i-1], sentence[i]] + 1
 
                 if i < len(sentence) - 1:
-                    self._mutual_occurrences[sentence[i], sentence[i+1]] = self._mutual_occurrences[sentence[i], sentence[i+1]] + 1
-                    self._mutual_occurrences[sentence[i+1], sentence[i]] = self._mutual_occurrences[sentence[i+1], sentence[i]] + 1
+                    mutual_occurrences[sentence[i], sentence[i+1]] = mutual_occurrences[sentence[i], sentence[i+1]] + 1
+                    mutual_occurrences[sentence[i+1], sentence[i]] = mutual_occurrences[sentence[i+1], sentence[i]] + 1
+
+        self._mutual_occurrences = sparse.dok_matrix(mutual_occurrences)
 
     @property
-    def mutual_occurrences(self):
+    def mutual_occurrences(self) -> sparse.dok_matrix:
         return self._mutual_occurrences
-        
-    @property
-    def token_occurrences(self):
-        return self._token_occurrences
