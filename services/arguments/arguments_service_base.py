@@ -61,6 +61,8 @@ class ArgumentsServiceBase:
                             help="run in evaluation mode")
         parser.add_argument("--patience", type=int, default=30,
                             help="how long will the model wait for improvement before stopping training")
+        parser.add_argument("--consider-equal-results-as-worse", action='store_true',
+                            help='If this is set to true, then equal results after evaluation are not considered better')
         parser.add_argument("--language", type=Language, choices=list(Language), default=Language.English,
                             help="which language to train on")
         parser.add_argument("--shuffle", action='store_false',
@@ -172,6 +174,10 @@ class ArgumentsServiceBase:
     @property
     def patience(self) -> int:
         return self._get_argument('patience')
+
+    @property
+    def consider_equal_results_as_worse(self) -> bool:
+        return self._get_argument('consider_equal_results_as_worse')
 
     @property
     def language(self) -> Language:

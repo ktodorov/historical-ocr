@@ -52,7 +52,9 @@ class ModelBase(nn.Module):
             new_result = new_metric.get_accuracy_metric(self.metric_log_key)
 
         if current_best == new_result:
-            result = best_metric.get_current_loss() >= new_metric.get_current_loss()
+            best_loss = best_metric.get_current_loss()
+            current_loss = new_metric.get_current_loss()
+            result = (best_loss > current_loss) or (not self._arguments_service.consider_equal_results_as_worse and best_loss == current_loss)
         else:
             result = current_best < new_result
 
