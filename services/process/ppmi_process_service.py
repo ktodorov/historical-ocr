@@ -37,20 +37,13 @@ class PPMIProcessService(ICDARProcessService):
             min_occurrence_limit=5)
 
     def get_occurrence_stats(self, ocr_output_type: OCROutputType) -> TokensOccurrenceStats:
-        occurrence_stats = self._load_occurrence_stats(ocr_output_type)
-        return occurrence_stats
-
-    def _load_occurrence_stats(self, ocr_output_type: OCROutputType) -> TokensOccurrenceStats:
-        (raw_stats, gs_stats) = self._cache_service.get_item_from_cache(
-            item_key=f'tokens-occurrences-stats',
+        occurrence_stats: TokensOccurrenceStats = self._cache_service.get_item_from_cache(
+            item_key=f'tokens-occurrences-stats-{ocr_output_type.value}',
             callback_function=self._generate_ocr_corpora)
 
-        stats: TokensOccurrenceStats = raw_stats if ocr_output_type == OCROutputType.Raw else gs_stats
-
-        return stats
+        return occurrence_stats
 
     @overrides
-    def _generate_corpora_entries(self, ocr_data_ids, gs_data_ids):
-        raw_stats = TokensOccurrenceStats(ocr_data_ids, self._vocabulary_service.vocabulary_size())
-        gs_stats = TokensOccurrenceStats(gs_data_ids, self._vocabulary_service.vocabulary_size())
-        return (raw_stats, gs_stats)
+    def _generate_corpora_entries(self, data_ids):
+        token_stats = TokensOccurrenceStats(data_ids, self._vocabulary_service.vocabulary_size())
+        return token_stats

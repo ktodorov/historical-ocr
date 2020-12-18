@@ -2,7 +2,7 @@ import os
 import time
 from datetime import datetime
 
-from typing import Callable
+from typing import Any, Callable
 import urllib.request
 
 from entities.timespan import Timespan
@@ -43,7 +43,7 @@ class CacheService:
             callback_function: Callable = None,
             time_to_keep: Timespan = None,
             configuration_specific: bool = True,
-            challenge_specific: bool = True) -> object:
+            challenge_specific: bool = True) -> Any:
         cache_folder = self._get_cache_folder_path(
             configuration_specific=configuration_specific,
             challenge_specific=challenge_specific)

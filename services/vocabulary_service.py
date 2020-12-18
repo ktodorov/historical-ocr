@@ -27,9 +27,16 @@ class VocabularyService:
 
         self._id2token: Dict[int, str] = {}
         self._token2idx: Dict[str, int] = {}
-        cached_vocabulary = self._load_cached_vocabulary()
+
+        self.load_cached_vocabulary(self._vocabulary_cache_key)
+
+    def load_cached_vocabulary(self, cache_key: str) -> bool:
+        cached_vocabulary = self._cache_service.get_item_from_cache(cache_key)
         if cached_vocabulary is not None:
             (self._token2idx, self._id2token) = cached_vocabulary
+            return self.vocabulary_is_initialized()
+
+        return False
 
     def initialize_vocabulary_data(self, vocabulary_data):
         if vocabulary_data is None:
@@ -116,7 +123,7 @@ class VocabularyService:
         for index, token in self._id2token.items():
             yield (index, token)
 
-    def initialize_vocabulary_from_corpus(self, tokenized_corpus: List[List[str]], min_occurrence_limit: int = None):
+    def initialize_vocabulary_from_corpus(self, tokenized_corpus: List[List[str]], min_occurrence_limit: int = None, vocab_key: str = None):
         if len(self._token2idx) > 0 and len(self._id2token) > 0:
             return
 
@@ -139,7 +146,9 @@ class VocabularyService:
         self._token2idx = {w: idx for (idx, w) in enumerate(vocabulary)}
         self._id2token = {idx: w for (idx, w) in enumerate(vocabulary)}
 
-        self._cache_vocabulary()
+        if vocab_key is None:
+            vocab_key = self._vocabulary_cache_key
+        self._cache_vocabulary(vocab_key)
 
     def _filter_tokens_by_occurrence(self, full_corpus: List[List[str]], unique_tokens: List[str], min_occurrence_limit: int) -> List[str]:
         all_tokens = [inner for outer in full_corpus for inner in outer]
@@ -147,18 +156,14 @@ class VocabularyService:
         limit_tokens = [token for token in unique_tokens if tokens_counter[token] > min_occurrence_limit]
         return limit_tokens
 
-
-    def _cache_vocabulary(self):
+    def _cache_vocabulary(self, vocab_key: str):
         self._cache_service.cache_item(
-            self._vocabulary_cache_key,
+            vocab_key,
             [
                 self._token2idx,
                 self._id2token
             ],
             overwrite=False)
-
-    def _load_cached_vocabulary(self):
-        return self._cache_service.get_item_from_cache(self._vocabulary_cache_key)
 
     def vocabulary_is_initialized(self) -> bool:
         return self._id2token is not None and len(self._id2token) > 0 and self._token2idx is not None and len(self._token2idx) > 0
