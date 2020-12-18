@@ -1,22 +1,18 @@
+from collections import Counter
 from entities.tokens_occurrence_stats import TokensOccurrenceStats
 from overrides import overrides
 import numpy as np
 import math
 import torch
-from torch import nn
-import torch.nn.functional as F
-from torch.nn.functional import embedding
+from scipy import sparse
+from itertools import product
+import tqdm
+
+import multiprocessing
 
 from models.model_base import ModelBase
 
-from entities.model_checkpoint import ModelCheckpoint
-from entities.metric import Metric
-from entities.batch_representation import BatchRepresentation
-
-from sklearn.model_selection import train_test_split
-
 from services.arguments.arguments_service_base import ArgumentsServiceBase
-from services.process.word2vec_process_service import Word2VecProcessService
 from services.data_service import DataService
 from services.vocabulary_service import VocabularyService
 
@@ -34,50 +30,94 @@ class PPMI(ModelBase):
         self._vocabulary_service = vocabulary_service
 
         self._initialized = False
-        self._ppmi_matrix = np.zeros(
-            (vocabulary_service.vocabulary_size(), vocabulary_service.vocabulary_size()),
+        self._ppmi_matrix = sparse.dok_matrix(
+            (vocabulary_service.vocabulary_size(),
+             vocabulary_service.vocabulary_size()),
             dtype=np.float32)
-
 
     @overrides
     def forward(self, stats):
         if self._initialized:
             return
 
-        (mutual_occurrences, token_occurrences) = stats
-        mutual_occurrences = mutual_occurrences.squeeze().numpy()
-        token_occurrences = token_occurrences.squeeze().numpy()
+        result = self._calculate_pmi(
+            stats[0].squeeze().numpy(),
+            positive=True)
 
-        for w_token_idx, _ in self._vocabulary_service.get_vocabulary_tokens():
-            for c_token_idx, _ in self._vocabulary_service.get_vocabulary_tokens():
-                self._ppmi_matrix[w_token_idx, c_token_idx] = self._calculate_ppmi_score(
-                    mutual_occurrences,
-                    token_occurrences,
-                    w_token_idx,
-                    c_token_idx)
+        self._ppmi_matrix = sparse.dok_matrix(result)
 
         self._initialized = True
 
-    def _calculate_ppmi_score(
+    def _calculate_expected(
         self,
-        co_occurrence_matrix,
-        occurrences,
-        w_token_idx,
-        c_token_idx) -> float:
+        matrix):
+        col_totals = matrix.sum(axis=0)
+        total = col_totals.sum()
+        row_totals = matrix.sum(axis=1)
+        return np.outer(row_totals, col_totals) / total
 
-        denominator = occurrences[w_token_idx] * occurrences[c_token_idx]
-        if denominator == 0:
-            return 0
+    def _calculate_pmi(
+            self,
+            matrix,
+            positive=True):
+        matrix = matrix / self._calculate_expected(matrix)
+        # Silence distracting warnings about log(0):
+        with np.errstate(divide='ignore'):
+            matrix = np.log(matrix)
 
-        division = co_occurrence_matrix[w_token_idx, c_token_idx] / denominator
-        if division == 0:
-            return 0
+        matrix[np.isinf(matrix)] = 0.0  # log(0) = 0
+        if positive:
+            matrix[matrix < 0] = 0.0
 
-        log_score = math.log2(division)
-
-        ppmi_score = max(log_score, 0)
-        return ppmi_score
+        return matrix
 
     @overrides
     def get_embeddings(self, tokens: torch.Tensor) -> torch.Tensor:
         pass
+
+    @overrides
+    def save(
+            self,
+            path: str,
+            epoch: int,
+            iteration: int,
+            best_metrics: object,
+            resets_left: int,
+            name_prefix: str = None,
+            save_model_dict: bool = True) -> bool:
+        checkpoint_name = self._get_model_name(name_prefix)
+        saved = self._data_service.save_python_obj(
+            self._ppmi_matrix,
+            path,
+            checkpoint_name,
+            print_success=False)
+
+        return saved
+
+    def load(
+            self,
+            path: str,
+            name_prefix: str = None,
+            name_suffix: str = None,
+            load_model_dict: bool = True,
+            load_model_only: bool = False,
+            use_checkpoint_name: bool = True,
+            checkpoint_name: str = None):
+
+        if checkpoint_name is None:
+            if not use_checkpoint_name:
+                checkpoint_name = name_prefix
+            else:
+                checkpoint_name = self._arguments_service.resume_checkpoint_name
+                if checkpoint_name is None:
+                    checkpoint_name = self._get_model_name(
+                        name_prefix, name_suffix)
+
+        if not self._data_service.python_obj_exists(path, checkpoint_name):
+            raise Exception(
+                f'PPMI model checkpoint "{checkpoint_name}" not found at "{path}"')
+
+        self._ppmi_matrix = self._data_service.load_python_obj(
+            path, checkpoint_name)
+        self._initialized = True
+        return None

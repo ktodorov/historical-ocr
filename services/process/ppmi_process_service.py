@@ -47,13 +47,6 @@ class PPMIProcessService(ICDARProcessService):
 
         stats: TokensOccurrenceStats = raw_stats if ocr_output_type == OCROutputType.Raw else gs_stats
 
-        # total_amount = corpus.length
-
-        # print(
-        #     f'Loaded {corpus.length:,} entries out of {total_amount:,} total for {ocr_output_type.value}')
-        # self._log_service.log_summary(
-        #     key=f'\'{ocr_output_type.value}\' entries amount', value=corpus.length)
-
         return stats
 
     @overrides

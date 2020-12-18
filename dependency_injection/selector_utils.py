@@ -126,7 +126,7 @@ def get_experiment_service(arguments_service: ArgumentsServiceBase):
     run_experiments = arguments_service.run_experiments
 
     if not run_experiments:
-        return 'base'
+        return 'none'
 
     return 'ocr_quality'
 

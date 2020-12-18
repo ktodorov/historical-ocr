@@ -341,12 +341,7 @@ class IocContainer(containers.DeclarativeContainer):
             cache_service=cache_service,
             word_neighbourhood_service=word_neighbourhood_service,
             model=model),
-        base=providers.Factory(
-            ExperimentServiceBase,
-            arguments_service=arguments_service,
-            dataloader_service=dataloader_service,
-            file_service=file_service,
-            model=model))
+        none=providers.Object(None))
 
     test_service = providers.Factory(
         TestService,
