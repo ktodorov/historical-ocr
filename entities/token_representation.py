@@ -1,13 +1,16 @@
 
+from typing import List
+
+
 class TokenRepresentation:
-    def __init__(self, word: str, vocabulary_id: int):
-        self._word = word
-        self._vocabulary_id = vocabulary_id
+    def __init__(self, token: str, vocabulary_ids: List[List[int]]):
+        self._token = token
+        self._vocabulary_ids = vocabulary_ids
 
     @property
-    def word(self) -> str:
-        return self._word
+    def token(self) -> str:
+        return self._token
 
     @property
-    def vocabulary_id(self) -> int:
-        return self._vocabulary_id
+    def vocabulary_ids(self) -> List[List[int]]:
+        return self._vocabulary_ids

@@ -69,7 +69,7 @@ class ICDARProcessService(ProcessServiceBase):
             ocr_data)
         tokenized_gs_data = self._tokenize_service.tokenize_sequences(gs_data)
 
-        self._save_common_words(tokenized_ocr_data, tokenized_gs_data)
+        self._save_common_tokens(tokenized_ocr_data, tokenized_gs_data)
 
         ocr_output_type = self._arguments_service.ocr_output_type
         data_ids = [self._vocabulary_service.string_to_ids(
@@ -85,17 +85,37 @@ class ICDARProcessService(ProcessServiceBase):
     def _generate_corpora_entries(self, data_ids):
         return None
 
-    def _save_common_words(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
-        ocr_unique_tokens = set(
-            [item for sublist in tokenized_ocr_data for item in sublist])
-        gs_unique_tokens = set(
-            [item for sublist in tokenized_gs_data for item in sublist])
+    def _save_common_tokens(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
+        token_pairs_cache_key = f'common-token-pairs-{self._arguments_service.ocr_output_type.value}-lim-{self._arguments_service.minimal_occurrence_limit}'
+        if self._cache_service.item_exists(token_pairs_cache_key):
+            return
 
-        common_tokens = list(ocr_unique_tokens & gs_unique_tokens)
-        self._cache_service.cache_item(
-            item_key=f'common-tokens-{self._arguments_service.language.value}',
-            item=common_tokens,
+        common_tokens_cache_key = f'common-tokens-{self._arguments_service.language.value}'
+        common_tokens = self._cache_service.get_item_from_cache(
+            item_key=common_tokens_cache_key,
+            callback_function=lambda: self._save_common_words(tokenized_ocr_data, tokenized_gs_data),
             configuration_specific=False)
+
+        token_id_pairs = []
+        for common_token in common_tokens:
+            token_ids = [self._vocabulary_service.string_to_id(common_token)]
+            if token_ids[0] == self._vocabulary_service.unk_token:
+                token_ids = None
+
+            token_id_pairs.append((common_token, token_ids))
+
+        self._cache_service.cache_item(
+            item_key=token_pairs_cache_key,
+            item=token_id_pairs)
+
+    def _save_common_words(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
+            ocr_unique_tokens = set(
+                [item for sublist in tokenized_ocr_data for item in sublist])
+            gs_unique_tokens = set(
+                [item for sublist in tokenized_gs_data for item in sublist])
+
+            common_tokens = list(ocr_unique_tokens & gs_unique_tokens)
+            return common_tokens
 
     def _load_file_data(self):
         cache_keys = [

@@ -108,11 +108,11 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         for i, batch in enumerate(self._dataloader):
             print(f'{i}/{dataloader_length}         \r', end='')
 
-            words, token_ids = batch
-            outputs = self._model.get_embeddings(token_ids)
+            tokens, vocab_ids = batch
+            outputs = self._model.get_embeddings(vocab_ids)
 
             result.extend([WordEvaluation(word, embeddings_1, embeddings_2)
-                           for word, embeddings_1, embeddings_2 in zip(words, outputs[0], outputs[1])])
+                           for word, embeddings_1, embeddings_2 in zip(tokens, outputs[0], outputs[1])])
 
         return result
 

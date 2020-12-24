@@ -44,10 +44,10 @@ class JointModel(ModelBase):
         return self.get_embeddings(tokens)
 
     @overrides
-    def get_embeddings(self, tokens: torch.Tensor) -> torch.Tensor:
+    def get_embeddings(self, tokens: List[torch.Tensor]) -> torch.Tensor:
         result = []
-        for model in self._inner_models:
-            outputs = model.get_embeddings(tokens)
+        for i, model in enumerate(self._inner_models):
+            outputs = model.get_embeddings(tokens[i])
             result.append(outputs)
 
         return result
@@ -62,12 +62,14 @@ class JointModel(ModelBase):
             result = CBOW(
                 arguments_service=self._arguments_service,
                 vocabulary_service=self._vocabulary_service,
-                data_service=self._data_service)
+                data_service=self._data_service,
+                ocr_output_type=ocr_output_type)
         elif configuration == Configuration.SkipGram:
             result = SkipGram(
                 arguments_service=self._arguments_service,
                 vocabulary_service=self._vocabulary_service,
-                data_service=self._data_service)
+                data_service=self._data_service,
+                ocr_output_type=ocr_output_type)
 
         if result is None:
             raise NotImplementedError()

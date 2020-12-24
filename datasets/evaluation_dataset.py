@@ -23,7 +23,7 @@ class EvaluationDataset(DatasetBase):
     @overrides
     def __getitem__(self, idx):
         target_token = self._target_tokens[idx]
-        return (target_token.word, target_token.vocabulary_id)
+        return target_token.token, target_token.vocabulary_ids
 
     @overrides
     def use_collate_function(self) -> bool:
@@ -37,15 +37,19 @@ class EvaluationDataset(DatasetBase):
         batch_size = len(DataLoaderBatch)
         batch_split = list(zip(*DataLoaderBatch))
 
-        words, token_ids = batch_split
+        tokens, vocab_ids = batch_split
 
-        lengths = [len(sequence) for sequence in token_ids]
-        max_length = max(lengths)
-        padded_sequences = np.zeros((batch_size, max_length), dtype=np.int64)
+        all_padded_sequences = []
 
-        for i, l in enumerate(lengths):
-            padded_sequences[i][0:l] = token_ids[i][0:l]
+        for n in range(len(vocab_ids[0])):
+            current_vocab_ids = [x[n] for x in vocab_ids]
+            lengths = [len(sequence) for sequence in current_vocab_ids]
+            max_length = max(lengths)
+            padded_sequences = np.zeros((batch_size, max_length), dtype=np.int64)
 
-        return (
-            words,
-            torch.LongTensor(padded_sequences).to(self._arguments_service.device))
+            for i, l in enumerate(lengths):
+                padded_sequences[i][0:l] = current_vocab_ids[i][0:l]
+
+            all_padded_sequences.append(torch.Tensor(padded_sequences).long().to(self._arguments_service.device))
+
+        return tokens, all_padded_sequences

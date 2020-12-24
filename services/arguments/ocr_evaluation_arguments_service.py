@@ -20,3 +20,17 @@ class OCREvaluationArgumentsService(PretrainedArgumentsService):
     @overrides
     def _add_specific_arguments(self, parser: argparse.ArgumentParser):
         super()._add_specific_arguments(parser)
+
+        parser.add_argument('--minimal-occurrence-limit', type=int, default=5,
+                            help='Minimal occurrence limit for words or tokens to be included in the vocabulary. This setting is not taken into account for configurations using pre-trained vocabularies')
+
+        parser.add_argument('--initialize-randomly', action='store_true',
+                            help='If this is set to True, then the initial embeddings will be initialized randomly.')
+
+    @property
+    def minimal_occurrence_limit(self) -> int:
+        return self._get_argument('minimal_occurrence_limit')
+
+    @property
+    def initialize_randomly(self) -> bool:
+        return self._get_argument('initialize_randomly')

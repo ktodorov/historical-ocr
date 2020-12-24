@@ -1,3 +1,4 @@
+from enums.ocr_output_type import OCROutputType
 from enums.language import Language
 import os
 from overrides import overrides
@@ -27,10 +28,16 @@ class SkipGram(ModelBase):
             arguments_service: ArgumentsServiceBase,
             vocabulary_service: VocabularyService,
             data_service: DataService,
-            process_service: Word2VecProcessService = None):
+            process_service: Word2VecProcessService = None,
+            ocr_output_type: OCROutputType = None):
         super().__init__(data_service, arguments_service)
 
         self._arguments_service = arguments_service
+
+        if ocr_output_type is not None:
+            vocab_key = f'vocab-{ocr_output_type.value}'
+            vocabulary_service.load_cached_vocabulary(vocab_key)
+
         self._vocabulary_size = vocabulary_service.vocabulary_size()
 
         if process_service is not None:
