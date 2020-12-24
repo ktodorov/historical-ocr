@@ -62,7 +62,11 @@ class CacheService:
                 return None
 
             cached_object = callback_function()
-            self.cache_item(item_key, cached_object)
+            self.cache_item(
+                item_key, 
+                cached_object, 
+                configuration_specific=configuration_specific,
+                challenge_specific=challenge_specific)
 
         return cached_object
 
