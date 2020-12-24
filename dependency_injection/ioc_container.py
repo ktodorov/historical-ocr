@@ -34,6 +34,7 @@ from optimizers.sgd_optimizer import SGDOptimizer
 from optimizers.adamw_transformer_optimizer import AdamWTransformerOptimizer
 
 from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
+from services.arguments.ocr_quality_non_context_arguments_service import OCRQualityNonContextArgumentsService
 from services.arguments.ocr_evaluation_arguments_service import OCREvaluationArgumentsService
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 
@@ -92,7 +93,8 @@ class IocContainer(containers.DeclarativeContainer):
         argument_service_selector,
         base=providers.Singleton(ArgumentsServiceBase),
         evaluation=providers.Singleton(OCREvaluationArgumentsService),
-        ocr_quality=providers.Singleton(OCRQualityArgumentsService))
+        ocr_quality=providers.Singleton(OCRQualityArgumentsService),
+        ocr_quality_non_context=providers.Singleton(OCRQualityNonContextArgumentsService))
 
     log_service = providers.Singleton(
         LogService,

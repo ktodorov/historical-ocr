@@ -16,7 +16,7 @@ from entities.cbow_corpus import CBOWCorpus
 from services.process.process_service_base import ProcessServiceBase
 
 from services.download.ocr_download_service import OCRDownloadService
-from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
+from services.arguments.ocr_quality_non_context_arguments_service import OCRQualityNonContextArgumentsService
 from services.cache_service import CacheService
 from services.log_service import LogService
 from services.vocabulary_service import VocabularyService
@@ -27,7 +27,7 @@ class ICDARProcessService(ProcessServiceBase):
     def __init__(
             self,
             ocr_download_service: OCRDownloadService,
-            arguments_service: OCRQualityArgumentsService,
+            arguments_service: OCRQualityNonContextArgumentsService,
             cache_service: CacheService,
             vocabulary_service: VocabularyService,
             tokenize_service: BaseTokenizeService):

@@ -29,13 +29,6 @@ class OCRQualityArgumentsService(PretrainedArgumentsService):
         parser.add_argument('--ocr-output-type', type=OCROutputType, choices=list(OCROutputType), required=True,
                             help='OCR output type to be used')
 
-        parser.add_argument('--minimal-occurrence-limit', type=int, default=5,
-                            help='Minimal occurrence limit for words or tokens to be included in the vocabulary. This setting is not taken into account for configurations using pre-trained vocabularies')
-
     @property
     def ocr_output_type(self) -> OCROutputType:
         return self._get_argument('ocr_output_type')
-
-    @property
-    def minimal_occurrence_limit(self) -> int:
-        return self._get_argument('minimal_occurrence_limit')

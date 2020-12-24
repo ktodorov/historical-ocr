@@ -1,3 +1,5 @@
+from models.simple.ppmi import PPMI
+from models.simple.skip_gram import SkipGram
 from enums.run_type import RunType
 from enums.configuration import Configuration
 from enums.challenge import Challenge
@@ -11,10 +13,13 @@ def get_arguments_service(arguments_service: ArgumentsServiceBase):
     result = 'base'
     challenge = arguments_service.challenge
     run_experiments = arguments_service.run_experiments
+    configuration = arguments_service.configuration
 
     if challenge == Challenge.OCREvaluation:
         if run_experiments:
             result = 'evaluation'
+        elif configuration in [Configuration.CBOW, Configuration.SkipGram, Configuration.PPMI]:
+            result = 'ocr_quality_non_context'
         else:
             result = 'ocr_quality'
 
