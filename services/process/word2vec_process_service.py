@@ -17,7 +17,7 @@ from entities.cbow_corpus import CBOWCorpus
 from services.process.icdar_process_service import ICDARProcessService
 
 from services.download.ocr_download_service import OCRDownloadService
-from services.arguments.arguments_service_base import ArgumentsServiceBase
+from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
 from services.cache_service import CacheService
 from services.log_service import LogService
 from services.vocabulary_service import VocabularyService
@@ -28,7 +28,7 @@ class Word2VecProcessService(ICDARProcessService):
     def __init__(
             self,
             ocr_download_service: OCRDownloadService,
-            arguments_service: ArgumentsServiceBase,
+            arguments_service: OCRQualityArgumentsService,
             cache_service: CacheService,
             log_service: LogService,
             vocabulary_service: VocabularyService,
@@ -49,18 +49,12 @@ class Word2VecProcessService(ICDARProcessService):
 
     def get_text_corpus(self, ocr_output_type: OCROutputType) -> CBOWCorpus:
         limit_size = self._arguments_service.train_dataset_limit_size
-
-        text_corpus = self._load_text_corpus(
-            ocr_output_type,
-            limit_size)
-
+        text_corpus = self._load_text_corpus(ocr_output_type, limit_size)
         return text_corpus
 
     @overrides
-    def _generate_corpora_entries(self, ocr_data_ids, gs_data_ids):
-        ocr_corpus = CBOWCorpus(ocr_data_ids, window_size=1)
-        gs_corpus = CBOWCorpus(gs_data_ids, window_size=1)
-        return (ocr_corpus, gs_corpus)
+    def _generate_corpora_entries(self, data_ids):
+        return CBOWCorpus(data_ids, window_size=2)
 
     def get_embedding_size(self) -> int:
         if self._arguments_service.language == Language.English:
@@ -74,8 +68,10 @@ class Word2VecProcessService(ICDARProcessService):
         if not self._vocabulary_service.vocabulary_is_initialized():
             raise Exception('Vocabulary not initialized')
 
+        ocr_output_type = self._arguments_service.ocr_output_type
+
         token_matrix = self._cache_service.get_item_from_cache(
-            item_key='word-matrix',
+            item_key=f'word-matrix-{ocr_output_type.value}',
             callback_function=self._generate_token_matrix)
 
         token_matrix = token_matrix.to(self._arguments_service.device)
@@ -113,11 +109,9 @@ class Word2VecProcessService(ICDARProcessService):
             self,
             ocr_output_type: OCROutputType,
             reduction: int) -> CBOWCorpus:
-        (ocr_corpus, gs_corpus) = self._cache_service.get_item_from_cache(
-            item_key=f'word2vec-data-ws-2',
+        corpus = self._cache_service.get_item_from_cache(
+            item_key=f'word2vec-data-{ocr_output_type.value}-ws-2',
             callback_function=self._generate_ocr_corpora)
-
-        corpus = ocr_corpus if ocr_output_type == OCROutputType.Raw else gs_corpus
 
         total_amount = corpus.length
         if reduction is not None:

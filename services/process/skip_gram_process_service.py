@@ -60,11 +60,9 @@ class SkipGramProcessService(Word2VecProcessService):
             self,
             ocr_output_type: OCROutputType,
             reduction: int) -> SkipGramCorpus:
-        (ocr_corpus, gs_corpus) = self._cache_service.get_item_from_cache(
-            item_key=f'skip-gram-data',
+        corpus: SkipGramCorpus = self._cache_service.get_item_from_cache(
+            item_key=f'skip-gram-{ocr_output_type.value}-data',
             callback_function=self._generate_ocr_corpora)
-
-        corpus: SkipGramCorpus = ocr_corpus if ocr_output_type == OCROutputType.Raw else gs_corpus
 
         total_amount = corpus.length
         if reduction is not None:
@@ -78,7 +76,5 @@ class SkipGramProcessService(Word2VecProcessService):
         return corpus
 
     @overrides
-    def _generate_corpora_entries(self, ocr_data_ids, gs_data_ids):
-        ocr_corpus = SkipGramCorpus(ocr_data_ids)
-        gs_corpus = SkipGramCorpus(gs_data_ids)
-        return (ocr_corpus, gs_corpus)
+    def _generate_corpora_entries(self, data_ids):
+        return SkipGramCorpus(data_ids)

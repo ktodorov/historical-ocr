@@ -30,8 +30,7 @@ class ICDARProcessService(ProcessServiceBase):
             arguments_service: OCRQualityArgumentsService,
             cache_service: CacheService,
             vocabulary_service: VocabularyService,
-            tokenize_service: BaseTokenizeService,
-            min_occurrence_limit: int = None):
+            tokenize_service: BaseTokenizeService):
 
         self._arguments_service = arguments_service
         self._cache_service = cache_service
@@ -39,7 +38,7 @@ class ICDARProcessService(ProcessServiceBase):
         self._vocabulary_service = vocabulary_service
         self._tokenize_service = tokenize_service
 
-        self._min_occurrence_limit = min_occurrence_limit
+        self._min_occurrence_limit = self._arguments_service.minimal_occurrence_limit
         self._vocab_key = f'vocab-{arguments_service.ocr_output_type.value}'
 
         if not self._vocabulary_service.load_cached_vocabulary(self._vocab_key):
