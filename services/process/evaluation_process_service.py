@@ -66,8 +66,12 @@ class EvaluationProcessService(ProcessServiceBase):
                     f'Token pairs not found for OCR output type \'{ocr_output_type.value}\'')
 
             for word, vocab_ids in common_token_pairs:
+                if word not in result.keys():
+                    continue # means the word was UNK in another vocabulary
+
                 if vocab_ids is None:
-                    del result[word]
+                    del result[word] # means the word is UNK in this vocabulary
+                    continue
 
                 result[word].append(vocab_ids)
 
