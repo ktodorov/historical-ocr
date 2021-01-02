@@ -120,7 +120,7 @@ class IocContainer(containers.DeclarativeContainer):
         data_service=data_service
     )
 
-    vocabulary_service: providers.Provider[VocabularyService] = providers.Singleton(
+    vocabulary_service: providers.Provider[VocabularyService] = providers.Factory(
         VocabularyService,
         data_service=data_service,
         file_service=file_service,
@@ -341,6 +341,7 @@ class IocContainer(containers.DeclarativeContainer):
             metrics_service=metrics_service,
             plot_service=plot_service,
             cache_service=cache_service,
+            vocabulary_service=vocabulary_service,
             word_neighbourhood_service=word_neighbourhood_service,
             model=model),
         none=providers.Object(None))

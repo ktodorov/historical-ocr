@@ -119,8 +119,11 @@ class VocabularyService:
 
         return words
 
-    def get_vocabulary_tokens(self) -> List[Tuple[int, str]]:
+    def get_vocabulary_tokens(self, exclude_special_tokens: bool = False) -> List[Tuple[int, str]]:
         for index, token in self._id2token.items():
+            if exclude_special_tokens and index < 4:
+                continue
+
             yield (index, token)
 
     def initialize_vocabulary_from_corpus(self, tokenized_corpus: List[List[str]], min_occurrence_limit: int = None, vocab_key: str = None):
@@ -167,6 +170,10 @@ class VocabularyService:
 
     def vocabulary_is_initialized(self) -> bool:
         return self._id2token is not None and len(self._id2token) > 0 and self._token2idx is not None and len(self._token2idx) > 0
+
+    def token_exists(self, token:str) -> bool:
+        result = (token in self._token2idx.keys())
+        return result
 
     @property
     def cls_token(self) -> int:

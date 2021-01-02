@@ -1,3 +1,5 @@
+from enums.ocr_output_type import OCROutputType
+from services.vocabulary_service import VocabularyService
 import numpy as np
 from entities.word_evaluation import WordEvaluation
 import math
@@ -33,6 +35,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             plot_service: PlotService,
             cache_service: CacheService,
             word_neighbourhood_service: WordNeighbourhoodService,
+            vocabulary_service: VocabularyService,
             model: ModelBase):
         super().__init__(arguments_service, dataloader_service, file_service, model)
 
@@ -41,6 +44,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._plot_service = plot_service
         self._cache_service = cache_service
         self._word_neighbourhood_service = word_neighbourhood_service
+        self._vocabulary_service = vocabulary_service
 
     @overrides
     def execute_experiments(self, experiment_types: List[ExperimentType]):
@@ -73,46 +77,72 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         self._save_experiment_results(result)
 
-    def _calculate_cosine_similarities(self, word_evaluations) -> Dict[str, float]:
+    def _calculate_cosine_similarities(self, word_evaluations: List[WordEvaluation]) -> Dict[str, float]:
         result = {}
         for word_evaluation in word_evaluations:
+            if not word_evaluation.contains_all_embeddings():
+                continue
+
             result[word_evaluation.word] = self._metrics_service.calculate_cosine_similarity(
-                list1=word_evaluation.embeddings_1,
-                list2=word_evaluation.embeddings_2)
+                list1=word_evaluation.get_embeddings(idx=0),
+                list2=word_evaluation.get_embeddings(idx=1))
 
         return result
 
-    def _calculate_cosine_distances(self, word_evaluations) -> Dict[str, float]:
+    def _calculate_cosine_distances(self, word_evaluations: List[WordEvaluation]) -> Dict[str, float]:
         result = {}
         for word_evaluation in word_evaluations:
+            if not word_evaluation.contains_all_embeddings():
+                continue
+
             result[word_evaluation.word] = self._metrics_service.calculate_cosine_distance(
-                list1=word_evaluation.embeddings_1,
-                list2=word_evaluation.embeddings_2)
+                list1=word_evaluation.get_embeddings(idx=0),
+                list2=word_evaluation.get_embeddings(idx=1))
 
         return result
 
-    def _calculate_euclidean_distances(self, word_evaluations) -> Dict[str, float]:
+    def _calculate_euclidean_distances(self, word_evaluations: List[WordEvaluation]) -> Dict[str, float]:
         result = {}
 
         for word_evaluation in word_evaluations:
+            if not word_evaluation.contains_all_embeddings():
+                continue
+
             result[word_evaluation.word] = self._metrics_service.calculate_euclidean_distance(
-                list1=word_evaluation.embeddings_1,
-                list2=word_evaluation.embeddings_2)
+                list1=word_evaluation.get_embeddings(idx=0),
+                list2=word_evaluation.get_embeddings(idx=1))
 
         return result
 
     def _generate_embeddings(self) -> List[WordEvaluation]:
-        result = []
+        result: List[WordEvaluation] = []
 
         dataloader_length = len(self._dataloader)
         for i, batch in enumerate(self._dataloader):
             print(f'{i}/{dataloader_length}         \r', end='')
 
             tokens, vocab_ids = batch
-            outputs = self._model.get_embeddings(vocab_ids)
+            outputs = self._model.get_embeddings(tokens, vocab_ids)
+            result.extend(outputs)
 
-            result.extend([WordEvaluation(word, embeddings_1, embeddings_2)
-                           for word, embeddings_1, embeddings_2 in zip(tokens, outputs[0], outputs[1])])
+        if self._arguments_service.separate_neighbourhood_vocabularies:
+            processed_tokens = [we.word for we in result]
+            for ocr_output_type in [OCROutputType.Raw, OCROutputType.GroundTruth]:
+                vocab_key = f'vocab-{ocr_output_type.value}'
+                self._vocabulary_service.load_cached_vocabulary(vocab_key)
+                unprocessed_tokens = []
+                for _, token in self._vocabulary_service.get_vocabulary_tokens(exclude_special_tokens=True):
+                    if token in processed_tokens:
+                        continue
+
+                    unprocessed_tokens.append(token)
+
+                batch_size = self._arguments_service.batch_size
+                for i in range(0, len(unprocessed_tokens), batch_size):
+                    tokens = unprocessed_tokens[i:i+batch_size]
+                    word_evaluations = self._model.get_embeddings(tokens, vocab_ids=None, skip_unknown=True)
+                    result.extend(word_evaluations)
+                    processed_tokens.extend(tokens)
 
         return result
 
@@ -159,7 +189,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
             self._word_neighbourhood_service.plot_word_neighbourhoods(
                 target_word,
-                word_neighbourhoods=list(word_neighbourhoods))
+                word_neighbourhoods=word_neighbourhoods)
 
     def _get_most_changed_words(self, result, metric: ExperimentType = ExperimentType.CosineDistance) -> List[Tuple[str, float]]:
         if metric not in result.keys():
@@ -169,5 +199,27 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                           for word, distance in result[metric].items()]
         metric_results.sort(key=lambda x: x[1])
 
-        most_changed = metric_results[-15:][::-1]
+        most_changed = metric_results[-10:][::-1]
         return most_changed
+
+    def _get_word_evaluations_for_comparison(self, target_word: str, word_evaluations: List[List[WordEvaluation]]):
+        if not self._arguments_service.separate_neighbourhood_vocabularies:
+            remaining_words = [
+                word_evaluation
+                for word_evaluation in word_evaluations[0]
+                if word_evaluation.word != target_word]
+
+            return [remaining_words]
+
+        words_1 = [
+            word_evaluation
+            for word_evaluation in word_evaluations[1]
+            if word_evaluation.word != target_word]
+
+        words_2 = [
+            word_evaluation
+            for word_evaluation in word_evaluations[2]
+            if word_evaluation.word != target_word]
+
+        result = [words_1, words_2]
+        return result

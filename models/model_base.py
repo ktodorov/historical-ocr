@@ -1,3 +1,4 @@
+from entities.word_evaluation import WordEvaluation
 import os
 
 import torch
@@ -203,5 +204,5 @@ class ModelBase(nn.Module):
     def after_load(self):
         pass
 
-    def get_embeddings(self, tokens: torch.Tensor) -> torch.Tensor:
+    def get_embeddings(self, tokens: List[str], vocab_ids: List[torch.Tensor], skip_unknown: bool = False) -> List[WordEvaluation]:
         raise NotImplementedError()

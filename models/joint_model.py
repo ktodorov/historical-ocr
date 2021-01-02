@@ -1,3 +1,4 @@
+from entities.word_evaluation import WordEvaluation
 from models.simple.skip_gram import SkipGram
 from torch.utils import data
 from enums.configuration import Configuration
@@ -7,6 +8,7 @@ from overrides.overrides import overrides
 import torch
 from typing import List
 import torch
+from copy import deepcopy
 
 from enums.ocr_output_type import OCROutputType
 
@@ -44,12 +46,14 @@ class JointModel(ModelBase):
         return self.get_embeddings(tokens)
 
     @overrides
-    def get_embeddings(self, tokens: List[torch.Tensor]) -> torch.Tensor:
-        result = []
+    def get_embeddings(self, tokens: List[str], vocab_ids: List[torch.Tensor], skip_unknown: bool = False) -> torch.Tensor:
+        word_evaluation_sets = []
         for i, model in enumerate(self._inner_models):
-            outputs = model.get_embeddings(tokens[i])
-            result.append(outputs)
+            current_vocab_ids = vocab_ids[i] if vocab_ids is not None else None
+            word_evaluations = model.get_embeddings(tokens, current_vocab_ids, skip_unknown=skip_unknown)
+            word_evaluation_sets.append(word_evaluations)
 
+        result = self._combine_word_evaluations(word_evaluation_sets)
         return result
 
     def _create_model(self, configuration: Configuration, ocr_output_type: OCROutputType):
@@ -61,13 +65,13 @@ class JointModel(ModelBase):
         elif configuration == Configuration.CBOW:
             result = CBOW(
                 arguments_service=self._arguments_service,
-                vocabulary_service=self._vocabulary_service,
+                vocabulary_service=deepcopy(self._vocabulary_service),
                 data_service=self._data_service,
                 ocr_output_type=ocr_output_type)
         elif configuration == Configuration.SkipGram:
             result = SkipGram(
                 arguments_service=self._arguments_service,
-                vocabulary_service=self._vocabulary_service,
+                vocabulary_service=deepcopy(self._vocabulary_service),
                 data_service=self._data_service,
                 ocr_output_type=ocr_output_type)
 
@@ -99,3 +103,23 @@ class JointModel(ModelBase):
                 checkpoint_name=checkpoint_name)
 
         return None
+
+
+    def _combine_word_evaluations(self, word_evaluations_sets: List[List[WordEvaluation]]) -> List[WordEvaluation]:
+        unique_tokens = set([word_evaluation.word for word_evaluations in word_evaluations_sets for word_evaluation in word_evaluations])
+
+        we_dict = {}
+        for unique_token in unique_tokens:
+            new_word_evaluation = WordEvaluation(unique_token)
+
+            for i, word_evaluations in enumerate(word_evaluations_sets):
+                for word_evaluation in word_evaluations:
+                    if word_evaluation.word != unique_token:
+                        continue
+
+                    new_word_evaluation.add_embeddings(word_evaluation.get_embeddings(0), idx=i)
+
+            we_dict[unique_token] = new_word_evaluation
+
+        result = list(we_dict.values())
+        return result

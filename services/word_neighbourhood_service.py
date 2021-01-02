@@ -1,6 +1,6 @@
 from typing import List, Tuple
 from matplotlib.pyplot import plot
-
+import math
 import numpy as np
 
 from MulticoreTSNE import MulticoreTSNE as TSNE
@@ -52,11 +52,17 @@ class WordNeighbourhoodService:
     def get_word_neighbourhoods(
             self,
             target_word: WordEvaluation,
-            all_words: List[WordEvaluation]) -> Tuple[List[WordEvaluation], List[WordEvaluation]]:
-        neighbourhood_1 = self._get_word_neighbourhood(
-            target_word, all_words, embeddings_idx=0)
-        neighbourhood_2 = self._get_word_neighbourhood(
-            target_word, all_words, embeddings_idx=1)
+            all_words: List[WordEvaluation],
+            models_count: int = 2) -> Tuple[List[WordEvaluation], List[WordEvaluation]]:
+
+        result = []
+        for i in range(models_count):
+            neighbourhood = self._get_word_neighbourhood(
+                target_word, 
+                all_words, 
+                embeddings_idx=i)
+
+            result.append(neighbourhood)
 
         # print('Neighbourhood RAW:')
         # print('------------------')
@@ -66,7 +72,7 @@ class WordNeighbourhoodService:
         # print('------------------')
         # print([f'- {word_eval.word}\n' for word_eval in neighbourhood_2])
 
-        return neighbourhood_1, neighbourhood_2
+        return result
 
     def _plot_tsne_result(
             self,
@@ -128,6 +134,7 @@ class WordNeighbourhoodService:
             self._metrics_service.calculate_cosine_distance(
                 target_word.get_embeddings(embeddings_idx),
                 word_evaluation.get_embeddings(embeddings_idx))
+                if word_evaluation.token_is_known(idx=embeddings_idx) else (-math.inf)
             for word_evaluation in all_words
         ]
 

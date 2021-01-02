@@ -1,28 +1,41 @@
+from typing import List
+
+
 class WordEvaluation:
-    def __init__(self, word: str, embeddings_1: list, embeddings_2: list):
+    def __init__(self, word: str, embeddings_list: List[List[int]] = None):
         self._word = word
-        self._embeddings_1 = embeddings_1
-        self._embeddings_2 = embeddings_2
+        self._embeddings = embeddings_list
+
+        if embeddings_list is not None:
+            self._known_tokens = [x is not None for x in embeddings_list]
+
+    def add_embeddings(self, embeddings: List[int], idx: int):
+        if self._embeddings is None:
+            self._embeddings = []
+
+        # make sure the list is big enough
+        while len(self._embeddings) <= idx:
+            self._embeddings.append(None)
+
+        self._embeddings[idx] = embeddings
+
+        self._known_tokens = [x is not None for x in self._embeddings]
 
     def get_embeddings(self, idx: int) -> list:
-        if idx == 0:
-            return self.embeddings_1
-        elif idx == 1:
-            return self.embeddings_2
+        if idx > len(self._embeddings):
+            raise Exception('Invalid embeddings index')
 
-        raise Exception('Invalid embeddings index')
+        return self._embeddings[idx]
 
     @property
     def word(self) -> str:
         return self._word
 
-    @property
-    def embeddings_1(self) -> list:
-        return self._embeddings_1
+    def token_is_known(self, idx: int) -> bool:
+        return self._known_tokens[idx]
 
-    @property
-    def embeddings_2(self) -> list:
-        return self._embeddings_2
+    def contains_all_embeddings(self) -> bool:
+        return all(x is not None for x in self._embeddings)
 
     def __str__(self):
         return self._word
