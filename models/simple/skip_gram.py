@@ -69,9 +69,6 @@ class SkipGram(ModelBase):
                 embedding_dim=embedding_size,
                 padding_idx=self._vocabulary_service.pad_token)
 
-        # self._linear = nn.Linear(
-        #     embedding_size, self._vocabulary_service.vocabulary_size())
-
         self._negative_samples = 10
         self._noise_dist = None
 
@@ -125,7 +122,7 @@ class SkipGram(ModelBase):
         elif language == Language.Dutch:
             return 320
 
-        raise NotImplemented()
+        raise NotImplementedError()
 
     @overrides
     def get_embeddings(self, tokens: List[str], vocab_ids: torch.Tensor, skip_unknown: bool = False) -> List[WordEvaluation]:

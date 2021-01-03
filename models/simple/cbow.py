@@ -1,3 +1,4 @@
+from enums.ocr_output_type import OCROutputType
 from entities.word_evaluation import WordEvaluation
 from typing import List
 from enums.language import Language
@@ -29,10 +30,15 @@ class CBOW(ModelBase):
             arguments_service: ArgumentsServiceBase,
             vocabulary_service: VocabularyService,
             data_service: DataService,
-            process_service: Word2VecProcessService = None):
+            process_service: Word2VecProcessService = None,
+            ocr_output_type: OCROutputType = None):
         super().__init__(data_service, arguments_service)
 
         self._arguments_service = arguments_service
+        self._vocabulary_service = vocabulary_service
+        if ocr_output_type is not None:
+            vocab_key = f'vocab-{ocr_output_type.value}'
+            self._vocabulary_service.load_cached_vocabulary(vocab_key)
 
         if process_service is not None:
             embedding_size = process_service.get_embedding_size()
@@ -41,16 +47,16 @@ class CBOW(ModelBase):
             self._embeddings = nn.Embedding.from_pretrained(
                 embeddings=token_matrix,
                 freeze=False,
-                padding_idx=vocabulary_service.pad_token)
+                padding_idx=self._vocabulary_service.pad_token)
         else:
             embedding_size = self._get_embedding_size(arguments_service.language)
             self._embeddings = nn.Embedding(
-                num_embeddings=vocabulary_service.vocabulary_size(),
+                num_embeddings=self._vocabulary_service.vocabulary_size(),
                 embedding_dim=embedding_size,
-                padding_idx=vocabulary_service.pad_token)
+                padding_idx=self._vocabulary_service.pad_token)
 
         self._linear = nn.Linear(
-            embedding_size, vocabulary_service.vocabulary_size())
+            embedding_size, self._vocabulary_service.vocabulary_size())
 
     @overrides
     def forward(self, input_batch, **kwargs):
@@ -69,7 +75,7 @@ class CBOW(ModelBase):
         elif language == Language.Dutch:
             return 320
 
-        raise NotImplemented()
+        raise NotImplementedError()
 
     @overrides
     def get_embeddings(self, tokens: List[str], vocab_ids: torch.Tensor, skip_unknown: bool = False) -> List[WordEvaluation]:
