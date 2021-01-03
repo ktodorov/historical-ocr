@@ -1,4 +1,6 @@
 from collections import Counter
+from entities.word_evaluation import WordEvaluation
+from typing import List
 from entities.tokens_occurrence_stats import TokensOccurrenceStats
 from overrides import overrides
 import numpy as np
@@ -68,7 +70,7 @@ class PPMI(ModelBase):
         return matrix
 
     @overrides
-    def get_embeddings(self, tokens: torch.Tensor) -> torch.Tensor:
+    def get_embeddings(self, tokens: List[str], vocab_ids: torch.Tensor, skip_unknown: bool = False) -> List[WordEvaluation]:
         pass
 
     @overrides
