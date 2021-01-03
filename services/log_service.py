@@ -10,10 +10,7 @@ from services.arguments.arguments_service_base import ArgumentsServiceBase
 
 
 class LogService:
-    def __init__(
-            self,
-            arguments_service: ArgumentsServiceBase,
-            external_logging_enabled: bool = False):
+    def __init__(self, arguments_service: ArgumentsServiceBase):
         self._log_header = '  Time Epoch Iteration   Progress  (%Epoch) | Train Loss Train Accuracy | Validation Loss Val. Accuracy | Best'
         self._log_template = ' '.join(
             '{:>6.0f},{:>5.0f},{:>9.0f},{:>5.0f}/{:<5.0f} {:>7.0f}%,| {:>10.6f} {:>14.10f} | {:>15.11f} {:>13.9f} | {:>4s}'.split(','))
@@ -27,7 +24,7 @@ class LogService:
         self._all_iterations = 0
         self._current_iteration = 0
 
-        self._external_logging_enabled = external_logging_enabled
+        self._external_logging_enabled = arguments_service.enable_external_logging
         if self._external_logging_enabled:
             wandb.init(
                 project=str(arguments_service.challenge),

@@ -98,9 +98,7 @@ class IocContainer(containers.DeclarativeContainer):
 
     log_service = providers.Singleton(
         LogService,
-        arguments_service=arguments_service,
-        external_logging_enabled=False  # external_logging_enabled
-    )
+        arguments_service=arguments_service)
 
     data_service = providers.Factory(DataService)
 
