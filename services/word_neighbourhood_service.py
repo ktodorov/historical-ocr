@@ -1,3 +1,4 @@
+from entities.plot.legend_options import LegendOptions
 from typing import List, Tuple
 from matplotlib.pyplot import plot
 import math
@@ -58,8 +59,8 @@ class WordNeighbourhoodService:
         result = []
         for i in range(models_count):
             neighbourhood = self._get_word_neighbourhood(
-                target_word, 
-                all_words, 
+                target_word,
+                all_words,
                 embeddings_idx=i)
 
             result.append(neighbourhood)
@@ -91,6 +92,10 @@ class WordNeighbourhoodService:
                 i*word_neighbourhood_length):((i+1)*word_neighbourhood_length), 1]
             bold_mask = [False for _ in range(len(x_coords))]
             bold_mask[0] = True
+
+            font_sizes = [None for _ in range(len(x_coords))]
+            font_sizes[0] = 15
+
             self._plot_service.plot_scatter(
                 x_coords,
                 y_coords,
@@ -101,17 +106,21 @@ class WordNeighbourhoodService:
             self._plot_service.plot_labels(
                 x_coords,
                 y_coords,
-                all_words[(i*word_neighbourhood_length)
-                           :((i+1)*word_neighbourhood_length)],
+                all_words[(i*word_neighbourhood_length)                          :((i+1)*word_neighbourhood_length)],
                 color=labels_colors[i],
                 ax=ax,
                 show_plot=False,
-                bold_mask=bold_mask)
+                bold_mask=bold_mask,
+                font_sizes=font_sizes)
 
         self._plot_service.set_plot_properties(
             ax=ax,
-            title=f'Neighborhoods `{target_word.word}`',
-            hide_axis=True)
+            title=f'Neighbourhoods `{target_word.word}`',
+            hide_axis=True,
+            legend_options=LegendOptions(
+                show_legend=True,
+                legend_colors=labels_colors,
+                legend_labels=['Raw', 'Ground truth']))
 
         experiments_folder = self._file_service.get_experiments_path()
         neighbourhoods_folder = self._file_service.combine_path(
@@ -134,7 +143,7 @@ class WordNeighbourhoodService:
             self._metrics_service.calculate_cosine_distance(
                 target_word.get_embeddings(embeddings_idx),
                 word_evaluation.get_embeddings(embeddings_idx))
-                if word_evaluation.token_is_known(idx=embeddings_idx) else (-math.inf)
+            if word_evaluation.token_is_known(idx=embeddings_idx) else (math.inf)
             for word_evaluation in all_words
         ]
 

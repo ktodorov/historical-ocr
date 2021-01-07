@@ -1,3 +1,4 @@
+from entities.plot.legend_options import LegendOptions
 import sys
 import seaborn as sns
 import numpy as np
@@ -7,11 +8,17 @@ from typing import List
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.pyplot import cm
+from matplotlib.lines import Line2D
+from matplotlib.artist import Artist
+from matplotlib.axes import Axes
 from collections import Counter
 
 plt.rcParams["figure.figsize"] = (15, 10)
-plt.rcParams["text.usetex"] = True
-plt.rcParams['text.latex.preamble'] = r'\usepackage[cm]{sfmath}'
+# plt.rcParams["text.usetex"] = True
+# plt.rcParams['text.latex.preamble'] = [
+#     r'\usepackage[utf8]{inputenc}'
+#     r'\usepackage[cm]{sfmath}'
+# ]
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = 'cm'
 # plt.rcParams['text.latex.preamble'] = [
@@ -32,7 +39,9 @@ class PlotService:
 
         self._data_service = data_service
 
-    def create_plot(self) -> matplotlib.axes.Axes:
+        self._default_font_size: int = 10
+
+    def create_plot(self) -> Axes:
         fig = plt.figure()
         fig.canvas.start_event_loop(sys.float_info.min) #workaround for Exception in Tkinter callback
         ax = fig.add_subplot(1,1,1)
@@ -356,9 +365,15 @@ class PlotService:
             ax=None,
             show_plot: bool = True,
             bold_mask: list = None,
-            hide_axis: bool = False):
+            hide_axis: bool = False,
+            font_sizes: List[int] = None):
         if ax is None:
             ax = self.create_plot()
+
+        if font_sizes is None or len(font_sizes) < len(labels):
+            font_sizes = [self._default_font_size for _ in range(len(labels))]
+        else:
+            font_sizes = [font_sizes[i] if font_sizes[i] is not None else self._default_font_size for i in range(len(font_sizes))]
 
         for i, (label, x, y) in enumerate(zip(labels, x_values, y_values)):
             weight = 'light'
@@ -366,7 +381,7 @@ class PlotService:
                 weight = 'bold'
 
             ax.annotate(label, xy=(x, y), xytext=(
-                0, 0), textcoords='offset points', color=color, weight=weight)
+                0, 0), textcoords='offset points', color=color, weight=weight, font_size=font_sizes[i])
 
         self._add_properties(
             ax,
@@ -550,11 +565,12 @@ class PlotService:
 
     def set_plot_properties(
         self,
-        ax: matplotlib.axes.Axes,
+        ax: Axes,
         title: str = None,
         title_padding: float = None,
         hide_axis: bool = False,
-        tight_layout: bool = True):
+        tight_layout: bool = True,
+        legend_options: LegendOptions = None):
 
         if tight_layout:
             plt.tight_layout()
@@ -562,9 +578,30 @@ class PlotService:
         if hide_axis:
             ax.axis('off')
 
+        if legend_options is not None:
+            self.show_legend(ax, legend_options)
+
         if title is not None:
             ax.set_title(title, pad=title_padding,
                          fontdict={'fontweight': 'bold'})
+
+
+    def show_legend(
+        self,
+        ax: Axes,
+        legend_options: LegendOptions):
+
+        if legend_options is None or not legend_options.show_legend:
+            return
+
+        if legend_options.legend_colors is not None and len(legend_options.legend_colors) > 0:
+            legend_lines = self._create_legend_lines(legend_options.legend_colors)
+            if legend_options.legend_labels is not None and len(legend_options.legend_labels) > 0:
+                ax.legend(legend_lines, legend_options.legend_labels)
+            else:
+                ax.legend(legend_lines)
+        else:
+            ax.legend()
 
 
     def save_plot(
@@ -573,9 +610,16 @@ class PlotService:
         filename: str):
         self._data_service.save_figure(save_path, filename, no_axis=False)
 
+    def _create_legend_lines(
+        self,
+        legend_colors: List[str]) -> List[Artist]:
+        lines = [Line2D([0], [0], color=color, lw=4) for color in legend_colors]
+        return lines
+
+
     def _add_properties(
             self,
-            ax: matplotlib.axes.Axes,
+            ax: Axes,
             title: str = None,
             title_padding: float = None,
             save_path: str = None,
