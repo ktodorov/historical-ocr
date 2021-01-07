@@ -381,7 +381,7 @@ class PlotService:
                 weight = 'bold'
 
             ax.annotate(label, xy=(x, y), xytext=(
-                0, 0), textcoords='offset points', color=color, weight=weight, font_size=font_sizes[i])
+                0, 0), textcoords='offset points', color=color, weight=weight, fontsize=font_sizes[i])
 
         self._add_properties(
             ax,
