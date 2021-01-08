@@ -1,3 +1,5 @@
+from enums.part_of_speech import PartOfSpeech
+from services.tagging_service import TaggingService
 from services.arguments.ocr_quality_non_context_arguments_service import OCRQualityNonContextArgumentsService
 from enums.ocr_output_type import OCROutputType
 from typing import Any, Dict, List, Tuple
@@ -20,7 +22,8 @@ class EvaluationProcessService(ProcessServiceBase):
             cache_service: CacheService,
             log_service: LogService,
             vocabulary_service: VocabularyService,
-            tokenize_service: BaseTokenizeService):
+            tokenize_service: BaseTokenizeService,
+            tagging_service: TaggingService):
         super().__init__()
 
         self._arguments_service = arguments_service
@@ -28,13 +31,23 @@ class EvaluationProcessService(ProcessServiceBase):
         self._log_service = log_service
         self._vocabulary_service = vocabulary_service
         self._tokenize_service = tokenize_service
+        self._tagging_service = tagging_service
 
-    def get_target_tokens(self) -> List[TokenRepresentation]:
+    def get_target_tokens(self, pos_tags: List[PartOfSpeech] = None) -> List[TokenRepresentation]:
         common_tokens_information: Dict[str, List[List[int]]] = self._cache_service.get_item_from_cache(
             item_key='common-tokens-information',
             callback_function=self.get_common_words)
 
         self._log_service.log_info(f'Loaded {len(common_tokens_information)} common words')
+
+        if pos_tags is not None:
+            common_tokens_information = {
+                token: value 
+                for token, value in common_tokens_information.items()
+                if self._tagging_service.get_part_of_speech_tag(token) in pos_tags
+            }
+
+            self._log_service.log_info(f'Filtered common words. Left with {len(common_tokens_information)} common words')
 
         result = [
             TokenRepresentation(

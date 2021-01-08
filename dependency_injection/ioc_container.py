@@ -1,3 +1,4 @@
+from services.tagging_service import TaggingService
 from datasets.evaluation_dataset import EvaluationDataset
 from datasets.ppmi_dataset import PPMIDataset
 from datasets.transformer_lm_dataset import TransformerLMDataset
@@ -169,6 +170,8 @@ class IocContainer(containers.DeclarativeContainer):
 
     string_process_service = providers.Factory(StringProcessService)
 
+    tagging_service = providers.Factory(TaggingService)
+
     ocr_download_service = providers.Factory(
         OCRDownloadService,
         data_service=data_service,
@@ -188,7 +191,8 @@ class IocContainer(containers.DeclarativeContainer):
             cache_service=cache_service,
             log_service=log_service,
             vocabulary_service=vocabulary_service,
-            tokenize_service=tokenize_service),
+            tokenize_service=tokenize_service,
+            tagging_service=tagging_service),
         cbow=providers.Singleton(
             Word2VecProcessService,
             arguments_service=arguments_service,
@@ -352,6 +356,7 @@ class IocContainer(containers.DeclarativeContainer):
             vocabulary_service=vocabulary_service,
             word_neighbourhood_service=word_neighbourhood_service,
             log_service=log_service,
+            tagging_service=tagging_service,
             model=model),
         none=providers.Object(None))
 

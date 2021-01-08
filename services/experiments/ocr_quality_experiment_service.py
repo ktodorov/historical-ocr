@@ -1,3 +1,5 @@
+from services.tagging_service import TaggingService
+from enums.part_of_speech import PartOfSpeech
 from enums.ocr_output_type import OCROutputType
 from services.vocabulary_service import VocabularyService
 import numpy as np
@@ -40,6 +42,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             word_neighbourhood_service: WordNeighbourhoodService,
             vocabulary_service: VocabularyService,
             log_service: LogService,
+            tagging_service: TaggingService,
             model: ModelBase):
         super().__init__(arguments_service, dataloader_service, file_service, model)
 
@@ -50,6 +53,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._word_neighbourhood_service = word_neighbourhood_service
         self._vocabulary_service = vocabulary_service
         self._log_service = log_service
+        self._tagging_service = tagging_service
 
     @overrides
     def execute_experiments(self, experiment_types: List[ExperimentType]):
@@ -142,7 +146,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         if self._arguments_service.separate_neighbourhood_vocabularies:
             processed_tokens = [we.word for we in result]
             for ocr_output_type in [OCROutputType.Raw, OCROutputType.GroundTruth]:
-                self._log_service.log_debug(f'Processing unique vocabulary tokens for {ocr_output_type.value} type')
+                self._log_service.log_debug(
+                    f'Processing unique vocabulary tokens for {ocr_output_type.value} type')
                 vocab_key = f'vocab-{ocr_output_type.value}'
                 self._vocabulary_service.load_cached_vocabulary(vocab_key)
                 unprocessed_tokens = []
@@ -169,7 +174,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         distances_folder = self._file_service.combine_path(
             experiments_folder, 'distances', self._arguments_service.language.value, create_if_missing=True)
 
-        self._log_service.log_debug(f'Saving experiment results [Distances] at \'{distances_folder}\'')
+        self._log_service.log_debug(
+            f'Saving experiment results [Distances] at \'{distances_folder}\'')
 
         for experiment_type, word_value_pairs in result.items():
             values = [round(x, 1) for x in word_value_pairs.values()]
@@ -180,7 +186,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             counter = Counter(values)
 
             filename = f'{self._arguments_service.configuration.value}-{experiment_type.value}'
-            self._log_service.log_debug(f'Saving {experiment_type} as {filename}')
+            self._log_service.log_debug(
+                f'Saving {experiment_type} as {filename}')
             self._plot_service.plot_counters_histogram(
                 counter_labels=['a'],
                 counters=[counter],
@@ -193,7 +200,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 filename=filename)
 
     def _generate_neighbourhood_similarity_results(self, result: Dict[ExperimentType, Dict[str, float]], word_evaluations: List[WordEvaluation]):
-        self._log_service.log_debug('Generating neighbourhood similarity results')
+        self._log_service.log_debug(
+            'Generating neighbourhood similarity results')
 
         target_tokens = self._get_target_tokens(result)
         for (target_token, _) in tqdm(iterable=target_tokens, desc='Generating neighbourhood plots', total=len(target_tokens)):
@@ -214,15 +222,26 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 target_word_evaluation,
                 word_neighbourhoods=word_neighbourhoods)
 
-    def _get_target_tokens(self, result, metric: ExperimentType = ExperimentType.CosineDistance) -> List[Tuple[str, float]]:
+    def _get_target_tokens(
+            self,
+            result,
+            metric: ExperimentType = ExperimentType.CosineDistance,
+            pos_tags: List[PartOfSpeech] = [PartOfSpeech.Noun, PartOfSpeech.Verb]) -> List[Tuple[str, float]]:
         if metric not in result.keys():
             raise Exception(f'Metric {metric} not calculated')
 
         metric_results = [(word, distance)
-                          for word, distance in result[metric].items()]
+                          for word, distance in result[metric].items()
+                          if self._tagging_service.word_is_specific_tag(word, pos_tags)]
+
         metric_results.sort(key=lambda x: x[1])
 
         most_changed = metric_results[-10:][::-1]
+
+        log_message = f'Target words found: [' + \
+            ', '.join([x[0] for x in most_changed]) + ']'
+        self._log_service.log_info(log_message.encode())
+
         return most_changed
 
     def _get_word_evaluations_for_comparison(self, target_word: str, word_evaluations: List[List[WordEvaluation]]):
