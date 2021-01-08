@@ -76,7 +76,7 @@ class PPMI(ModelBase):
         with np.errstate(divide='ignore'):
             matrix = np.log(matrix)
 
-        matrix[np.isinf(matrix)] = 0.0  # log(0) = 0
+        matrix[np.isinf(matrix) | np.isnan(matrix)] = 0.0  # log(0) = 0
         if positive:
             matrix[matrix < 0] = 0.0
 
@@ -90,6 +90,8 @@ class PPMI(ModelBase):
             vocab_ids = vocab_ids.cpu().numpy()
 
         embeddings = self._ppmi_matrix[vocab_ids, self._common_word_ids].toarray()
+
+        assert all(not np.isnan(x).any() for x in embeddings)
         assert len(embeddings) == len(vocab_ids)
         assert len(embeddings[0]) == len(self._common_word_ids)
 

@@ -42,6 +42,8 @@ class WordNeighbourhoodService:
             all_word_embeddings.extend(
                 [w.get_embeddings(i) for w in word_neighbourhood])
 
+        assert all(not np.isnan(x).any() for x in all_word_embeddings), "Invalid values found in word embeddings"
+
         tsne = TSNE(n_components=2, random_state=0, n_jobs=4)
         tsne_result = tsne.fit_transform(np.array(all_word_embeddings))
         self._plot_tsne_result(
