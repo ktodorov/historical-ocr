@@ -98,7 +98,6 @@ class PPMI(ModelBase):
             name_prefix: str = None,
             name_suffix: str = None,
             load_model_dict: bool = True,
-            load_model_only: bool = False,
             use_checkpoint_name: bool = True,
             checkpoint_name: str = None):
 

@@ -87,7 +87,6 @@ class JointModel(ModelBase):
             name_prefix: str = None,
             name_suffix: str = None,
             load_model_dict: bool = True,
-            load_model_only: bool = False,
             use_checkpoint_name: bool = True,
             checkpoint_name: str = None) -> ModelCheckpoint:
 
@@ -96,9 +95,8 @@ class JointModel(ModelBase):
             model.load(
                 path=path,
                 name_prefix=name_prefix,
-                name_suffix=f'-{ocr_output_type_str}',
+                name_suffix=f'-{ocr_output_type_str}-lim-{self._arguments_service.minimal_occurrence_limit}',
                 load_model_dict=load_model_dict,
-                load_model_only=load_model_only,
                 use_checkpoint_name=use_checkpoint_name,
                 checkpoint_name=checkpoint_name)
 

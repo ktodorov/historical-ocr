@@ -88,7 +88,6 @@ class TransformerBase(ModelBase):
             name_prefix: str = None,
             name_suffix: str = None,
             load_model_dict: bool = True,
-            load_model_only: bool = False,
             use_checkpoint_name: bool = True,
             checkpoint_name: str = None) -> ModelCheckpoint:
 
@@ -98,9 +97,8 @@ class TransformerBase(ModelBase):
             path,
             model_name,
             load_model_dict=False,
-            load_model_only=True,
             use_checkpoint_name=False)
-        if not load_model_only and not model_checkpoint:
+        if model_checkpoint is None:
             return None
 
         if load_model_dict:

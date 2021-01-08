@@ -95,7 +95,6 @@ class ModelBase(nn.Module):
             name_prefix: str = None,
             name_suffix: str = None,
             load_model_dict: bool = True,
-            load_model_only: bool = False,
             use_checkpoint_name: bool = True,
             checkpoint_name: str = None) -> ModelCheckpoint:
         assert self._data_service is not None
@@ -108,9 +107,6 @@ class ModelBase(nn.Module):
                 checkpoint_name = self._arguments_service.resume_checkpoint_name
                 if checkpoint_name is None:
                     checkpoint_name = self._get_model_name(name_prefix, name_suffix)
-
-        if load_model_only:
-            return None
 
         if not self._data_service.python_obj_exists(path, checkpoint_name):
             raise Exception(f'Model checkpoint "{checkpoint_name}" not found at "{path}"')
