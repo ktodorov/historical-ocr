@@ -1,4 +1,7 @@
 from collections import Counter
+from enums.ocr_output_type import OCROutputType
+from services.process.evaluation_process_service import EvaluationProcessService
+from services.process.process_service_base import ProcessServiceBase
 from entities.word_evaluation import WordEvaluation
 from typing import List
 from entities.tokens_occurrence_stats import TokensOccurrenceStats
@@ -25,16 +28,26 @@ class PPMI(ModelBase):
             self,
             arguments_service: ArgumentsServiceBase,
             vocabulary_service: VocabularyService,
-            data_service: DataService):
+            data_service: DataService,
+            process_service: ProcessServiceBase = None,
+            ocr_output_type: OCROutputType = None):
         super().__init__(data_service, arguments_service)
 
         self._arguments_service = arguments_service
         self._vocabulary_service = vocabulary_service
+        if ocr_output_type is not None:
+            vocab_key = f'vocab-{ocr_output_type.value}'
+            self._vocabulary_service.load_cached_vocabulary(vocab_key)
+
+        self._process_service = process_service
+
+        # needed for column intersection during evaluation
+        self._common_word_ids: List[int] = self._get_common_word_ids()
 
         self._initialized = False
         self._ppmi_matrix = sparse.dok_matrix(
-            (vocabulary_service.vocabulary_size(),
-             vocabulary_service.vocabulary_size()),
+            (self._vocabulary_service.vocabulary_size(),
+             self._vocabulary_service.vocabulary_size()),
             dtype=np.float32)
 
     @overrides
@@ -71,7 +84,20 @@ class PPMI(ModelBase):
 
     @overrides
     def get_embeddings(self, tokens: List[str], vocab_ids: torch.Tensor, skip_unknown: bool = False) -> List[WordEvaluation]:
-        pass
+        if vocab_ids is None:
+            vocab_ids = np.array([np.array([self._vocabulary_service.string_to_id(token)]) for token in tokens])
+        else:
+            vocab_ids = vocab_ids.cpu().numpy()
+
+        embeddings = self._ppmi_matrix[vocab_ids, self._common_word_ids].toarray()
+        assert len(embeddings) == len(vocab_ids)
+        assert len(embeddings[0]) == len(self._common_word_ids)
+
+        result = [
+            WordEvaluation(token, embeddings_list=[embeddings[i]])
+            for i, token in enumerate(tokens)]
+
+        return result
 
     @overrides
     def save(
@@ -118,3 +144,16 @@ class PPMI(ModelBase):
             path, checkpoint_name)
         self._initialized = True
         return None
+
+    def _get_common_word_ids(self) -> List[int]:
+        if ((not self._arguments_service.evaluate and not self._arguments_service.run_experiments) or
+            self._process_service is None or
+                not isinstance(self._process_service, EvaluationProcessService)):
+            return None
+
+        common_words_dict = self._process_service.get_common_words()
+        common_words = list(common_words_dict.keys())
+        common_word_ids = [self._vocabulary_service.string_to_id(
+            common_word) for common_word in common_words]
+
+        return common_word_ids

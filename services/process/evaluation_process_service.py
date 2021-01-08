@@ -46,7 +46,7 @@ class EvaluationProcessService(ProcessServiceBase):
 
         return result
 
-    def get_common_words(self) -> List[int]:
+    def get_common_words(self) -> Dict[str, List[List[int]]]:
         common_tokens = self._cache_service.get_item_from_cache(
             item_key=f'common-tokens-{self._arguments_service.language.value}',
             configuration_specific=False)

@@ -245,7 +245,8 @@ class IocContainer(containers.DeclarativeContainer):
             JointModel,
             arguments_service=arguments_service,
             data_service=data_service,
-            vocabulary_service=vocabulary_service),
+            vocabulary_service=vocabulary_service,
+            process_service=process_service),
         bert=providers.Singleton(
             BERT,
             arguments_service=arguments_service,

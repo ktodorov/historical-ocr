@@ -131,7 +131,9 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 vocab_key = f'vocab-{ocr_output_type.value}'
                 self._vocabulary_service.load_cached_vocabulary(vocab_key)
                 unprocessed_tokens = []
-                for _, token in self._vocabulary_service.get_vocabulary_tokens(exclude_special_tokens=True):
+                vocabulary_size = self._vocabulary_service.vocabulary_size()
+                for i, (_, token) in enumerate(self._vocabulary_service.get_vocabulary_tokens(exclude_special_tokens=True)):
+                    print(f'{ocr_output_type.value}: {i}/{vocabulary_size}         \r', end='')
                     if token in processed_tokens:
                         continue
 

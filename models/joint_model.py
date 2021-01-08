@@ -1,3 +1,5 @@
+from services.process.process_service_base import ProcessServiceBase
+from models.simple.ppmi import PPMI
 from entities.word_evaluation import WordEvaluation
 from models.simple.skip_gram import SkipGram
 from torch.utils import data
@@ -29,12 +31,14 @@ class JointModel(ModelBase):
             self,
             arguments_service: OCREvaluationArgumentsService,
             data_service: DataService,
-            vocabulary_service: VocabularyService):
+            vocabulary_service: VocabularyService,
+            process_service: ProcessServiceBase):
         super().__init__(data_service, arguments_service)
 
         self._arguments_service = arguments_service
         self._data_service = data_service
         self._vocabulary_service = vocabulary_service
+        self._process_service = process_service
 
         self._ocr_output_types = [OCROutputType.Raw, OCROutputType.GroundTruth]
 
@@ -73,6 +77,13 @@ class JointModel(ModelBase):
                 arguments_service=self._arguments_service,
                 vocabulary_service=deepcopy(self._vocabulary_service),
                 data_service=self._data_service,
+                ocr_output_type=ocr_output_type)
+        elif configuration == Configuration.PPMI:
+            result = PPMI(
+                arguments_service=self._arguments_service,
+                vocabulary_service=deepcopy(self._vocabulary_service),
+                data_service=self._data_service,
+                process_service=self._process_service,
                 ocr_output_type=ocr_output_type)
 
         if result is None:

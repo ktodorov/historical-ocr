@@ -33,8 +33,7 @@ class PPMIProcessService(ICDARProcessService):
             arguments_service=arguments_service,
             cache_service=cache_service,
             vocabulary_service=vocabulary_service,
-            tokenize_service=tokenize_service,
-            min_occurrence_limit=5)
+            tokenize_service=tokenize_service)
 
     def get_occurrence_stats(self, ocr_output_type: OCROutputType) -> TokensOccurrenceStats:
         occurrence_stats: TokensOccurrenceStats = self._cache_service.get_item_from_cache(
