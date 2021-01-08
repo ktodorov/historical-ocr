@@ -1,3 +1,4 @@
+from services.log_service import LogService
 from entities.plot.legend_options import LegendOptions
 from typing import List, Tuple
 from matplotlib.pyplot import plot
@@ -20,17 +21,21 @@ class WordNeighbourhoodService:
             arguments_service: ArgumentsServiceBase,
             metrics_service: MetricsService,
             plot_service: PlotService,
-            file_service: FileService):
+            file_service: FileService,
+            log_service: LogService):
 
         self._arguments_service = arguments_service
         self._metrics_service = metrics_service
         self._plot_service = plot_service
         self._file_service = file_service
+        self._log_service = log_service
 
     def plot_word_neighbourhoods(
             self,
             target_word: WordEvaluation,
             word_neighbourhoods: List[List[WordEvaluation]]):
+
+        self._log_service.log_debug(f'Plotting neighbourhoods for word \'{target_word.word}\'')
 
         all_words = []
         all_word_embeddings = []
@@ -42,7 +47,8 @@ class WordNeighbourhoodService:
             all_word_embeddings.extend(
                 [w.get_embeddings(i) for w in word_neighbourhood])
 
-        assert all(not np.isnan(x).any() for x in all_word_embeddings), "Invalid values found in word embeddings"
+        assert all(not np.isnan(x).any()
+                   for x in all_word_embeddings), "Invalid values found in word embeddings"
 
         tsne = TSNE(n_components=2, random_state=0, n_jobs=4)
         tsne_result = tsne.fit_transform(np.array(all_word_embeddings))
@@ -58,6 +64,7 @@ class WordNeighbourhoodService:
             all_words: List[WordEvaluation],
             models_count: int = 2) -> Tuple[List[WordEvaluation], List[WordEvaluation]]:
 
+        self._log_service.log_debug(f'Extracting neighbourhoods for word \'{target_word.word.encode("utf-8")}\'')
         result = []
         for i in range(models_count):
             neighbourhood = self._get_word_neighbourhood(
@@ -66,14 +73,6 @@ class WordNeighbourhoodService:
                 embeddings_idx=i)
 
             result.append(neighbourhood)
-
-        # print('Neighbourhood RAW:')
-        # print('------------------')
-        # print([f'- {word_eval.word}\n' for word_eval in neighbourhood_1])
-
-        # print('Neighbourhood GRT:')
-        # print('------------------')
-        # print([f'- {word_eval.word}\n' for word_eval in neighbourhood_2])
 
         return result
 
@@ -108,7 +107,7 @@ class WordNeighbourhoodService:
             self._plot_service.plot_labels(
                 x_coords,
                 y_coords,
-                all_words[(i*word_neighbourhood_length)                          :((i+1)*word_neighbourhood_length)],
+                all_words[(i*word_neighbourhood_length):((i+1)*word_neighbourhood_length)],
                 color=labels_colors[i],
                 ax=ax,
                 show_plot=False,
@@ -117,7 +116,7 @@ class WordNeighbourhoodService:
 
         self._plot_service.set_plot_properties(
             ax=ax,
-            title=f'Neighbourhoods `{target_word.word}`',
+            title=f'Neighbourhoods `{target_word.word.encode("utf-8")}`',
             hide_axis=True,
             legend_options=LegendOptions(
                 show_legend=True,

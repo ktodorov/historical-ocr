@@ -1,16 +1,29 @@
 from datetime import datetime, timedelta
+import os
 from termcolor import colored
 import wandb
 import torch
 import numpy as np
+import json
+
+from copy import deepcopy
 
 from entities.metric import Metric
 from entities.data_output_log import DataOutputLog
 from services.arguments.arguments_service_base import ArgumentsServiceBase
+import logging
+from logging import Logger
 
+from utils.dict_utils import stringify_dictionary
 
 class LogService:
-    def __init__(self, arguments_service: ArgumentsServiceBase):
+    def __init__(
+            self,
+            arguments_service: ArgumentsServiceBase,
+            logger: Logger):
+
+        self._arguments_service = arguments_service
+
         self._log_header = '  Time Epoch Iteration   Progress  (%Epoch) | Train Loss Train Accuracy | Validation Loss Val. Accuracy | Best'
         self._log_template = ' '.join(
             '{:>6.0f},{:>5.0f},{:>9.0f},{:>5.0f}/{:<5.0f} {:>7.0f}%,| {:>10.6f} {:>14.10f} | {:>15.11f} {:>13.9f} | {:>4s}'.split(','))
@@ -24,17 +37,31 @@ class LogService:
         self._all_iterations = 0
         self._current_iteration = 0
 
-        self._external_logging_enabled = arguments_service.enable_external_logging
+        config_name = self._arguments_service.get_configuration_name()
+        self._run_name = f'{config_name}-{self._start_time.strftime("%Y_%m_%d_%H_%M_%S")}'
+
+        self._logger: Logger = self._initialize_logger(logger)
+
+        self.log_debug(f'Starting run \'{self._run_name}\'')
+
+        self._log_arguments()
+
+        self._external_logging_enabled = self._arguments_service.enable_external_logging
         if self._external_logging_enabled:
+            wandb_project = str(self._arguments_service.challenge)
+            wandb_entity = 'eval-historical-texts'
             wandb.init(
-                project=str(arguments_service.challenge),
-                config=arguments_service._arguments,
-                entity='eval-historical-texts',
+                project=wandb_project,
+                config=self._arguments_service._arguments,
+                entity=wandb_entity,
                 force=True,
-                name=arguments_service.get_configuration_name()
+                name=config_name
                 # resume=arguments_service.resume_training,
                 # id='' #TODO
             )
+
+            self.log_debug(
+                f'W&B initialized [project: \'{wandb_project}\' entity: \'{wandb_entity}\' | name: \'{config_name}\'')
 
     def log_progress(
             self,
@@ -57,6 +84,8 @@ class LogService:
             f'{prefix}: {current_step}/{all_steps}       | Epoch: {epoch_str}           \r', self._progress_color), end='')
 
     def initialize_evaluation(self):
+        self.log_debug('Starting training...')
+
         print(self._log_header)
 
     def log_evaluation(
@@ -137,6 +166,23 @@ class LogService:
 
             self.log_summary('Seconds per iteration', seconds_per_iteration)
 
+    def log_info(self, message: str):
+        self._logger.info(message)
+
+    def log_debug(self, message: str):
+        self._logger.debug(message)
+
+    def log_error(self, message: str):
+        self._logger.error(message)
+
+    def log_exception(self, message: str, exception: Exception):
+        log_message = f'Exception occurred. Message: {message}\nOriginal exception: {exception}'
+
+        self._logger.exception(log_message)
+
+    def log_warning(self, message: str):
+        self._logger.warning(message)
+
     def log_summary(self, key: str, value: object):
         if not self._external_logging_enabled:
             return
@@ -192,3 +238,50 @@ class LogService:
 
     def _get_current_step(self) -> int:
         return (self._current_epoch * self._all_iterations) + self._current_iteration
+
+    def _initialize_logger(self, logger: Logger) -> Logger:
+        if len(logger.handlers) > 0:
+            return logger
+
+        log_folder = self._arguments_service.log_folder
+        if not os.path.exists(log_folder):
+            os.mkdir(log_folder)
+
+        log_file_name = f'{self._run_name}.log'
+        log_file_path = os.path.join(
+            self._arguments_service.log_folder, log_file_name)
+
+        # create file handler which logs even debug messages
+        file_handler = logging.FileHandler(log_file_path)
+        file_handler.setLevel(logging.DEBUG)
+
+        # create console handler with a higher log level
+        console_handler = logging.StreamHandler()
+        if self._arguments_service.verbose_logging:
+            console_handler.setLevel(logging.DEBUG)
+        else:
+            console_handler.setLevel(logging.INFO)
+
+        # create formatter and add it to the handlers
+        file_formatter = logging.Formatter(
+            u'%(asctime)s | %(name)s | %(levelname)10s | %(message)s')
+        file_handler.setFormatter(file_formatter)
+
+        console_formatter = logging.Formatter(
+            u'%(asctime)s | %(levelname)10s | %(message)s')
+        console_handler.setFormatter(console_formatter)
+
+        # add the handlers to the logger
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
+
+        return logger
+
+    def _log_arguments(self):
+        args = self._arguments_service.get_arguments_dict()
+        args_string = stringify_dictionary(args)
+        self.log_debug(f'arguments initialized: {args_string}')
+
+    def __deepcopy__(self, memo):
+        # create a copy with self.linked_to *not copied*, just referenced.
+        return LogService(deepcopy(self._arguments_service, memo), self._logger)

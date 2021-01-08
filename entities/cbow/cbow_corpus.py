@@ -1,6 +1,6 @@
 from typing import List
 
-from entities.cbow_entry import CBOWEntry
+from entities.cbow.cbow_entry import CBOWEntry
 
 class CBOWCorpus:
     def __init__(self, text_lines: List[List[int]], window_size: int = 2):

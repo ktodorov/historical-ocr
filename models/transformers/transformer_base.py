@@ -1,11 +1,12 @@
-import os 
+import os
+from services.log_service import LogService 
 import torch
 from overrides import overrides
 
 from models.model_base import ModelBase
 from transformers import PreTrainedModel, PretrainedConfig
 
-from entities.model_checkpoint import ModelCheckpoint
+from entities.models.model_checkpoint import ModelCheckpoint
 from entities.metric import Metric
 
 from services.arguments.pretrained_arguments_service import PretrainedArgumentsService
@@ -16,14 +17,18 @@ class TransformerBase(ModelBase):
             self,
             arguments_service: PretrainedArgumentsService,
             data_service: DataService,
+            log_service: LogService,
             output_hidden_states: bool = False):
-        super(TransformerBase, self).__init__(data_service, arguments_service)
+        super(TransformerBase, self).__init__(data_service, arguments_service, log_service)
 
         self._output_hidden_states = output_hidden_states
 
         if arguments_service.resume_training or arguments_service.evaluate or arguments_service.run_experiments:
+            self._log_service.log_debug('Skipping the initialization of the transformer model due to configuration settings')
             self._transformer_model = None
         else:
+            self._log_service.log_debug(f'Initializing transformer model of type {str(self._model_type)} using \'{arguments_service.pretrained_weights}\' weights')
+
             config = self._config_type.from_pretrained(arguments_service.pretrained_weights, return_dict=True)
             config.output_hidden_states = output_hidden_states
 
@@ -66,17 +71,21 @@ class TransformerBase(ModelBase):
             resets_left: int,
             name_prefix: str = None) -> bool:
 
+        self._log_service.log_debug(f'Saving transformer model')
+
         model_name = self._get_model_name(name_prefix)
 
         saved = super().save(path, epoch, iteration, best_metrics,
                              resets_left, model_name, save_model_dict=False)
 
         if not saved:
+            self._log_service.log_debug(f'Saving transformer model failed')
             return saved
 
         pretrained_weights_path = self._get_pretrained_path(
             path, model_name, create_if_missing=True)
 
+        self._log_service.log_debug(f'Saving transformer model weights at \'{pretrained_weights_path}\'')
         self._transformer_model.save_pretrained(pretrained_weights_path)
 
         return saved
@@ -116,6 +125,7 @@ class TransformerBase(ModelBase):
 
     def _load_transformer_model(self, path: str, name_prefix: str):
         pretrained_weights_path = self._get_pretrained_path(path, name_prefix)
+        self._log_service.log_debug(f'Attempting to load transformer model weights from \'{pretrained_weights_path}\'')
 
         config = PretrainedConfig.from_pretrained(pretrained_weights_path)
         config.output_hidden_states = True

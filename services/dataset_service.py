@@ -26,11 +26,13 @@ class DatasetService:
             self,
             arguments_service: ArgumentsServiceBase,
             mask_service: MaskService,
-            process_service: ProcessServiceBase):
+            process_service: ProcessServiceBase,
+            log_service: LogService):
 
         self._arguments_service = arguments_service
         self._mask_service = mask_service
         self._process_service = process_service
+        self._log_service = log_service
 
     def initialize_dataset(self, run_type: RunType) -> DatasetBase:
         """Loads and returns the dataset based on run type ``(Train, Validation, Test)`` and the language
@@ -50,29 +52,35 @@ class DatasetService:
         if not joint_model:
             if challenge == Challenge.OCREvaluation:
                 if configuration == Configuration.CBOW:
+                    self._log_service.log_debug('Initializing Word2Vec dataset')
                     result = Word2VecDataset(
                         arguments_service=self._arguments_service,
-                        process_service=self._process_service)
+                        process_service=self._process_service,
+                        log_service=self._log_service)
                 elif configuration == Configuration.SkipGram:
+                    self._log_service.log_debug('Initializing SkipGram dataset')
                     result = SkipGramDataset(
                         arguments_service=self._arguments_service,
-                        process_service=self._process_service)
+                        process_service=self._process_service,
+                        log_service=self._log_service)
                 elif configuration == Configuration.PPMI:
+                    self._log_service.log_debug('Initializing PPMI dataset')
                     result = PPMIDataset(
                         arguments_service=self._arguments_service,
-                        process_service=self._process_service)
+                        process_service=self._process_service,
+                        log_service=self._log_service)
                 else:
+                    self._log_service.log_debug('Initializing Transformer dataset')
                     result = TransformerLMDataset(
                         arguments_service=self._arguments_service,
                         process_service=self._process_service,
-                        mask_service=self._mask_service)
+                        mask_service=self._mask_service,
+                        log_service=self._log_service)
         elif joint_model:
+            self._log_service.log_debug('Initializing Evaluation dataset')
             result = EvaluationDataset(
                 arguments_service=self._arguments_service,
-                process_service=self._process_service)
-
-            # number_of_models: int = self._arguments_service.joint_model_amount
-            # sub_datasets = self._create_datasets(language, number_of_models)
-            # result = JointDataset(sub_datasets)
+                process_service=self._process_service,
+                log_service=self._log_service)
 
         return result

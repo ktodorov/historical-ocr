@@ -8,7 +8,6 @@ class TokensOccurrenceStats:
         sentences: List[List[int]],
         vocabulary_size: int):
 
-        
         mutual_occurrences = np.zeros((vocabulary_size, vocabulary_size), dtype=np.int32)
 
         for sentence in sentences:

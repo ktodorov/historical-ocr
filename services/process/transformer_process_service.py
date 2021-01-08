@@ -3,7 +3,7 @@ import random
 
 from enums.ocr_output_type import OCROutputType
 
-from entities.transformer_entry import TransformerEntry
+from entities.transformers.transformer_entry import TransformerEntry
 
 from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
 from services.process.process_service_base import ProcessServiceBase
@@ -77,8 +77,7 @@ class TransformerProcessService(ProcessServiceBase):
         if reduction is not None:
             entries = entries[:reduction]
 
-        print(
-            f'Loaded {len(entries)} entries out of {total_amount} total')
+        self._log_service.log_info(f'Loaded {len(entries)} entries out of {total_amount} total')
         self._log_service.log_summary(
             key=f'entries amount', value=len(entries))
 
@@ -100,7 +99,10 @@ class TransformerProcessService(ProcessServiceBase):
             print(f'{i}/{number_of_files}             \r', end='')
             result = self._cache_service.get_item_from_cache(cache_key)
             if result is None:
+                self._log_service.log_debug(f'Did not find \'{cache_key}\' data to load')
                 continue
+            else:
+                self._log_service.log_debug(f'Loading \'{cache_key}\' data')
 
             ocr_file_data.extend(result[0])
             gs_file_data.extend(result[1])

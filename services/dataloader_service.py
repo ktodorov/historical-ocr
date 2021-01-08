@@ -1,3 +1,4 @@
+from services.log_service import LogService
 import numpy as np
 
 from typing import Tuple
@@ -19,10 +20,12 @@ class DataLoaderService:
     def __init__(
             self,
             arguments_service: ArgumentsServiceBase,
-            dataset_service: DatasetService):
+            dataset_service: DatasetService,
+            log_service: LogService):
 
         self._dataset_service = dataset_service
         self._arguments_service = arguments_service
+        self._log_service = log_service
 
     def get_train_dataloaders(self) -> Tuple[DataLoader, DataLoader]:
         """Loads and returns train and validation(if available) dataloaders
@@ -62,6 +65,9 @@ class DataLoaderService:
             run_type: RunType,
             batch_size: int,
             shuffle: bool) -> DataLoader:
+
+        self._log_service.log_debug(
+            f'Initializing dataset for run type \'{run_type.value}\'')
         dataset = self._dataset_service.initialize_dataset(run_type)
 
         data_loader: DataLoader = DataLoader(
@@ -72,4 +78,6 @@ class DataLoaderService:
         if dataset.use_collate_function():
             data_loader.collate_fn = dataset.collate_function
 
+        self._log_service.log_debug(
+            f'Created dataloader for run type \'{run_type.value}\' [shuffle: {shuffle} | batch size: {batch_size} | collate function: {dataset.use_collate_function()}]')
         return data_loader

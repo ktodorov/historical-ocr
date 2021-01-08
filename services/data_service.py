@@ -1,3 +1,4 @@
+from services.log_service import LogService
 import _pickle as pickle
 import os
 from collections import defaultdict
@@ -10,13 +11,17 @@ import matplotlib.pyplot as plt
 
 class DataService:
 
-    def __init__(self):
+    def __init__(
+        self,
+        log_service: LogService):
+
+        self._log_service = log_service
 
         # determines relative disk directory for saving/loading
         self.stamp: str = ''
         self.actual_date: datetime = None
 
-    def save_python_obj(self, obj: object, path: str, name: str, print_success: bool = True) -> bool:
+    def save_python_obj(self, obj: object, path: str, name: str) -> bool:
         """Saves python object to the file system as a pickle
 
         :param obj: the object to be saved
@@ -30,18 +35,18 @@ class DataService:
         :return: whether the save was successfull
         :rtype: bool
         """
+        self._log_service.log_debug(f'Saving python object [path: \'{path}\' | name: \'{name}\']')
+
         try:
             filepath = os.path.join(path, f'{name}.pickle')
             with open(filepath, 'wb') as handle:
                 pickle.dump(obj, handle, protocol=-1)
 
-                if (print_success):
-                    print("Saved {}".format(name))
+                self._log_service.log_debug(f'Saved successfully {name}')
 
             return True
         except Exception as e:
-            print(e)
-            print("Failed saving {}, continue anyway".format(name))
+            self._log_service.log_exception(f'Failed saving {name}, continue anyway', e)
             return False
 
     def check_python_object(
@@ -52,15 +57,15 @@ class DataService:
         extension = '' if extension_included else '.pickle'
         filepath = os.path.join(path, f'{name}{extension}')
         result = (os.path.exists(filepath) and os.stat(filepath).st_size > 0)
+        self._log_service.log_debug(f'Checking python object {name}. Result - {result} [path: \'{filepath.encode("utf-8")}\']')
+
         return result
 
     def load_python_obj(
         self,
         path: str,
         name: str,
-        extension_included: bool = False,
-        print_on_error: bool = True,
-        print_on_success: bool = True) -> object:
+        extension_included: bool = False) -> object:
         """Loads python object from disk if is pickled already
 
         :param path: path to the folder where the object pickle is located
@@ -70,6 +75,7 @@ class DataService:
         :return: the unpickled object
         :rtype: object
         """
+        self._log_service.log_debug(f'Loading python object [path: \'{path}\' | name: \'{name}\']')
         obj = None
         try:
             extension = '' if extension_included else '.pickle'
@@ -78,13 +84,11 @@ class DataService:
                 obj = pickle.load(openfile)
 
         except FileNotFoundError:
-            if print_on_error:
-                print("{} not loaded because file is missing".format(name))
+            self._log_service.log_warning(f'{name} not loaded because file is missing')
 
             return None
 
-        if print_on_success:
-            print("Loaded {}".format(name))
+        self._log_service.log_debug(f'Loaded python object {name}. [path: \'{filepath.encode("utf-8")}\']')
         return obj
 
     def python_obj_exists(self, path: str, name: str) -> bool:
@@ -204,6 +208,7 @@ class DataService:
             plt.axis('off')
 
         filepath = os.path.join(path, f'{name}.{extension}')
+        self._log_service.log_debug(f'Saving plot figure to filesystem [filepath: \'{filepath.encode("utf-8")}\']')
         plt.savefig(filepath, bbox_inches='tight')
 
     def set_date_stamp(self, addition="") -> List[str]:

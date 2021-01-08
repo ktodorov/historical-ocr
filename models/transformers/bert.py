@@ -1,3 +1,4 @@
+from services.log_service import LogService
 from typing import List
 from entities.word_evaluation import WordEvaluation
 from overrides import overrides
@@ -15,14 +16,16 @@ class BERT(TransformerBase):
             self,
             arguments_service: PretrainedArgumentsService,
             data_service: DataService,
+            log_service: LogService,
             output_hidden_states: bool = False):
-        super().__init__(arguments_service, data_service, output_hidden_states)
+        super().__init__(arguments_service, data_service, log_service, output_hidden_states)
 
     @overrides
     def forward(self, input_batch, **kwargs):
         input, labels, attention_masks = input_batch
         outputs = self.transformer_model.forward(
             input, labels=labels, attention_mask=attention_masks)
+
         return outputs.loss
 
     @property

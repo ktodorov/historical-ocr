@@ -1,3 +1,4 @@
+from services.log_service import LogService
 from entities.word_evaluation import WordEvaluation
 import os
 
@@ -10,7 +11,7 @@ from typing import Dict, List, Tuple
 
 from overrides import overrides
 
-from entities.model_checkpoint import ModelCheckpoint
+from entities.models.model_checkpoint import ModelCheckpoint
 from entities.metric import Metric
 from entities.batch_representation import BatchRepresentation
 from enums.metric_type import MetricType
@@ -21,12 +22,14 @@ from services.arguments.arguments_service_base import ArgumentsServiceBase
 class ModelBase(nn.Module):
     def __init__(
             self,
-            data_service: DataService = None,
-            arguments_service: ArgumentsServiceBase = None):
+            data_service: DataService,
+            arguments_service: ArgumentsServiceBase,
+            log_service: LogService):
         super(ModelBase, self).__init__()
 
         self._data_service = data_service
         self._arguments_service = arguments_service
+        self._log_service = log_service
         self.do_not_save: bool = False
 
         self.metric_log_key: str = None
@@ -73,6 +76,8 @@ class ModelBase(nn.Module):
             resets_left: int,
             name_prefix: str = None,
             save_model_dict: bool = True) -> bool:
+        self._log_service.log_debug(f'Saving model [epoch: {epoch} | iteration: {iteration} | resets left: {resets_left}]')
+
         assert self._data_service is not None
         assert self._arguments_service is not None
 
@@ -85,7 +90,7 @@ class ModelBase(nn.Module):
 
         checkpoint_name = self._get_model_name(name_prefix)
         saved = self._data_service.save_python_obj(
-            model_checkpoint, path, checkpoint_name, print_success=False)
+            model_checkpoint, path, checkpoint_name)
 
         return saved
 
@@ -97,6 +102,7 @@ class ModelBase(nn.Module):
             load_model_dict: bool = True,
             use_checkpoint_name: bool = True,
             checkpoint_name: str = None) -> ModelCheckpoint:
+        self._log_service.log_debug(f'Loading model [path: {path} | name_prefix: {name_prefix} | name_suffix: {name_suffix}]')
         assert self._data_service is not None
         assert self._arguments_service is not None
 
@@ -109,18 +115,20 @@ class ModelBase(nn.Module):
                     checkpoint_name = self._get_model_name(name_prefix, name_suffix)
 
         if not self._data_service.python_obj_exists(path, checkpoint_name):
-            raise Exception(f'Model checkpoint "{checkpoint_name}" not found at "{path}"')
+            error_message = f'Model checkpoint "{checkpoint_name}" not found at "{path}"'
+            self._log_service.log_error(error_message)
+            raise FileNotFoundError(error_message)
 
         model_checkpoint: ModelCheckpoint = self._data_service.load_python_obj(
             path, checkpoint_name)
 
         if model_checkpoint is None:
-            raise Exception('Model checkpoint not found')
+            error_message = 'Model checkpoint is empty'
+            self._log_service.log_error(error_message)
+            raise Exception(error_message)
 
         if load_model_dict:
-            ignored_parameters = []
             model_dict = model_checkpoint.model_dict
-
             for module_name, module in self.named_modules():
                 if isinstance(module, ModelBase):
                     if module.do_not_save:
@@ -134,6 +142,8 @@ class ModelBase(nn.Module):
             for module_name, module in self.named_modules():
                 if isinstance(module, ModelBase):
                     module.after_load()
+
+            self._log_service.log_debug(f'Loaded model dictionary successfully')
 
         return model_checkpoint
 
@@ -151,6 +161,8 @@ class ModelBase(nn.Module):
         return result
 
     def on_convergence(self) -> bool:
+        self._log_service.log_debug(f'Model converged')
+
         result = self._on_convergence(self)
         for _, module in self.named_modules():
             result = result or self._on_convergence(module)

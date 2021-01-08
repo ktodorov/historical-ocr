@@ -1,3 +1,4 @@
+from services.log_service import LogService
 from entities.word_evaluation import WordEvaluation
 from typing import List
 from enums.ocr_output_type import OCROutputType
@@ -12,12 +13,6 @@ from torch.nn.functional import embedding
 
 from models.model_base import ModelBase
 
-from entities.model_checkpoint import ModelCheckpoint
-from entities.metric import Metric
-from entities.batch_representation import BatchRepresentation
-
-from sklearn.model_selection import train_test_split
-
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.process.word2vec_process_service import Word2VecProcessService
 from services.data_service import DataService
@@ -30,13 +25,16 @@ class SkipGram(ModelBase):
             arguments_service: ArgumentsServiceBase,
             vocabulary_service: VocabularyService,
             data_service: DataService,
+            log_service: LogService,
             process_service: Word2VecProcessService = None,
             ocr_output_type: OCROutputType = None):
-        super().__init__(data_service, arguments_service)
+        super().__init__(data_service, arguments_service, log_service)
 
         self._arguments_service = arguments_service
         self._ocr_output_type = ocr_output_type
         self._vocabulary_service = vocabulary_service
+        self._log_service = log_service
+
         if ocr_output_type is not None:
             vocab_key = f'vocab-{ocr_output_type.value}'
             self._vocabulary_service.load_cached_vocabulary(vocab_key)
@@ -44,6 +42,7 @@ class SkipGram(ModelBase):
         self._vocabulary_size = self._vocabulary_service.vocabulary_size()
 
         if process_service is not None:
+            self._log_service.log_debug('Process service is provided. Initializing embeddings from a pretrained matrix')
             embedding_size = process_service.get_embedding_size()
             token_matrix = process_service.get_pretrained_matrix()
             embedding_size = token_matrix.shape[-1]
@@ -57,6 +56,7 @@ class SkipGram(ModelBase):
                 freeze=False,
                 padding_idx=self._vocabulary_service.pad_token)
         else:
+            self._log_service.log_debug('Process service is not provided. Initializing embeddings randomly')
             embedding_size = self._get_embedding_size(
                 arguments_service.language)
             self._embeddings_input = nn.Embedding(

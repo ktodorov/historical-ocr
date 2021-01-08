@@ -23,6 +23,9 @@ from services.file_service import FileService
 from services.metrics_service import MetricsService
 from services.plot_service import PlotService
 from services.word_neighbourhood_service import WordNeighbourhoodService
+from services.log_service import LogService
+
+from utils.dict_utils import stringify_dictionary
 
 
 class OCRQualityExperimentService(ExperimentServiceBase):
@@ -36,6 +39,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             cache_service: CacheService,
             word_neighbourhood_service: WordNeighbourhoodService,
             vocabulary_service: VocabularyService,
+            log_service: LogService,
             model: ModelBase):
         super().__init__(arguments_service, dataloader_service, file_service, model)
 
@@ -45,9 +49,13 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._cache_service = cache_service
         self._word_neighbourhood_service = word_neighbourhood_service
         self._vocabulary_service = vocabulary_service
+        self._log_service = log_service
 
     @overrides
     def execute_experiments(self, experiment_types: List[ExperimentType]):
+        experiment_types_str = ', '.join([x.value for x in experiment_types])
+        self._log_service.log_debug(
+            f'Executing experiments: {experiment_types_str}')
 
         result = {experiment_type: {} for experiment_type in experiment_types}
 
@@ -55,20 +63,27 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             item_key='word-evaluations',
             callback_function=self._generate_embeddings)
 
+        self._log_service.log_debug('Loaded word evaluations')
+
         # if ExperimentType.CosineSimilarity in experiment_types:
         #     result[ExperimentType.CosineSimilarity] = self._cache_service.get_item_from_cache(
         #         item_key='cosine-similarities',
         #         callback_function=lambda: self._calculate_cosine_similarities(word_evaluations))
+        #     self._log_service.log_debug('Loaded cosine similarities')
 
         if ExperimentType.CosineDistance in experiment_types:
             result[ExperimentType.CosineDistance] = self._cache_service.get_item_from_cache(
                 item_key='cosine-distances',
                 callback_function=lambda: self._calculate_cosine_distances(word_evaluations))
 
+            self._log_service.log_debug('Loaded cosine distances')
+
         if ExperimentType.EuclideanDistance in experiment_types:
             result[ExperimentType.EuclideanDistance] = self._cache_service.get_item_from_cache(
                 item_key='euclidean-distances',
                 callback_function=lambda: self._calculate_euclidean_distances(word_evaluations))
+
+            self._log_service.log_debug('Loaded euclidean distances')
 
         # a, b, c = procrustes(model1_embeddings, model2_embeddings)
 
@@ -117,6 +132,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
     def _generate_embeddings(self) -> List[WordEvaluation]:
         result: List[WordEvaluation] = []
 
+        self._log_service.log_debug('Processing common vocabulary tokens')
         dataloader_length = len(self._dataloader)
         for i, batch in tqdm(iterable=enumerate(self._dataloader), desc=f'Processing common vocabulary tokens', total=dataloader_length):
             tokens, vocab_ids = batch
@@ -126,6 +142,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         if self._arguments_service.separate_neighbourhood_vocabularies:
             processed_tokens = [we.word for we in result]
             for ocr_output_type in [OCROutputType.Raw, OCROutputType.GroundTruth]:
+                self._log_service.log_debug(f'Processing unique vocabulary tokens for {ocr_output_type.value} type')
                 vocab_key = f'vocab-{ocr_output_type.value}'
                 self._vocabulary_service.load_cached_vocabulary(vocab_key)
                 unprocessed_tokens = []
@@ -139,7 +156,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 with tqdm(desc=f'Unique {ocr_output_type.value} vocabulary tokens', total=len(unprocessed_tokens)) as progress_bar:
                     for i in range(0, len(unprocessed_tokens), batch_size):
                         tokens = unprocessed_tokens[i:i+batch_size]
-                        word_evaluations = self._model.get_embeddings(tokens, vocab_ids=None, skip_unknown=True)
+                        word_evaluations = self._model.get_embeddings(
+                            tokens, vocab_ids=None, skip_unknown=True)
                         result.extend(word_evaluations)
                         processed_tokens.extend(tokens)
                         progress_bar.update(len(tokens))
@@ -151,6 +169,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         distances_folder = self._file_service.combine_path(
             experiments_folder, 'distances', self._arguments_service.language.value, create_if_missing=True)
 
+        self._log_service.log_debug(f'Saving experiment results [Distances] at \'{distances_folder}\'')
+
         for experiment_type, word_value_pairs in result.items():
             values = [round(x, 1) for x in word_value_pairs.values()]
 
@@ -160,6 +180,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             counter = Counter(values)
 
             filename = f'{self._arguments_service.configuration.value}-{experiment_type.value}'
+            self._log_service.log_debug(f'Saving {experiment_type} as {filename}')
             self._plot_service.plot_counters_histogram(
                 counter_labels=['a'],
                 counters=[counter],
@@ -172,6 +193,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 filename=filename)
 
     def _generate_neighbourhood_similarity_results(self, result: Dict[ExperimentType, Dict[str, float]], word_evaluations: List[WordEvaluation]):
+        self._log_service.log_debug('Generating neighbourhood similarity results')
+
         target_tokens = self._get_target_tokens(result)
         for (target_token, _) in tqdm(iterable=target_tokens, desc='Generating neighbourhood plots', total=len(target_tokens)):
             target_word_evaluation = next(

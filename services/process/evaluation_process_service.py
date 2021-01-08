@@ -34,7 +34,7 @@ class EvaluationProcessService(ProcessServiceBase):
             item_key='common-tokens-information',
             callback_function=self.get_common_words)
 
-        print(f'Found {len(common_tokens_information)} common words')
+        self._log_service.log_info(f'Loaded {len(common_tokens_information)} common words')
 
         result = [
             TokenRepresentation(
@@ -62,8 +62,9 @@ class EvaluationProcessService(ProcessServiceBase):
                 item_key=f'common-token-pairs-{ocr_output_type.value}{limit_suffix}')
 
             if common_token_pairs is None:
-                raise Exception(
-                    f'Token pairs not found for OCR output type \'{ocr_output_type.value}\'')
+                error_message = f'Token pairs not found for OCR output type \'{ocr_output_type.value}\''
+                self._log_service.log_error(error_message)
+                raise Exception(error_message)
 
             for word, vocab_ids in common_token_pairs:
                 if word not in result.keys():

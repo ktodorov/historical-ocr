@@ -1,3 +1,4 @@
+from services.log_service import LogService
 from overrides import overrides
 
 from models.transformers.transformer_base import TransformerBase
@@ -11,8 +12,9 @@ class BART(TransformerBase):
             self,
             arguments_service: PretrainedArgumentsService,
             data_service: DataService,
+            log_service: LogService,
             output_hidden_states: bool = False):
-        super().__init__(arguments_service, data_service, output_hidden_states)
+        super().__init__(arguments_service, data_service, log_service, output_hidden_states)
 
     @overrides
     def forward(self, input_batch, **kwargs):

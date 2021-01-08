@@ -22,7 +22,7 @@ if __name__ == '__main__':
     # Configure container:
     container = IocContainer()
 
-    container.logger().addHandler(logging.StreamHandler(sys.stdout))
+    # container.logger().addHandler(logging.StreamHandler(sys.stdout))
 
     arguments_service = container.arguments_service()
     initialize_seed(arguments_service.seed, arguments_service.device)

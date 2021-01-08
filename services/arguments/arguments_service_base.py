@@ -2,7 +2,7 @@ import argparse
 
 from typing import List, Dict
 
-from entities.custom_argument_parser import CustomArgumentParser
+from entities.arguments.custom_argument_parser import CustomArgumentParser
 
 from enums.evaluation_type import EvaluationType
 from enums.language import Language
@@ -20,10 +20,8 @@ class ArgumentsServiceBase:
 
         self._parse_arguments()
 
-    def print_arguments(self):
-        """Prints the arguments which the program was initialized with
-        """
-        print(f'Arguments initialized: {self._arguments}')
+    def get_arguments_dict(self) -> Dict[str, object]:
+        return self._arguments
 
     def get_configuration_name(self) -> str:
         result = f'{str(self.challenge)}-{str(self.language)}'
@@ -125,6 +123,11 @@ class ArgumentsServiceBase:
                             help='If this is set to true, then in the event of an exception or crash of the program, the model\'s checkpoint will be saved to the file system. Default is `False`')
         parser.add_argument('--save-checkpoint-on-finish', action='store_true',
                             help='If this is set to true, then when the model has converged, its checkpoint will be saved to the file system. Keep in mind that this will not be the best model checkpoint as the stopping will occur after some amount of iterations without any improvement. Default is `False`')
+
+        parser.add_argument("--log-folder", type=str, default='.logs',
+                            help='The folder where log files will be saved. Default is .logs folder in the root project directory')
+        parser.add_argument('--enable-verbose-logging', action='store_true',
+                            help='Optionally enable verbose logging which will output details about most operations being performed during runs')
 
     def _validate_arguments(self, parser: argparse.ArgumentParser):
         pass
@@ -298,3 +301,11 @@ class ArgumentsServiceBase:
     @property
     def save_checkpoint_on_finish(self) -> bool:
         return self._get_argument('save_checkpoint_on_finish')
+
+    @property
+    def log_folder(self) -> str:
+        return self._get_argument('log_folder')
+
+    @property
+    def verbose_logging(self) -> bool:
+        return self._get_argument('enable_verbose_logging')

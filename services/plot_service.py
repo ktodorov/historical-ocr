@@ -319,13 +319,6 @@ class PlotService:
         if xlim is not None:
             ax.set_xlim(right=xlim)
 
-        # fontweight = 'bold'
-        # fontproperties = {
-        #     'family': 'sans-serif',
-        #     'sans-serif': ['Helvetica'],
-        #     'weight': fontweight
-        # }
-
         if ylabel is not None:
             ax.set_ylabel(ylabel)
 

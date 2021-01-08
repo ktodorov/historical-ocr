@@ -13,7 +13,7 @@ from overrides import overrides
 from enums.ocr_output_type import OCROutputType
 from enums.language import Language
 
-from entities.skip_gram_corpus import SkipGramCorpus
+from entities.skip_gram.skip_gram_corpus import SkipGramCorpus
 
 from services.process.process_service_base import ProcessServiceBase
 
@@ -35,7 +35,6 @@ class SkipGramProcessService(Word2VecProcessService):
             vocabulary_service: VocabularyService,
             file_service: FileService,
             tokenize_service: BaseTokenizeService):
-
         super().__init__(
             ocr_download_service,
             arguments_service,
@@ -68,10 +67,8 @@ class SkipGramProcessService(Word2VecProcessService):
         if reduction is not None:
             corpus.cut_data(reduction)
 
-        print(
-            f'Loaded {corpus.length:,} entries out of {total_amount:,} total for {ocr_output_type.value}')
-        self._log_service.log_summary(
-            key=f'\'{ocr_output_type.value}\' entries amount', value=corpus.length)
+        self._log_service.log_info(f'Loaded {corpus.length:,} entries out of {total_amount:,} total for {ocr_output_type.value}')
+        self._log_service.log_summary(key=f'\'{ocr_output_type.value}\' entries amount', value=corpus.length)
 
         return corpus
 

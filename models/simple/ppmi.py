@@ -1,4 +1,5 @@
 from collections import Counter
+from services.log_service import LogService
 from enums.ocr_output_type import OCROutputType
 from services.process.evaluation_process_service import EvaluationProcessService
 from services.process.process_service_base import ProcessServiceBase
@@ -29,12 +30,15 @@ class PPMI(ModelBase):
             arguments_service: ArgumentsServiceBase,
             vocabulary_service: VocabularyService,
             data_service: DataService,
+            log_service: LogService,
             process_service: ProcessServiceBase = None,
             ocr_output_type: OCROutputType = None):
-        super().__init__(data_service, arguments_service)
+        super().__init__(data_service, arguments_service, log_service)
 
         self._arguments_service = arguments_service
         self._vocabulary_service = vocabulary_service
+        self._log_service = log_service
+
         if ocr_output_type is not None:
             vocab_key = f'vocab-{ocr_output_type.value}'
             self._vocabulary_service.load_cached_vocabulary(vocab_key)
@@ -115,8 +119,7 @@ class PPMI(ModelBase):
         saved = self._data_service.save_python_obj(
             self._ppmi_matrix,
             path,
-            checkpoint_name,
-            print_success=False)
+            checkpoint_name)
 
         return saved
 
@@ -151,6 +154,7 @@ class PPMI(ModelBase):
         if ((not self._arguments_service.evaluate and not self._arguments_service.run_experiments) or
             self._process_service is None or
                 not isinstance(self._process_service, EvaluationProcessService)):
+            self._log_service.log_debug(f'Skipping loading common token ids')
             return None
 
         common_words_dict = self._process_service.get_common_words()
@@ -158,4 +162,5 @@ class PPMI(ModelBase):
         common_word_ids = [self._vocabulary_service.string_to_id(
             common_word) for common_word in common_words]
 
+        self._log_service.log_debug(f'Loaded {len(common_word_ids)} common token ids')
         return common_word_ids

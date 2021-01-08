@@ -1,4 +1,5 @@
 import os
+from services.log_service import LogService
 from typing import Counter, List, Dict, Tuple
 
 import nltk
@@ -17,11 +18,13 @@ class VocabularyService:
             self,
             data_service: DataService,
             file_service: FileService,
-            cache_service: CacheService):
+            cache_service: CacheService,
+            log_service: LogService):
 
         self._data_service = data_service
         self._file_service = file_service
         self._cache_service = cache_service
+        self._log_service = log_service
 
         self._vocabulary_cache_key = 'vocab'
 
@@ -33,9 +36,11 @@ class VocabularyService:
     def load_cached_vocabulary(self, cache_key: str) -> bool:
         cached_vocabulary = self._cache_service.get_item_from_cache(cache_key)
         if cached_vocabulary is not None:
+            self._log_service.log_debug('Cached vocabulary found')
             (self._token2idx, self._id2token) = cached_vocabulary
             return self.vocabulary_is_initialized()
 
+        self._log_service.log_debug('Cached vocabulary was not found')
         return False
 
     def initialize_vocabulary_data(self, vocabulary_data):
@@ -44,6 +49,8 @@ class VocabularyService:
 
         self._id2token: Dict[int, str] = vocabulary_data['id2token']
         self._token2idx: Dict[str, int] = vocabulary_data['token2id']
+
+        self._log_service.log_debug('Initialized vocabulary data')
 
     def string_to_ids(self, input: List[str]) -> List[int]:
         result = [self.string_to_id(x) for x in input]

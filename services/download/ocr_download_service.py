@@ -1,4 +1,5 @@
 import os
+from services.log_service import LogService
 import urllib.request
 import random
 from shutil import copyfile
@@ -23,10 +24,12 @@ class OCRDownloadService:
             self,
             data_service: DataService,
             string_process_service: StringProcessService,
-            cache_service: CacheService):
+            cache_service: CacheService,
+            log_service: LogService):
         self._data_service = data_service
         self._string_process_service = string_process_service
         self._cache_service = cache_service
+        self._log_service = log_service
 
         self._languages_2017 = [
             Language.English,
@@ -41,6 +44,7 @@ class OCRDownloadService:
         if language in self._languages_2017:
             newseye_2017_key = 'newseye-2017-full-dataset'
             if not self._cache_service.item_exists(newseye_2017_key):
+                self._log_service.log_debug('Processing NewsEye 2017 dataset...')
                 newseye_2017_path = os.path.join(newseye_path, '2017')
                 newseye_2017_data = self.process_newseye_files(
                     language, newseye_2017_path, max_string_length=max_string_length)
@@ -49,6 +53,7 @@ class OCRDownloadService:
 
         newseye_2019_key = 'newseye-2019-train-dataset'
         if not self._cache_service.item_exists(newseye_2019_key):
+            self._log_service.log_debug('Processing NewsEye 2019 dataset...')
             newseye_2019_path = os.path.join(newseye_path, '2019')
             newseye_2019_data = self.process_newseye_files(
                 language, newseye_2019_path, subfolder_to_use='train', max_string_length=max_string_length)
@@ -57,6 +62,7 @@ class OCRDownloadService:
         if language == Language.English and self._use_trove:
             trove_cache_key = 'trove-dataset'
             if not self._cache_service.item_exists(trove_cache_key):
+                self._log_service.log_debug('Processing TroVe dataset...')
                 trove_items_cache_key = 'trove-item-keys'
                 cache_item_keys = self._cache_service.get_item_from_cache(
                     item_key=trove_items_cache_key,
@@ -71,6 +77,7 @@ class OCRDownloadService:
         if self._cache_service.item_exists(newseye_eval_key):
             return
 
+        self._log_service.log_debug('Downloading test data...')
         newseye_eval_data = self.process_newseye_files(
             language, newseye_path, subfolder_to_use='eval')
         self._cache_service.cache_item(newseye_eval_key, newseye_eval_data)

@@ -53,7 +53,6 @@ from services.file_service import FileService
 from services.log_service import LogService
 from services.mask_service import MaskService
 from services.metrics_service import MetricsService
-from services.model_service import ModelService
 from services.test_service import TestService
 
 from services.tokenize.base_tokenize_service import BaseTokenizeService
@@ -77,7 +76,9 @@ import logging
 class IocContainer(containers.DeclarativeContainer):
     """Application IoC container."""
 
-    logger = providers.Singleton(logging.Logger, name='example')
+    logger = providers.Singleton(
+        logging.Logger,
+        name='historical-ocr logger')
 
     # Services
 
@@ -98,9 +99,12 @@ class IocContainer(containers.DeclarativeContainer):
 
     log_service = providers.Singleton(
         LogService,
-        arguments_service=arguments_service)
+        arguments_service=arguments_service,
+        logger=logger)
 
-    data_service = providers.Factory(DataService)
+    data_service = providers.Factory(
+        DataService,
+        log_service=log_service)
 
     file_service = providers.Factory(
         FileService,
@@ -111,7 +115,8 @@ class IocContainer(containers.DeclarativeContainer):
         CacheService,
         arguments_service=arguments_service,
         file_service=file_service,
-        data_service=data_service)
+        data_service=data_service,
+        log_service=log_service)
 
     plot_service = providers.Factory(
         PlotService,
@@ -122,7 +127,8 @@ class IocContainer(containers.DeclarativeContainer):
         VocabularyService,
         data_service=data_service,
         file_service=file_service,
-        cache_service=cache_service
+        cache_service=cache_service,
+        log_service=log_service
     )
 
     tokenize_service_selector = providers.Callable(
@@ -167,7 +173,8 @@ class IocContainer(containers.DeclarativeContainer):
         OCRDownloadService,
         data_service=data_service,
         string_process_service=string_process_service,
-        cache_service=cache_service)
+        cache_service=cache_service,
+        log_service=log_service)
 
     process_service_selector = providers.Callable(
         get_process_service,
@@ -213,27 +220,21 @@ class IocContainer(containers.DeclarativeContainer):
             arguments_service=arguments_service,
             cache_service=cache_service,
             vocabulary_service=vocabulary_service,
-            tokenize_service=tokenize_service))
+            tokenize_service=tokenize_service,
+            log_service=log_service))
 
     dataset_service = providers.Factory(
         DatasetService,
         arguments_service=arguments_service,
         mask_service=mask_service,
         process_service=process_service,
-    )
+        log_service=log_service)
 
     dataloader_service = providers.Factory(
         DataLoaderService,
         arguments_service=arguments_service,
-        dataset_service=dataset_service)
-
-    model_service = providers.Factory(
-        ModelService,
-        arguments_service=arguments_service,
-        data_service=data_service,
-        vocabulary_service=vocabulary_service,
-        process_service=process_service,
-        file_service=file_service)
+        dataset_service=dataset_service,
+        log_service=log_service)
 
     model_selector = providers.Callable(
         get_model_type,
@@ -246,36 +247,43 @@ class IocContainer(containers.DeclarativeContainer):
             arguments_service=arguments_service,
             data_service=data_service,
             vocabulary_service=vocabulary_service,
-            process_service=process_service),
+            process_service=process_service,
+            log_service=log_service),
         bert=providers.Singleton(
             BERT,
             arguments_service=arguments_service,
-            data_service=data_service),
+            data_service=data_service,
+            log_service=log_service),
         xlnet=providers.Singleton(
             XLNet,
             arguments_service=arguments_service,
-            data_service=data_service),
+            data_service=data_service,
+            log_service=log_service),
         bart=providers.Singleton(
             BART,
             arguments_service=arguments_service,
-            data_service=data_service),
+            data_service=data_service,
+            log_service=log_service),
         cbow=providers.Singleton(
             CBOW,
             arguments_service=arguments_service,
             process_service=process_service,
             data_service=data_service,
-            vocabulary_service=vocabulary_service),
+            vocabulary_service=vocabulary_service,
+            log_service=log_service),
         skip_gram=providers.Singleton(
             SkipGram,
             arguments_service=arguments_service,
             process_service=process_service,
             data_service=data_service,
-            vocabulary_service=vocabulary_service),
+            vocabulary_service=vocabulary_service,
+            log_service=log_service),
         ppmi=providers.Singleton(
             PPMI,
             arguments_service=arguments_service,
             data_service=data_service,
-            vocabulary_service=vocabulary_service))
+            vocabulary_service=vocabulary_service,
+            log_service=log_service))
 
     loss_selector = providers.Callable(
         get_loss_function,
@@ -324,7 +332,8 @@ class IocContainer(containers.DeclarativeContainer):
         arguments_service=arguments_service,
         metrics_service=metrics_service,
         plot_service=plot_service,
-        file_service=file_service)
+        file_service=file_service,
+        log_service=log_service)
 
     experiment_service_selector = providers.Callable(
         get_experiment_service,
@@ -342,6 +351,7 @@ class IocContainer(containers.DeclarativeContainer):
             cache_service=cache_service,
             vocabulary_service=vocabulary_service,
             word_neighbourhood_service=word_neighbourhood_service,
+            log_service=log_service,
             model=model),
         none=providers.Object(None))
 
@@ -378,4 +388,5 @@ class IocContainer(containers.DeclarativeContainer):
         arguments_service=arguments_service,
         train_service=train_service,
         test_service=test_service,
-        experiment_service=experiment_service)
+        experiment_service=experiment_service,
+        log_service=log_service)

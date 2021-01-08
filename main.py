@@ -1,3 +1,4 @@
+from services.log_service import LogService
 import numpy as np
 import torch
 import random
@@ -15,14 +16,18 @@ def main(
         arguments_service: ArgumentsServiceBase,
         train_service: TrainService,
         test_service: TestService,
-        experiment_service: ExperimentServiceBase):
+        experiment_service: ExperimentServiceBase,
+        log_service: LogService):
 
-    # print the arguments that the program was initialized with
-    arguments_service.print_arguments()
-
-    if arguments_service.evaluate:
-        test_service.test()
-    elif not arguments_service.run_experiments:
-        train_service.train()
-    else:
-        experiment_service.execute_experiments(arguments_service.experiment_types)
+    try:
+        if arguments_service.evaluate:
+            log_service.log_debug('Starting TEST run')
+            test_service.test()
+        elif not arguments_service.run_experiments:
+            log_service.log_debug('Starting TRAIN run')
+            train_service.train()
+        else:
+            log_service.log_debug('Starting EXPERIMENT run')
+            experiment_service.execute_experiments(arguments_service.experiment_types)
+    except Exception as exception:
+        log_service.log_exception('Stopping program execution', exception)

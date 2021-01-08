@@ -1,16 +1,10 @@
-from enums.ocr_output_type import OCROutputType
-from enums.run_type import RunType
-import os
 import numpy as np
 import torch
-import pickle
 from overrides import overrides
 
 from datasets.dataset_base import DatasetBase
 from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
-from services.file_service import FileService
 from services.mask_service import MaskService
-from services.tokenize.base_tokenize_service import BaseTokenizeService
 from services.log_service import LogService
 
 from services.process.transformer_process_service import TransformerProcessService
@@ -21,13 +15,16 @@ class TransformerLMDataset(DatasetBase):
             arguments_service: OCRQualityArgumentsService,
             process_service: TransformerProcessService,
             mask_service: MaskService,
+            log_service: LogService,
             **kwargs):
         super().__init__()
 
         self._mask_service = mask_service
         self._arguments_service = arguments_service
+        self._log_service = log_service
 
         self._entries = process_service.get_entries(self._arguments_service.ocr_output_type)
+        self._log_service.log_debug(f'Loaded {len(self._entries)} entries in transformer dataset')
 
     @overrides
     def __len__(self):

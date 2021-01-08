@@ -1,3 +1,4 @@
+from logging import error
 import os
 import sys
 import time
@@ -5,6 +6,7 @@ import math
 from datetime import datetime
 from typing import Dict, List, Tuple
 import numpy as np
+import json
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -14,7 +16,7 @@ from losses.loss_base import LossBase
 from models.model_base import ModelBase
 from optimizers.optimizer_base import OptimizerBase
 
-from entities.model_checkpoint import ModelCheckpoint
+from entities.models.model_checkpoint import ModelCheckpoint
 from entities.metric import Metric
 from entities.data_output_log import DataOutputLog
 
@@ -24,6 +26,8 @@ from services.arguments.pretrained_arguments_service import PretrainedArgumentsS
 from services.dataloader_service import DataLoaderService
 from services.file_service import FileService
 from services.log_service import LogService
+
+from utils.dict_utils import stringify_dictionary
 
 from transformers import BertTokenizer
 
@@ -78,6 +82,7 @@ class TrainService:
             reset_epoch_limit = self._arguments_service.training_reset_epoch_limit
 
             if self._arguments_service.resume_training:
+                self._log_service.log_debug('Resuming training...')
                 model_checkpoint = self._load_model()
                 if model_checkpoint and not self._arguments_service.skip_best_metrics_on_resume:
                     best_metrics = model_checkpoint.best_metrics
@@ -109,6 +114,8 @@ class TrainService:
                     # we only prompt the model for changes on convergence once
                     should_start_again = not model_has_converged and self._model.on_convergence()
                     if should_start_again:
+                        self._log_service.log_debug(
+                            'Patience depleted but the model has not converged. Starting training from last best model again...')
                         model_has_converged = True
                         model_checkpoint = self._load_model()
                         if model_checkpoint is not None:
@@ -124,22 +131,24 @@ class TrainService:
                     elif (self._arguments_service.reset_training_on_early_stop and resets_left > 0 and reset_epoch_limit > epoch):
                         patience = self._initial_patience
                         resets_left -= 1
+                        self._log_service.log_debug(
+                            f'Patience depleted but reset training on early stop is enabled. Continuing training.\n - Resets left: {resets_left}\n - Reset epoch limit: {reset_epoch_limit}\n - Current epoch: {epoch}')
                         self._log_service.log_summary(
                             key='Resets left', value=resets_left)
-
-                        print(
-                            f'Resetting training due to early stop activated. Resets left: {resets_left}')
                     else:
-                        print('Stopping training due to depleted patience')
+                        self._log_service.log_info(
+                            'Stopping training due to depleted patience')
                         break
                 else:
                     epoch += 1
 
             if epoch >= self._arguments_service.epochs:
-                print('Stopping training due to depleted epochs')
+                self._log_service.log_info(
+                    f'Stopping training due to depleted epochs ({self._arguments_service.epochs})')
 
         except KeyboardInterrupt as e:
-            print(f"Killed by user: {e}")
+            self._log_service.log_exception(
+                'Training stopped as the program was killed by user', e)
             if self._arguments_service.save_checkpoint_on_crash:
                 self._model.save(
                     self._model_path,
@@ -151,7 +160,8 @@ class TrainService:
 
             return False
         except Exception as e:
-            print(e)
+            self._log_service.log_exception(
+                'Exception occurred during training', e)
             if self._arguments_service.save_checkpoint_on_crash:
                 self._model.save(
                     self._model_path,
@@ -166,6 +176,7 @@ class TrainService:
         sys.stdout.flush()
 
         if self._arguments_service.save_checkpoint_on_finish:
+            self._log_service.log_debug('Training finished')
             self._model.save(
                 self._model_path,
                 epoch,
@@ -208,10 +219,14 @@ class TrainService:
 
             # run on validation set and print progress to terminal
             # if we have eval_frequency or if we have finished the epoch
-            if self._should_evaluate(batches_passed, i, data_loader_length):
+            if self._should_evaluate(batches_passed):
+                self._log_service.log_debug(
+                    f'Starting evaluation at step {i} of epoch {epoch_num}. Total batches passed: {batches_passed}')
                 if not self._arguments_service.skip_validation:
                     validation_metric = self._evaluate()
                 else:
+                    self._log_service.log_debug(
+                        f'Skip evaluation selected. Using default metric')
                     validation_metric = Metric(metric=metric)
 
                 assert not math.isnan(metric.get_current_loss(
@@ -304,8 +319,9 @@ class TrainService:
                 batch, train_mode=False, output_characters=(len(full_output_log) < 100))
 
             if math.isnan(loss_batch):
-                raise Exception(
-                    f'loss is NaN during evaluation at iteration {i}')
+                error_message = f'Found invalid loss during evaluation at iteration {i}'
+                self._log_service.log_error(error_message)
+                raise Exception(error_message)
 
             if current_output_log is not None:
                 full_output_log.extend(current_output_log)
@@ -324,9 +340,7 @@ class TrainService:
 
     def _should_evaluate(
             self,
-            batches_passed: int,
-            iteration: int,
-            data_loader_length: int):
+            batches_passed: int):
         # If we don't use validation set, then we must not evaluate before we pass at least `eval_freq` batches
         if self._arguments_service.skip_validation and batches_passed < self._arguments_service.eval_freq:
             return False
@@ -338,8 +352,9 @@ class TrainService:
         time_passed = self._log_service.get_time_passed()
         if ((time_passed.total_seconds() > (self._arguments_service.max_training_minutes * 60)) and
                 self._arguments_service.max_training_minutes > 0):
-            raise KeyboardInterrupt(
-                f"Process killed because {self._arguments_service.max_training_minutes} minutes passed")
+            interrupt_message = f"Process killed because {self._arguments_service.max_training_minutes} minutes passed"
+            self._log_service.log_error(interrupt_message)
+            raise KeyboardInterrupt(interrupt_message)
 
     def _save_current_best_result(
             self,
@@ -360,5 +375,11 @@ class TrainService:
         self._log_service.log_summary(
             key='Best loss', value=best_metrics.get_current_loss())
         patience = self._initial_patience
+
+        best_metrics_str = stringify_dictionary(
+            best_accuracies + {'loss': str(best_metrics.get_current_loss())})
+
+        self._log_service.log_debug(
+            f'Saved current best metrics:\n{best_metrics_str}')
 
         return best_metrics, patience

@@ -1,3 +1,4 @@
+from logging import error
 import os
 from services.file_service import FileService
 
@@ -12,7 +13,7 @@ from typing import List, Tuple
 from enums.ocr_output_type import OCROutputType
 from enums.language import Language
 
-from entities.cbow_corpus import CBOWCorpus
+from entities.cbow.cbow_corpus import CBOWCorpus
 
 from services.process.icdar_process_service import ICDARProcessService
 
@@ -39,11 +40,11 @@ class Word2VecProcessService(ICDARProcessService):
             arguments_service=arguments_service,
             cache_service=cache_service,
             vocabulary_service=vocabulary_service,
-            tokenize_service=tokenize_service)
+            tokenize_service=tokenize_service,
+            log_service=log_service)
 
         self._arguments_service = arguments_service
         self._cache_service = cache_service
-        self._log_service = log_service
         self._vocabulary_service = vocabulary_service
         self._file_service = file_service
 
@@ -62,7 +63,9 @@ class Word2VecProcessService(ICDARProcessService):
         elif self._arguments_service.language == Language.Dutch:
             return 320
 
-        raise Exception('Unsupported word2vec language')
+        error_message = 'Unsupported embeddings language'
+        self._log_service.log_error(error_message)
+        raise Exception(error_message)
 
     def get_pretrained_matrix(self) -> torch.Tensor:
         if not self._vocabulary_service.vocabulary_is_initialized():
@@ -87,6 +90,7 @@ class Word2VecProcessService(ICDARProcessService):
 
         word2vec_model_name, word2vec_binary = self._get_word2vec_model_info()
         word2vec_model_path = os.path.join(data_path, word2vec_model_name)
+        self._log_service.log_debug(f'Loading word2vec model from \'{word2vec_model_path}\'')
         word2vec_weights = gensim.models.KeyedVectors.load_word2vec_format(
             word2vec_model_path, binary=word2vec_binary)
         pretrained_weight_matrix = np.random.rand(
@@ -94,11 +98,14 @@ class Word2VecProcessService(ICDARProcessService):
             word2vec_weights.vector_size)
 
         if not self._arguments_service.initialize_randomly:
+            self._log_service.log_debug(f'Populating pretrained matrix...')
             vocabulary_items = tqdm(self._vocabulary_service.get_vocabulary_tokens(
             ), desc="Generating pre-trained matrix", total=self._vocabulary_service.vocabulary_size())
             for (index, token) in vocabulary_items:
                 if token in word2vec_weights.vocab:
                     pretrained_weight_matrix[index] = word2vec_weights.wv[token]
+
+            self._log_service.log_debug(f'Populating pretrained matrix finished successfully')
 
         result = torch.from_numpy(pretrained_weight_matrix).float()
         return result
@@ -109,7 +116,9 @@ class Word2VecProcessService(ICDARProcessService):
         elif self._arguments_service.language == Language.Dutch:
             return 'combined-320.txt', False
 
-        raise Exception('Unsupported word2vec language')
+        error_message = 'Unsupported word2vec language'
+        self._log_service.log_error(error_message)
+        raise Exception(error_message)
 
     def _load_text_corpus(
             self,
@@ -123,9 +132,7 @@ class Word2VecProcessService(ICDARProcessService):
         if reduction is not None:
             corpus.cut_data(reduction)
 
-        print(
-            f'Loaded {corpus.length:,} entries out of {total_amount:,} total for {ocr_output_type.value}')
-        self._log_service.log_summary(
-            key=f'\'{ocr_output_type.value}\' entries amount', value=corpus.length)
+        self._log_service.log_info(f'Loaded {corpus.length:,} entries out of {total_amount:,} total for {ocr_output_type.value}')
+        self._log_service.log_summary(key=f'\'{ocr_output_type.value}\' entries amount', value=corpus.length)
 
         return corpus

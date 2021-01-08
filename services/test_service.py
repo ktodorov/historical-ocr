@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from models.model_base import ModelBase
 
-from entities.model_checkpoint import ModelCheckpoint
+from entities.models.model_checkpoint import ModelCheckpoint
 
 from enums.evaluation_type import EvaluationType
 

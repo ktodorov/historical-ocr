@@ -1,6 +1,6 @@
 from typing import List
 
-from entities.skip_gram_entry import SkipGramEntry
+from entities.skip_gram.skip_gram_entry import SkipGramEntry
 
 class SkipGramCorpus:
     def __init__(self, text_lines: List[List[int]]):

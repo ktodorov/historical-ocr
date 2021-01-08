@@ -11,7 +11,7 @@ from typing import List, Tuple
 from enums.ocr_output_type import OCROutputType
 from enums.language import Language
 
-from entities.cbow_corpus import CBOWCorpus
+from entities.cbow.cbow_corpus import CBOWCorpus
 
 from services.process.process_service_base import ProcessServiceBase
 
@@ -30,19 +30,25 @@ class ICDARProcessService(ProcessServiceBase):
             arguments_service: OCRQualityNonContextArgumentsService,
             cache_service: CacheService,
             vocabulary_service: VocabularyService,
-            tokenize_service: BaseTokenizeService):
+            tokenize_service: BaseTokenizeService,
+            log_service: LogService):
 
         self._arguments_service = arguments_service
         self._cache_service = cache_service
         self._ocr_download_service = ocr_download_service
         self._vocabulary_service = vocabulary_service
         self._tokenize_service = tokenize_service
+        self._log_service = log_service
 
         self._min_occurrence_limit = self._arguments_service.minimal_occurrence_limit
         self._vocab_key = f'vocab-{arguments_service.ocr_output_type.value}'
 
         if not self._vocabulary_service.load_cached_vocabulary(self._vocab_key):
+            self._log_service.log_debug('Vocabulary was not loaded. Attempting to initialize...')
             self._initialize_vocabulary()
+        else:
+            self._log_service.log_debug('Vocabulary loaded successfully')
+
 
     def _initialize_vocabulary(self):
         self._ocr_download_service.download_data(
@@ -55,6 +61,7 @@ class ICDARProcessService(ProcessServiceBase):
         tokenized_data = self._tokenize_service.tokenize_sequences(
             gs_data if self._arguments_service.ocr_output_type == OCROutputType.GroundTruth else ocr_data
         )
+        self._log_service.log_debug(f'Tokenized {len(tokenized_data)} strings successfully')
 
         self._vocabulary_service.initialize_vocabulary_from_corpus(
             tokenized_data, 
@@ -86,6 +93,7 @@ class ICDARProcessService(ProcessServiceBase):
         return None
 
     def _save_common_tokens(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
+        self._log_service.log_debug('Saving common tokens')
         token_pairs_cache_key = f'common-token-pairs-{self._arguments_service.ocr_output_type.value}-lim-{self._arguments_service.minimal_occurrence_limit}'
         if self._cache_service.item_exists(token_pairs_cache_key):
             return
@@ -93,7 +101,7 @@ class ICDARProcessService(ProcessServiceBase):
         common_tokens_cache_key = f'common-tokens-{self._arguments_service.language.value}'
         common_tokens = self._cache_service.get_item_from_cache(
             item_key=common_tokens_cache_key,
-            callback_function=lambda: self._save_common_words(tokenized_ocr_data, tokenized_gs_data),
+            callback_function=lambda: self._combine_common_words(tokenized_ocr_data, tokenized_gs_data),
             configuration_specific=False)
 
         token_id_pairs = []
@@ -108,7 +116,9 @@ class ICDARProcessService(ProcessServiceBase):
             item_key=token_pairs_cache_key,
             item=token_id_pairs)
 
-    def _save_common_words(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
+        self._log_service.log_debug(f'Saved {len(token_id_pairs)} common token pairs successfully')
+
+    def _combine_common_words(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
             ocr_unique_tokens = set(
                 [item for sublist in tokenized_ocr_data for item in sublist])
             gs_unique_tokens = set(
@@ -133,7 +143,10 @@ class ICDARProcessService(ProcessServiceBase):
             print(f'{i}/{number_of_files}             \r', end='')
             result = self._cache_service.get_item_from_cache(cache_key)
             if result is None:
+                self._log_service.log_debug(f'Did not find \'{cache_key}\' data to load')
                 continue
+            else:
+                self._log_service.log_debug(f'Loading \'{cache_key}\' data')
 
             ocr_file_data.extend(result[0])
             gs_file_data.extend(result[1])

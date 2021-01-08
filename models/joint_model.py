@@ -1,3 +1,4 @@
+from services.log_service import LogService
 from services.process.process_service_base import ProcessServiceBase
 from models.simple.ppmi import PPMI
 from entities.word_evaluation import WordEvaluation
@@ -14,7 +15,7 @@ from copy import deepcopy
 
 from enums.ocr_output_type import OCROutputType
 
-from entities.model_checkpoint import ModelCheckpoint
+from entities.models.model_checkpoint import ModelCheckpoint
 from entities.batch_representation import BatchRepresentation
 
 from models.model_base import ModelBase
@@ -32,13 +33,15 @@ class JointModel(ModelBase):
             arguments_service: OCREvaluationArgumentsService,
             data_service: DataService,
             vocabulary_service: VocabularyService,
-            process_service: ProcessServiceBase):
-        super().__init__(data_service, arguments_service)
+            process_service: ProcessServiceBase,
+            log_service: LogService):
+        super().__init__(data_service, arguments_service, log_service)
 
         self._arguments_service = arguments_service
         self._data_service = data_service
         self._vocabulary_service = vocabulary_service
         self._process_service = process_service
+        self._log_service = log_service
 
         self._ocr_output_types = [OCROutputType.Raw, OCROutputType.GroundTruth]
 
@@ -47,6 +50,7 @@ class JointModel(ModelBase):
 
     @overrides
     def forward(self, tokens: torch.Tensor):
+        self._log_service.log_warning('Joint model currently does not have a forward pass implemented properly. Please use `get_embeddings` instead')
         return self.get_embeddings(tokens)
 
     @overrides
@@ -65,28 +69,33 @@ class JointModel(ModelBase):
         if configuration == Configuration.BERT:
             result = BERT(
                 arguments_service=self._arguments_service,
-                data_service=self._data_service)
+                data_service=self._data_service,
+                log_service=self._log_service)
         elif configuration == Configuration.CBOW:
             result = CBOW(
                 arguments_service=self._arguments_service,
                 vocabulary_service=deepcopy(self._vocabulary_service),
                 data_service=self._data_service,
+                log_service=self._log_service,
                 ocr_output_type=ocr_output_type)
         elif configuration == Configuration.SkipGram:
             result = SkipGram(
                 arguments_service=self._arguments_service,
                 vocabulary_service=deepcopy(self._vocabulary_service),
                 data_service=self._data_service,
+                log_service=self._log_service,
                 ocr_output_type=ocr_output_type)
         elif configuration == Configuration.PPMI:
             result = PPMI(
                 arguments_service=self._arguments_service,
                 vocabulary_service=deepcopy(self._vocabulary_service),
                 data_service=self._data_service,
+                log_service=self._log_service,
                 process_service=self._process_service,
                 ocr_output_type=ocr_output_type)
 
         if result is None:
+            self._log_service.log_error('Joint model inner type is not implemented')
             raise NotImplementedError()
 
         return result
@@ -100,6 +109,7 @@ class JointModel(ModelBase):
             load_model_dict: bool = True,
             use_checkpoint_name: bool = True,
             checkpoint_name: str = None) -> ModelCheckpoint:
+        self._log_service.log_debug('Loading joint models..')
 
         for (ocr_output_type, model) in zip(self._ocr_output_types, self._inner_models):
             ocr_output_type_str = 'grt' if ocr_output_type == OCROutputType.GroundTruth else ocr_output_type.value
@@ -111,6 +121,7 @@ class JointModel(ModelBase):
                 use_checkpoint_name=use_checkpoint_name,
                 checkpoint_name=checkpoint_name)
 
+        self._log_service.log_debug('Loading joint models succeeded')
         return None
 
 
