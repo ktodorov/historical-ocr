@@ -9,7 +9,7 @@ from overrides.overrides import overrides
 from typing import Counter, List, Dict, Tuple
 from overrides import overrides
 from scipy.spatial import procrustes
-
+from tqdm import tqdm
 from decimal import Decimal
 
 from enums.experiment_type import ExperimentType
@@ -118,9 +118,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         result: List[WordEvaluation] = []
 
         dataloader_length = len(self._dataloader)
-        for i, batch in enumerate(self._dataloader):
-            print(f'{i}/{dataloader_length}         \r', end='')
-
+        for i, batch in tqdm(iterable=enumerate(self._dataloader), desc=f'Processing common vocabulary tokens', total=dataloader_length):
             tokens, vocab_ids = batch
             outputs = self._model.get_embeddings(tokens, vocab_ids)
             result.extend(outputs)
@@ -131,20 +129,20 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 vocab_key = f'vocab-{ocr_output_type.value}'
                 self._vocabulary_service.load_cached_vocabulary(vocab_key)
                 unprocessed_tokens = []
-                vocabulary_size = self._vocabulary_service.vocabulary_size()
-                for i, (_, token) in enumerate(self._vocabulary_service.get_vocabulary_tokens(exclude_special_tokens=True)):
-                    print(f'{ocr_output_type.value}: {i}/{vocabulary_size}         \r', end='')
+                for _, token in self._vocabulary_service.get_vocabulary_tokens(exclude_special_tokens=True):
                     if token in processed_tokens:
                         continue
 
                     unprocessed_tokens.append(token)
 
                 batch_size = self._arguments_service.batch_size
-                for i in range(0, len(unprocessed_tokens), batch_size):
-                    tokens = unprocessed_tokens[i:i+batch_size]
-                    word_evaluations = self._model.get_embeddings(tokens, vocab_ids=None, skip_unknown=True)
-                    result.extend(word_evaluations)
-                    processed_tokens.extend(tokens)
+                with tqdm(desc=f'Unique {ocr_output_type.value} vocabulary tokens', total=len(unprocessed_tokens)) as progress_bar:
+                    for i in range(0, len(unprocessed_tokens), batch_size):
+                        tokens = unprocessed_tokens[i:i+batch_size]
+                        word_evaluations = self._model.get_embeddings(tokens, vocab_ids=None, skip_unknown=True)
+                        result.extend(word_evaluations)
+                        processed_tokens.extend(tokens)
+                        progress_bar.update(len(tokens))
 
         return result
 
@@ -174,26 +172,26 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 filename=filename)
 
     def _generate_neighbourhood_similarity_results(self, result: Dict[ExperimentType, Dict[str, float]], word_evaluations: List[WordEvaluation]):
-        most_changed = self._get_most_changed_words(result)
-        for (changed_word, _) in most_changed:
-            target_word = next(
-                (w for w in word_evaluations if w.word == changed_word), None)
-            if target_word is None:
+        target_tokens = self._get_target_tokens(result)
+        for (target_token, _) in tqdm(iterable=target_tokens, desc='Generating neighbourhood plots', total=len(target_tokens)):
+            target_word_evaluation = next(
+                (w for w in word_evaluations if w.word == target_token), None)
+            if target_word_evaluation is None:
                 raise Exception('Could not find target word')
 
             remaining_words = [
                 word_evaluation
                 for word_evaluation in word_evaluations
-                if word_evaluation.word != target_word.word]
+                if word_evaluation.word != target_word_evaluation.word]
 
             word_neighbourhoods = self._word_neighbourhood_service.get_word_neighbourhoods(
-                target_word, remaining_words)
+                target_word_evaluation, remaining_words)
 
             self._word_neighbourhood_service.plot_word_neighbourhoods(
-                target_word,
+                target_word_evaluation,
                 word_neighbourhoods=word_neighbourhoods)
 
-    def _get_most_changed_words(self, result, metric: ExperimentType = ExperimentType.CosineDistance) -> List[Tuple[str, float]]:
+    def _get_target_tokens(self, result, metric: ExperimentType = ExperimentType.CosineDistance) -> List[Tuple[str, float]]:
         if metric not in result.keys():
             raise Exception(f'Metric {metric} not calculated')
 
