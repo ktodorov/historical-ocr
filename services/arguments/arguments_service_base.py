@@ -81,6 +81,10 @@ class ArgumentsServiceBase:
                             help="Whether to skip loading saved metrics and continuing from last best checkpoint. Default is `False`")
         parser.add_argument("--data-folder", type=str, default='data',
                             help='folder where data will be taken from')
+        parser.add_argument("--cache-folder", type=str, default='.cache',
+                            help='folder where cache will be taken from')
+        parser.add_argument("--experiments-folder", type=str, default='experiments',
+                            help='folder where experiments results will be saved to')
         parser.add_argument("--output-folder", type=str, default='results',
                             help='folder where results and checkpoints will be saved')
         parser.add_argument('--checkpoint-folder', type=str, default=None,
@@ -223,6 +227,14 @@ class ArgumentsServiceBase:
         return self._get_argument('data_folder')
 
     @property
+    def experiments_folder(self) -> str:
+        return self._get_argument('experiments_folder')
+
+    @property
+    def cache_folder(self) -> str:
+        return self._get_argument('cache_folder')
+
+    @property
     def output_folder(self) -> str:
         return self._get_argument('output_folder')
 
@@ -233,10 +245,6 @@ class ArgumentsServiceBase:
     @property
     def evaluation_type(self) -> List[EvaluationType]:
         return self._get_argument('evaluation_type')
-
-    # @property
-    # def output_eval_format(self) -> OutputFormat:
-    #     return self._get_argument('output_eval_format')
 
     @property
     def challenge(self) -> Challenge:

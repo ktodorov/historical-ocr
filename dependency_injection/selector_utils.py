@@ -28,7 +28,7 @@ def get_arguments_service(arguments_service: ArgumentsServiceBase):
 
 def get_optimizer(arguments_service: ArgumentsServiceBase):
     if arguments_service.evaluate or arguments_service.run_experiments:
-        return None
+        return 'base'
 
     result = 'base'
     challenge = arguments_service.challenge

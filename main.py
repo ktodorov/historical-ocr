@@ -33,3 +33,4 @@ def main(
             experiment_service.execute_experiments(arguments_service.experiment_types)
     except Exception as exception:
         log_service.log_exception('Stopping program execution', exception)
+        raise exception

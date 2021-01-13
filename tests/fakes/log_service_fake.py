@@ -39,6 +39,22 @@ class LogServiceFake(LogService):
 
         pass
 
+    def log_info(self, message: str):
+        print(message)
+
+    def log_debug(self, message: str):
+        print(message)
+
+    def log_error(self, message: str):
+        print(message)
+
+    def log_exception(self, message: str, exception: Exception):
+        log_message = f'Exception occurred. Message: {message}\nOriginal exception: {exception}'
+        print(log_message)
+
+    def log_warning(self, message: str):
+        print(message)
+
     def log_summary(self, key: str, value: object):
         pass
 
@@ -46,6 +62,9 @@ class LogServiceFake(LogService):
         pass
 
     def log_incremental_metric(self, metric_key: str, metric_value: object):
+        pass
+
+    def log_arguments(self):
         pass
 
     def log_heatmap(
@@ -61,7 +80,7 @@ class LogServiceFake(LogService):
         pass
 
     def get_time_passed(self) -> timedelta:
-        result = datetime.now()
+        result = timedelta(minutes=60)
         return result
 
     def _get_current_step(self) -> int:

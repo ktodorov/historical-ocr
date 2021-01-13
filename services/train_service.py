@@ -267,7 +267,7 @@ class TrainService:
             self,
             batch: torch.Tensor,
             train_mode: bool = True,
-            output_characters: bool = False) -> Tuple[float, Dict[MetricType, float]]:
+            output_characters: bool = False) -> Tuple[float, Dict[MetricType, float], List[str]]:
         """
         runs forward pass on batch and backward pass if in train_mode
         """
@@ -377,7 +377,7 @@ class TrainService:
         patience = self._initial_patience
 
         best_metrics_str = stringify_dictionary(
-            best_accuracies + {'loss': str(best_metrics.get_current_loss())})
+            dict(list(best_accuracies.items()) + list({'loss': str(best_metrics.get_current_loss())}.items())))
 
         self._log_service.log_debug(
             f'Saved current best metrics:\n{best_metrics_str}')

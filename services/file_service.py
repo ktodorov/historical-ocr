@@ -96,7 +96,7 @@ class FileService:
         return data_pickles_path
 
     def get_experiments_path(self) -> str:
-        experiments_path = 'experiments'
+        experiments_path = self._arguments_service.experiments_folder
 
         if not os.path.exists(experiments_path):
             os.mkdir(experiments_path)

@@ -280,6 +280,5 @@ class LogService:
         self.log_debug(f'arguments initialized: {args_string}')
 
     def __deepcopy__(self, memo):
-        # create a copy with self.linked_to *not copied*, just referenced.
-        # return LogService(deepcopy(self._arguments_service, memo), self._logger)
+        # we do not want log service to be re-initialized, so we just return the current object
         return self

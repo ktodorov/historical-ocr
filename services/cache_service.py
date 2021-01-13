@@ -27,7 +27,8 @@ class CacheService:
         self._log_service = log_service
 
         self._global_cache_folder = self._file_service.combine_path(
-            '.cache', create_if_missing=True)
+            self._arguments_service.cache_folder,
+            create_if_missing=True)
 
         self._challenge_cache_folder = self._file_service.combine_path(
             self._global_cache_folder,

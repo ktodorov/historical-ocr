@@ -149,14 +149,14 @@ class ModelBase(nn.Module):
 
     def _get_model_name(self, name_prefix: str = None, name_suffix: str = None) -> str:
         result = self._arguments_service.get_configuration_name()
-        if self._arguments_service.checkpoint_name is not None:
-            result += f'-{self._arguments_service.checkpoint_name}'
-
         if name_prefix is not None:
             result = f'{name_prefix}_{result}'
 
         if name_suffix is not None:
             result = f'{result}{name_suffix}'
+
+        if self._arguments_service.checkpoint_name is not None:
+            result += f'-{self._arguments_service.checkpoint_name}'
 
         return result
 
