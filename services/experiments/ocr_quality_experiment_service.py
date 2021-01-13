@@ -1,3 +1,4 @@
+import os
 from services.tagging_service import TaggingService
 from enums.part_of_speech import PartOfSpeech
 from enums.ocr_output_type import OCROutputType
@@ -236,13 +237,51 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         metric_results.sort(key=lambda x: x[1])
 
-        most_changed = metric_results[-10:][::-1]
+        top_100_most_changed_words = [result[0] for result in metric_results[-100:][::-1]]
+        top_100_string = ', '.join(top_100_most_changed_words)
+        self._log_service.log_debug(f'Top 100 most changed words: [{top_100_string}]')
 
-        log_message = f'Target words found: [' + \
+        most_changed = self._map_target_tokens(metric_results[::-1], targets_count=10)
+
+        log_message = f'Target words to be used: [' + \
             ', '.join([x[0] for x in most_changed]) + ']'
         self._log_service.log_info(log_message)
 
         return most_changed
+
+    def _map_target_tokens(
+        self,
+        ordered_tuples: List[Tuple[str, float]],
+        targets_count: int):
+        result_tuples = []
+        preferred_tokens = self._get_preferred_target_tokens()
+
+        for tuple in ordered_tuples:
+            if preferred_tokens is None or tuple[0] in preferred_tokens:
+                result_tuples.append(tuple)
+
+            if len(result_tuples) == targets_count:
+                return result_tuples
+
+        return result_tuples
+
+    def _get_preferred_target_tokens(self) -> List[str]:
+        preferred_tokens_path = os.path.join(
+            self._file_service.get_experiments_path(),
+            f'preferred-tokens-{self._arguments_service.language.value}.txt')
+
+        if not os.path.exists(preferred_tokens_path):
+            return None
+
+        preferred_tokens = []
+        with open(preferred_tokens_path, 'r', encoding='utf-8') as tokens_file:
+            file_lines = tokens_file.readlines()
+            if file_lines is None or len(file_lines) == 0:
+                return None
+
+            preferred_tokens = [x.strip().lower() for x in file_lines]
+
+        return preferred_tokens
 
     def _get_word_evaluations_for_comparison(self, target_word: str, word_evaluations: List[List[WordEvaluation]]):
         if not self._arguments_service.separate_neighbourhood_vocabularies:
