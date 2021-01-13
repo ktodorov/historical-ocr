@@ -57,7 +57,7 @@ class DataService:
         extension = '' if extension_included else '.pickle'
         filepath = os.path.join(path, f'{name}{extension}')
         result = (os.path.exists(filepath) and os.stat(filepath).st_size > 0)
-        self._log_service.log_debug(f'Checking python object {name}. Result - {result} [path: \'{filepath.encode("utf-8")}\']')
+        self._log_service.log_debug(f'Checking python object {name}. Result - {result} [path: \'{filepath}\']')
 
         return result
 
@@ -88,7 +88,7 @@ class DataService:
 
             return None
 
-        self._log_service.log_debug(f'Loaded python object {name}. [path: \'{filepath.encode("utf-8")}\']')
+        self._log_service.log_debug(f'Loaded python object {name}. [path: \'{filepath}\']')
         return obj
 
     def python_obj_exists(self, path: str, name: str) -> bool:
@@ -208,7 +208,7 @@ class DataService:
             plt.axis('off')
 
         filepath = os.path.join(path, f'{name}.{extension}')
-        self._log_service.log_debug(f'Saving plot figure to filesystem [filepath: \'{filepath.encode("utf-8")}\']')
+        self._log_service.log_debug(f'Saving plot figure to filesystem [filepath: \'{filepath}\']')
         plt.savefig(filepath, bbox_inches='tight')
 
     def set_date_stamp(self, addition="") -> List[str]:

@@ -27,6 +27,6 @@ class TaggingService:
 
     def _download_nltk_resource(self, resource_name):
         try:
-            nltk.data.find(resource_name)
+            nltk.data.find(f'taggers/{resource_name}')
         except LookupError:
             nltk.download(resource_name)

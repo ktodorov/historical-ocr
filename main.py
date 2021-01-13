@@ -19,6 +19,8 @@ def main(
         experiment_service: ExperimentServiceBase,
         log_service: LogService):
 
+    log_service.log_arguments()
+
     try:
         if arguments_service.evaluate:
             log_service.log_debug('Starting TEST run')

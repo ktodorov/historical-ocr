@@ -240,7 +240,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         log_message = f'Target words found: [' + \
             ', '.join([x[0] for x in most_changed]) + ']'
-        self._log_service.log_info(log_message.encode())
+        self._log_service.log_info(log_message)
 
         return most_changed
 

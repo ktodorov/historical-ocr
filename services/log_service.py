@@ -41,10 +41,7 @@ class LogService:
         self._run_name = f'{config_name}-{self._start_time.strftime("%Y_%m_%d_%H_%M_%S")}'
 
         self._logger: Logger = self._initialize_logger(logger)
-
         self.log_debug(f'Starting run \'{self._run_name}\'')
-
-        self._log_arguments()
 
         self._external_logging_enabled = self._arguments_service.enable_external_logging
         if self._external_logging_enabled:
@@ -252,7 +249,7 @@ class LogService:
             self._arguments_service.log_folder, log_file_name)
 
         # create file handler which logs even debug messages
-        file_handler = logging.FileHandler(log_file_path)
+        file_handler = logging.FileHandler(log_file_path, encoding='utf8')
         file_handler.setLevel(logging.DEBUG)
 
         # create console handler with a higher log level
@@ -264,11 +261,11 @@ class LogService:
 
         # create formatter and add it to the handlers
         file_formatter = logging.Formatter(
-            u'%(asctime)s | %(name)s | %(levelname)10s | %(message)s')
+            '%(asctime)s | %(name)s | %(levelname)10s | %(message)s')
         file_handler.setFormatter(file_formatter)
 
         console_formatter = logging.Formatter(
-            u'%(asctime)s | %(levelname)10s | %(message)s')
+            '%(asctime)s | %(levelname)10s | %(message)s')
         console_handler.setFormatter(console_formatter)
 
         # add the handlers to the logger
@@ -277,11 +274,12 @@ class LogService:
 
         return logger
 
-    def _log_arguments(self):
+    def log_arguments(self):
         args = self._arguments_service.get_arguments_dict()
         args_string = stringify_dictionary(args)
         self.log_debug(f'arguments initialized: {args_string}')
 
     def __deepcopy__(self, memo):
         # create a copy with self.linked_to *not copied*, just referenced.
-        return LogService(deepcopy(self._arguments_service, memo), self._logger)
+        # return LogService(deepcopy(self._arguments_service, memo), self._logger)
+        return self

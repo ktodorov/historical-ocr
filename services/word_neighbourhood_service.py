@@ -64,7 +64,7 @@ class WordNeighbourhoodService:
             all_words: List[WordEvaluation],
             models_count: int = 2) -> Tuple[List[WordEvaluation], List[WordEvaluation]]:
 
-        self._log_service.log_debug(f'Extracting neighbourhoods for word \'{target_word.word.encode("utf-8")}\'')
+        self._log_service.log_debug(f'Extracting neighbourhoods for word \'{target_word.word}\'')
         result = []
         for i in range(models_count):
             neighbourhood = self._get_word_neighbourhood(
@@ -116,7 +116,7 @@ class WordNeighbourhoodService:
 
         self._plot_service.set_plot_properties(
             ax=ax,
-            title=f'Neighbourhoods `{target_word.word.encode("utf-8")}`',
+            title=f'Neighbourhoods `{target_word.word}`',
             hide_axis=True,
             legend_options=LegendOptions(
                 show_legend=True,

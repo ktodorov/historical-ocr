@@ -34,11 +34,13 @@ class VocabularyService:
         self.load_cached_vocabulary(self._vocabulary_cache_key)
 
     def load_cached_vocabulary(self, cache_key: str) -> bool:
-        cached_vocabulary = self._cache_service.get_item_from_cache(cache_key)
-        if cached_vocabulary is not None:
-            self._log_service.log_debug('Cached vocabulary found')
-            (self._token2idx, self._id2token) = cached_vocabulary
-            return self.vocabulary_is_initialized()
+        cached_vocabulary_exists = self._cache_service.item_exists(cache_key)
+        if cached_vocabulary_exists:
+            cached_vocabulary = self._cache_service.get_item_from_cache(cache_key)
+            if cached_vocabulary is not None:
+                self._log_service.log_debug('Cached vocabulary found')
+                (self._token2idx, self._id2token) = cached_vocabulary
+                return self.vocabulary_is_initialized()
 
         self._log_service.log_debug('Cached vocabulary was not found')
         return False
