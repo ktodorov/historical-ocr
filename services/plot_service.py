@@ -351,6 +351,7 @@ class PlotService:
             y_values: list,
             labels: list,
             color: str = None,
+            colors: List[str] = None,
             title: str = None,
             title_padding: float = None,
             save_path: str = None,
@@ -373,8 +374,10 @@ class PlotService:
             if bold_mask is not None and bold_mask[i]:
                 weight = 'bold'
 
+            label_color = colors[i] if colors is not None else color
+
             ax.annotate(label, xy=(x, y), xytext=(
-                0, 0), textcoords='offset points', color=color, weight=weight, fontsize=font_sizes[i])
+                0, 0), textcoords='offset points', color=label_color, weight=weight, fontsize=font_sizes[i])
 
         self._add_properties(
             ax,

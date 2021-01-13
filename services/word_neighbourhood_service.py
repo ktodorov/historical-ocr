@@ -84,7 +84,7 @@ class WordNeighbourhoodService:
             word_neighbourhoods: List[List[WordEvaluation]]):
         ax = self._plot_service.create_plot()
 
-        labels_colors = ['crimson', 'darkgreen']
+        labels_colors = ['crimson', 'royalblue', 'darkgreen']
         word_neighbourhood_length = len(word_neighbourhoods[0]) + 1
         for i in range(len(word_neighbourhoods)):
             x_coords = tsne_result[(
@@ -104,11 +104,13 @@ class WordNeighbourhoodService:
                 ax=ax,
                 show_plot=False)
 
+            current_words = all_words[(i*word_neighbourhood_length):((i+1)*word_neighbourhood_length)]
+            current_word_colors = [labels_colors[i]] + [labels_colors[i] if all_words.count(x) == 1 else labels_colors[-1] for x in current_words[1:]]
             self._plot_service.plot_labels(
                 x_coords,
                 y_coords,
-                all_words[(i*word_neighbourhood_length):((i+1)*word_neighbourhood_length)],
-                color=labels_colors[i],
+                current_words,
+                colors=current_word_colors,
                 ax=ax,
                 show_plot=False,
                 bold_mask=bold_mask,
@@ -121,7 +123,7 @@ class WordNeighbourhoodService:
             legend_options=LegendOptions(
                 show_legend=True,
                 legend_colors=labels_colors,
-                legend_labels=['Raw', 'Ground truth']))
+                legend_labels=['raw', 'ground truth', 'overlapping']))
 
         experiments_folder = self._file_service.get_experiments_path()
         neighbourhoods_folder = self._file_service.combine_path(
