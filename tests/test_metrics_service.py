@@ -7,7 +7,7 @@ from enums.language import Language
 from enums.configuration import Configuration
 from enums.challenge import Challenge
 import os
-from tests.fakes.argument_service_fake import ArgumentServiceFake
+from tests.fakes.non_context_service_fake import NonContextServiceFake
 from dependency_injection.ioc_container import IocContainer
 import dependency_injector.providers as providers
 import unittest
@@ -16,7 +16,7 @@ import unittest
 def initialize_container() -> IocContainer:
     container = IocContainer()
     container.arguments_service.override(
-        providers.Factory(ArgumentServiceFake,
+        providers.Factory(NonContextServiceFake,
                           custom_values={
                               'data_folder': os.path.join('tests', 'data'),
                               'output_folder': os.path.join('tests', 'results')

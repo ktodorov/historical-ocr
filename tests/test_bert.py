@@ -5,7 +5,7 @@ from enums.challenge import Challenge
 from enums.ocr_output_type import OCROutputType
 from enums.pretrained_model import PretrainedModel
 import os
-from tests.fakes.argument_service_fake import ArgumentServiceFake
+from tests.fakes.non_context_service_fake import NonContextServiceFake
 from dependency_injection.ioc_container import IocContainer
 import dependency_injector.providers as providers
 import torch
@@ -34,7 +34,7 @@ def initialize_container(ocr_output_type: OCROutputType = None, override_args: d
     container = IocContainer()
     container.arguments_service.override(
         providers.Factory(
-            ArgumentServiceFake,
+            NonContextServiceFake,
             custom_args))
 
     container.log_service.override(providers.Factory(LogServiceFake))

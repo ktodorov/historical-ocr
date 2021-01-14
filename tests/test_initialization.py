@@ -5,7 +5,7 @@ import numpy as np
 
 from dependency_injection.ioc_container import IocContainer
 import dependency_injector.providers as providers
-from tests.fakes.argument_service_fake import ArgumentServiceFake
+from tests.fakes.non_context_service_fake import NonContextServiceFake
 from tests.fakes.log_service_fake import LogServiceFake
 from run import initialize_seed
 
@@ -20,7 +20,7 @@ def initialize_container(override_args = None) -> IocContainer:
     container = IocContainer()
     container.arguments_service.override(
         providers.Factory(
-            ArgumentServiceFake,
+            NonContextServiceFake,
             custom_values=custom_args))
 
     container.log_service.override(providers.Factory(LogServiceFake))
