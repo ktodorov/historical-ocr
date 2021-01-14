@@ -8,7 +8,7 @@ import gensim
 import numpy as np
 import torch
 from tqdm import tqdm
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from enums.ocr_output_type import OCROutputType
 from enums.language import Language
@@ -93,6 +93,14 @@ class Word2VecProcessService(ICDARProcessService):
         self._log_service.log_debug(f'Loading word2vec model from \'{word2vec_model_path}\'')
         word2vec_weights = gensim.models.KeyedVectors.load_word2vec_format(
             word2vec_model_path, binary=word2vec_binary)
+
+        initialized_tokens: Dict[str, list] = None
+        initialized_tokens_cache_key = f'initialized-tokens-s{self._arguments_service.seed}'
+        if not self._arguments_service.initialize_randomly:
+            initialized_tokens = self._cache_service.get_item_from_cache(
+                item_key=initialized_tokens_cache_key,
+                callback_function=lambda: {})
+
         pretrained_weight_matrix = np.random.rand(
             self._vocabulary_service.vocabulary_size(),
             word2vec_weights.vector_size)
@@ -104,8 +112,13 @@ class Word2VecProcessService(ICDARProcessService):
             for (index, token) in vocabulary_items:
                 if token in word2vec_weights.vocab:
                     pretrained_weight_matrix[index] = word2vec_weights.wv[token]
+                elif initialized_tokens is not None and token in initialized_tokens.keys():
+                    pretrained_weight_matrix[index] = initialized_tokens[token]
+                else:
+                    initialized_tokens[token] = pretrained_weight_matrix[index]
 
             self._log_service.log_debug(f'Populating pretrained matrix finished successfully')
+            self._cache_service.cache_item(initialized_tokens_cache_key, initialized_tokens)
 
         result = torch.from_numpy(pretrained_weight_matrix).float()
         return result

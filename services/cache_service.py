@@ -52,24 +52,31 @@ class CacheService:
             configuration_specific=configuration_specific,
             challenge_specific=challenge_specific)
 
-        # try to get the cached object
-        cached_object = self._data_service.load_python_obj(
-            cache_folder,
-            item_key)
+        cached_object = None
+        if self.item_exists(
+                item_key=item_key,
+                configuration_specific=configuration_specific,
+                challenge_specific=challenge_specific):
+            # try to get the cached object
+            cached_object = self._data_service.load_python_obj(
+                cache_folder,
+                item_key)
 
         if cached_object is None or self._cache_has_expired(item_key, time_to_keep, configuration_specific, challenge_specific):
 
             # if the cached object does not exist or has expired we call
             # the callback function to calculate it and then cache it to the file system
             if callback_function is None:
-                self._log_service.log_debug('Cached object was not found or was expired and no callback function was provided')
+                self._log_service.log_debug(
+                    'Cached object was not found or was expired and no callback function was provided')
                 return None
 
-            self._log_service.log_debug('Cached object was not found or was expired. Executing callback function')
+            self._log_service.log_debug(
+                'Cached object was not found or was expired. Executing callback function')
             cached_object = callback_function()
             self.cache_item(
-                item_key, 
-                cached_object, 
+                item_key,
+                cached_object,
                 configuration_specific=configuration_specific,
                 challenge_specific=challenge_specific)
 
@@ -96,7 +103,8 @@ class CacheService:
             overwrite: bool = True,
             configuration_specific: bool = True,
             challenge_specific: bool = True):
-        self._log_service.log_debug(f'Attempting to cached object item with key {item_key} [config-specific: {configuration_specific} | challenge-specific: {challenge_specific}]')
+        self._log_service.log_debug(
+            f'Attempting to cached object item with key {item_key} [config-specific: {configuration_specific} | challenge-specific: {challenge_specific}]')
         if not overwrite and self.item_exists(item_key):
             return
 
@@ -113,7 +121,6 @@ class CacheService:
             self._log_service.log_debug('Object cached successfully')
         else:
             self._log_service.log_debug('Object was not cached successfully')
-
 
     def item_exists(
             self,
@@ -146,16 +153,19 @@ class CacheService:
 
         try:
             download_file_path = os.path.join(cache_folder, item_key)
-            self._log_service.log_debug(f'Attempting to download item from \'{download_url}\' to \'{download_file_path}\'')
+            self._log_service.log_debug(
+                f'Attempting to download item from \'{download_url}\' to \'{download_file_path}\'')
 
             urllib.request.urlretrieve(
                 download_url,
                 download_file_path)
         except:
-            self._log_service.log_error(f'There was error downloading file from url \'{download_url}\'')
+            self._log_service.log_error(
+                f'There was error downloading file from url \'{download_url}\'')
             return False
 
-        self._log_service.log_debug(f'Object was downloaded and saved successfully')
+        self._log_service.log_debug(
+            f'Object was downloaded and saved successfully')
         return True
 
     def _get_cache_folder_path(

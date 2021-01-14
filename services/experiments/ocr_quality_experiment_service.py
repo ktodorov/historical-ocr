@@ -65,8 +65,9 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         result = {experiment_type: {} for experiment_type in experiment_types}
 
         random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
+        separate_suffix= '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else ''
         word_evaluations: List[WordEvaluation] = self._cache_service.get_item_from_cache(
-            item_key=f'word-evaluations{random_suffix}',
+            item_key=f'word-evaluations{random_suffix}{separate_suffix}',
             callback_function=self._generate_embeddings)
 
         self._log_service.log_debug('Loaded word evaluations')
@@ -116,9 +117,11 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             if not word_evaluation.contains_all_embeddings():
                 continue
 
-            result[word_evaluation.word] = self._metrics_service.calculate_cosine_distance(
+            cosine_distance = self._metrics_service.calculate_cosine_distance(
                 list1=word_evaluation.get_embeddings(idx=0),
                 list2=word_evaluation.get_embeddings(idx=1))
+
+            result[word_evaluation.word] = cosine_distance
 
         return result
 
