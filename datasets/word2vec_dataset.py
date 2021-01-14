@@ -23,7 +23,7 @@ class Word2VecDataset(DatasetBase):
         self._log_service = log_service
 
         self._text_corpus = process_service.get_text_corpus(ocr_output_type=self._arguments_service.ocr_output_type)
-        self._log_service.log_debug(f'Loaded {len(self._text_corpus.length)} entries in word2vec dataset')
+        self._log_service.log_debug(f'Loaded {self._text_corpus.length} entries in word2vec dataset')
 
     @overrides
     def __len__(self):
