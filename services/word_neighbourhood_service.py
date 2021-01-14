@@ -129,8 +129,7 @@ class WordNeighbourhoodService:
         neighbourhoods_folder = self._file_service.combine_path(
             experiments_folder,
             'neighbourhoods',
-            self._arguments_service.language.value,
-            self._arguments_service.configuration.value,
+            self._arguments_service.get_configuration_name(),
             create_if_missing=True)
 
         self._plot_service.save_plot(

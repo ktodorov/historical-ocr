@@ -173,7 +173,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
     def _save_experiment_results(self, result: Dict[ExperimentType, Dict[str, float]]):
         experiments_folder = self._file_service.get_experiments_path()
         distances_folder = self._file_service.combine_path(
-            experiments_folder, 'distances', self._arguments_service.language.value, create_if_missing=True)
+            experiments_folder, 'distances', create_if_missing=True)
 
         self._log_service.log_debug(
             f'Saving experiment results [Distances] at \'{distances_folder}\'')
@@ -186,7 +186,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
             counter = Counter(values)
 
-            filename = f'{self._arguments_service.configuration.value}-{experiment_type.value}'
+            filename = f'{self._arguments_service.get_configuration_name()}-{experiment_type.value}'
             self._log_service.log_debug(
                 f'Saving {experiment_type} as {filename}')
             self._plot_service.plot_counters_histogram(

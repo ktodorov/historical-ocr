@@ -75,14 +75,26 @@ class TestNeighbourhoodPlots(unittest.TestCase):
         if os.path.exists(preferred_tokens_path) and not os.path.exists(tests_preferred_tokens_path):
             copyfile(preferred_tokens_path, tests_preferred_tokens_path)
 
+        raw_checkpoint_filepath = os.path.join('tests', 'results', 'ocr-evaluation', 'skip-gram', 'english', 'BEST_en-skip-gram-raw-lim-5-local-test.pickle')
+        if os.path.exists(raw_checkpoint_filepath):
+            os.remove(raw_checkpoint_filepath)
+
+        grt_checkpoint_filepath = os.path.join('tests', 'results', 'ocr-evaluation', 'skip-gram', 'english', 'BEST_en-skip-gram-grt-lim-5-local-test.pickle')
+        if os.path.exists(grt_checkpoint_filepath):
+            os.remove(grt_checkpoint_filepath)
+
         # Raw model
         container_1 = initialize_container(ocr_output_type=OCROutputType.Raw)
         container_1.main()
+
+        assert os.path.exists(raw_checkpoint_filepath)
 
         # Ground truth model
         container_2 = initialize_container(
             ocr_output_type=OCROutputType.GroundTruth)
         container_2.main()
+
+        assert os.path.exists(grt_checkpoint_filepath)
 
         experiments_container = initialize_container(
             override_args={
