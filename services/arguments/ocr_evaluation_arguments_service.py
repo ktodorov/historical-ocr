@@ -15,6 +15,9 @@ class OCREvaluationArgumentsService(PretrainedArgumentsService):
         result = f'{str(self.language)[:2]}'
         result += f'-{self.configuration.value}'
 
+        if self.initialize_randomly:
+            result += f'-rnd'
+
         return result
 
     @overrides
@@ -27,6 +30,9 @@ class OCREvaluationArgumentsService(PretrainedArgumentsService):
         parser.add_argument('--separate-neighbourhood-vocabularies', action='store_true',
                             help='If this is set to True, then the neighbourhood similarity graph will use separate vocabularies of the models')
 
+        parser.add_argument('--initialize-randomly', action='store_true',
+                            help='If this is set to True, then the initial embeddings will be initialized randomly.')
+
     @property
     def minimal_occurrence_limit(self) -> int:
         return self._get_argument('minimal_occurrence_limit')
@@ -34,3 +40,7 @@ class OCREvaluationArgumentsService(PretrainedArgumentsService):
     @property
     def separate_neighbourhood_vocabularies(self) -> bool:
         return self._get_argument('separate_neighbourhood_vocabularies')
+
+    @property
+    def initialize_randomly(self) -> bool:
+        return self._get_argument('initialize_randomly')

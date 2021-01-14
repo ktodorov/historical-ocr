@@ -68,7 +68,7 @@ def initialize_container(
 
 class TestNeighbourhoodPlots(unittest.TestCase):
 
-    def test_neighbourhood_plot_of_new_model(self):
+    def test_neighbourhood_plot_of_new_models(self):
         language = 'english'
         preferred_tokens_path = os.path.join('experiments', f'preferred-tokens-{language}.txt')
         tests_preferred_tokens_path = os.path.join('tests', preferred_tokens_path)
@@ -108,7 +108,59 @@ class TestNeighbourhoodPlots(unittest.TestCase):
 
         experiments_container.main()
 
-        assert len(os.listdir(os.path.join('tests', 'experiments', 'neighbourhoods', language, 'skip-gram'))) > 0
+        assert len(os.listdir(os.path.join('tests', 'experiments', 'neighbourhoods', 'en-skip-gram'))) > 0
+
+
+    def test_neighbourhood_plot_of_new_random_models(self):
+        language = 'english'
+        preferred_tokens_path = os.path.join('experiments', f'preferred-tokens-{language}.txt')
+        tests_preferred_tokens_path = os.path.join('tests', preferred_tokens_path)
+        if os.path.exists(preferred_tokens_path) and not os.path.exists(tests_preferred_tokens_path):
+            copyfile(preferred_tokens_path, tests_preferred_tokens_path)
+
+        raw_checkpoint_filepath = os.path.join('tests', 'results', 'ocr-evaluation', 'skip-gram', 'english', 'BEST_en-skip-gram-rnd-raw-lim-5-local-test.pickle')
+        if os.path.exists(raw_checkpoint_filepath):
+            os.remove(raw_checkpoint_filepath)
+
+        grt_checkpoint_filepath = os.path.join('tests', 'results', 'ocr-evaluation', 'skip-gram', 'english', 'BEST_en-skip-gram-rnd-grt-lim-5-local-test.pickle')
+        if os.path.exists(grt_checkpoint_filepath):
+            os.remove(grt_checkpoint_filepath)
+
+        # Raw model
+        container_1 = initialize_container(
+            ocr_output_type=OCROutputType.Raw,
+            override_args={
+                'initialize_randomly': True
+            })
+        container_1.main()
+
+        assert os.path.exists(raw_checkpoint_filepath)
+
+        # Ground truth model
+        container_2 = initialize_container(
+            ocr_output_type=OCROutputType.GroundTruth,
+            override_args={
+                'initialize_randomly': True
+            })
+        container_2.main()
+
+        assert os.path.exists(grt_checkpoint_filepath)
+
+        experiments_container = initialize_container(
+            override_args={
+                'separate_neighbourhood_vocabularies': True,
+                'run_experiments': True,
+                'experiment_types': [ExperimentType.CosineSimilarity, ExperimentType.CosineDistance],
+                'batch_size': 128,
+                'joint_model': True,
+                'initialize_randomly': True
+            },
+            evaluation=True)
+
+        experiments_container.main()
+
+        assert len(os.listdir(os.path.join('tests', 'experiments', 'neighbourhoods', 'en-skip-gram-rnd'))) > 0
+
 
 if __name__ == '__main__':
     unittest.main()

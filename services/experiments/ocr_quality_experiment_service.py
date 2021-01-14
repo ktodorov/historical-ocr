@@ -64,28 +64,29 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         result = {experiment_type: {} for experiment_type in experiment_types}
 
+        random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
         word_evaluations: List[WordEvaluation] = self._cache_service.get_item_from_cache(
-            item_key='word-evaluations',
+            item_key=f'word-evaluations{random_suffix}',
             callback_function=self._generate_embeddings)
 
         self._log_service.log_debug('Loaded word evaluations')
 
         # if ExperimentType.CosineSimilarity in experiment_types:
         #     result[ExperimentType.CosineSimilarity] = self._cache_service.get_item_from_cache(
-        #         item_key='cosine-similarities',
+        #         item_key=f'cosine-similarities{random_suffix}',
         #         callback_function=lambda: self._calculate_cosine_similarities(word_evaluations))
         #     self._log_service.log_debug('Loaded cosine similarities')
 
         if ExperimentType.CosineDistance in experiment_types:
             result[ExperimentType.CosineDistance] = self._cache_service.get_item_from_cache(
-                item_key='cosine-distances',
+                item_key=f'cosine-distances{random_suffix}',
                 callback_function=lambda: self._calculate_cosine_distances(word_evaluations))
 
             self._log_service.log_debug('Loaded cosine distances')
 
         if ExperimentType.EuclideanDistance in experiment_types:
             result[ExperimentType.EuclideanDistance] = self._cache_service.get_item_from_cache(
-                item_key='euclidean-distances',
+                item_key=f'euclidean-distances{random_suffix}',
                 callback_function=lambda: self._calculate_euclidean_distances(word_evaluations))
 
             self._log_service.log_debug('Loaded euclidean distances')
