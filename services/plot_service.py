@@ -29,6 +29,7 @@ plt.rcParams['font.sans-serif'] = 'cm'
 #        r'\sansmath'               # <- tricky! -- gotta actually tell tex to use!
 # ]
 
+
 class PlotService:
     def __init__(
             self,
@@ -43,8 +44,9 @@ class PlotService:
 
     def create_plot(self) -> Axes:
         fig = plt.figure()
-        fig.canvas.start_event_loop(sys.float_info.min) #workaround for Exception in Tkinter callback
-        ax = fig.add_subplot(1,1,1)
+        # workaround for Exception in Tkinter callback
+        fig.canvas.start_event_loop(sys.float_info.min)
+        ax = fig.add_subplot(1, 1, 1)
         # ax = plt.subplot()
         return ax
 
@@ -162,7 +164,8 @@ class PlotService:
         xtick_labels = unique_labels
         if xticks_count is not None:
 
-            indices = np.round(np.linspace(0, len(xticks) - 1, xticks_count)).astype(int)
+            indices = np.round(np.linspace(
+                0, len(xticks) - 1, xticks_count)).astype(int)
             leftover_ticks = [xticks[idx] for idx in indices]
             xtick_labels = [unique_labels[idx] for idx in indices]
 
@@ -216,6 +219,52 @@ class PlotService:
             plt.show()
 
         plt.clf()
+
+        return ax
+
+    def plot_distribution(
+            self,
+            counts: Counter,
+            ax=None,
+            ylim: float = None,
+            xlim: float = None,
+            title: str = None,
+            title_padding: float = None,
+            save_path: str = None,
+            filename: str = None,
+            tight_layout: bool = True,
+            hide_axis: bool = False,
+            color: str = None,
+            fill: bool = False):
+
+        if ax is None:
+            ax = self.create_plot()
+
+        counts_list = []
+        for k, v in counts.items():
+            for _ in range(v):
+                counts_list.append(k)
+
+        ax = sns.kdeplot(
+            counts_list,
+            color=color,
+            fill=fill,
+            ax=ax)
+
+        if ylim is not None:
+            ax.set_ylim(ylim[0], ylim[1])
+
+        if xlim is not None:
+            ax.set_xlim(xlim[0], xlim[1])
+
+        self._add_properties(
+            ax,
+            title,
+            title_padding,
+            save_path,
+            filename,
+            hide_axis,
+            tight_layout)
 
         return ax
 
@@ -367,7 +416,8 @@ class PlotService:
         if font_sizes is None or len(font_sizes) < len(labels):
             font_sizes = [self._default_font_size for _ in range(len(labels))]
         else:
-            font_sizes = [font_sizes[i] if font_sizes[i] is not None else self._default_font_size for i in range(len(font_sizes))]
+            font_sizes = [font_sizes[i] if font_sizes[i]
+                          is not None else self._default_font_size for i in range(len(font_sizes))]
 
         for i, (label, x, y) in enumerate(zip(labels, x_values, y_values)):
             weight = 'light'
@@ -560,13 +610,13 @@ class PlotService:
         plt.show()
 
     def set_plot_properties(
-        self,
-        ax: Axes,
-        title: str = None,
-        title_padding: float = None,
-        hide_axis: bool = False,
-        tight_layout: bool = True,
-        legend_options: LegendOptions = None):
+            self,
+            ax: Axes,
+            title: str = None,
+            title_padding: float = None,
+            hide_axis: bool = False,
+            tight_layout: bool = True,
+            legend_options: LegendOptions = None):
 
         if tight_layout:
             plt.tight_layout()
@@ -581,17 +631,17 @@ class PlotService:
             ax.set_title(title, pad=title_padding,
                          fontdict={'fontweight': 'bold'})
 
-
     def show_legend(
-        self,
-        ax: Axes,
-        legend_options: LegendOptions):
+            self,
+            ax: Axes,
+            legend_options: LegendOptions):
 
         if legend_options is None or not legend_options.show_legend:
             return
 
         if legend_options.legend_colors is not None and len(legend_options.legend_colors) > 0:
-            legend_lines = self._create_legend_lines(legend_options.legend_colors)
+            legend_lines = self._create_legend_lines(
+                legend_options.legend_colors)
             if legend_options.legend_labels is not None and len(legend_options.legend_labels) > 0:
                 ax.legend(legend_lines, legend_options.legend_labels)
             else:
@@ -599,19 +649,18 @@ class PlotService:
         else:
             ax.legend()
 
-
     def save_plot(
-        self,
-        save_path: str,
-        filename: str):
+            self,
+            save_path: str,
+            filename: str):
         self._data_service.save_figure(save_path, filename, no_axis=False)
 
     def _create_legend_lines(
-        self,
-        legend_colors: List[str]) -> List[Artist]:
-        lines = [Line2D([0], [0], color=color, lw=4) for color in legend_colors]
+            self,
+            legend_colors: List[str]) -> List[Artist]:
+        lines = [Line2D([0], [0], color=color, lw=4)
+                 for color in legend_colors]
         return lines
-
 
     def _add_properties(
             self,

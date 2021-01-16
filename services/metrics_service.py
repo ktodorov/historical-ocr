@@ -1,11 +1,15 @@
 import jellyfish
 from sklearn.metrics import f1_score, precision_score, recall_score, precision_recall_fscore_support
 import scipy.spatial.distance as scipy_distances
+from sklearn.metrics.pairwise import cosine_distances
 
 from typing import Tuple
 
 
 class MetricsService:
+    def __init__(self):
+        pass
+
     def calculate_jaccard_similarity(self, list1: list, list2: list) -> float:
         if len(list1) == 0 and len(list2) == 0:
             return 0
@@ -82,3 +86,20 @@ class MetricsService:
 
         cosine_distance = scipy_distances.cosine(list1, list2)
         return cosine_distance - 1
+
+
+    def calculate_cosine_similarities(self, matrix1: np.ndarray, matrix2: np.ndarray) -> float:
+        """
+        Calculates cosine similarity using scipy cosine distance.
+
+        Original formula is `cosine_distance = 1 - cosine_similarity`.
+        Thus `cosine_similarity = cosine_distance + 1`
+
+        Results are to be described as
+        - −1 meaning exactly opposite
+        - +1 meaning exactly the same
+        - 0 indicating orthogonality
+        """
+
+        cosine_distance = cosine_distances(matrix1, matrix2)
+        return cosine_distance

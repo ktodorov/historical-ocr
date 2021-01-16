@@ -1,3 +1,4 @@
+from entities.word_neighbourhood_stats import WordNeighbourhoodStats
 import os
 from services.tagging_service import TaggingService
 from enums.part_of_speech import PartOfSpeech
@@ -65,7 +66,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         result = {experiment_type: {} for experiment_type in experiment_types}
 
         random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
-        separate_suffix= '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else ''
+        separate_suffix = '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else ''
         word_evaluations: List[WordEvaluation] = self._cache_service.get_item_from_cache(
             item_key=f'word-evaluations{random_suffix}{separate_suffix}',
             callback_function=self._generate_embeddings)
@@ -85,6 +86,18 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
             self._log_service.log_debug('Loaded cosine distances')
 
+        if ExperimentType.NeighbourhoodOverlap in experiment_types:
+            result[ExperimentType.NeighbourhoodOverlap] = self._cache_service.get_item_from_cache(
+                item_key=f'neighbourhood-overlaps{random_suffix}',
+                callback_function=lambda: self._generate_neighbourhood_similarity(word_evaluations))
+
+            self._log_service.log_debug('Loaded neighbourhood overlaps')
+
+        if ExperimentType.CosineDistance in experiment_types and ExperimentType.NeighbourhoodOverlap in experiment_types:
+            self._generate_neighbourhood_plots(
+                word_evaluations,
+                result[ExperimentType.CosineDistance])
+
         if ExperimentType.EuclideanDistance in experiment_types:
             result[ExperimentType.EuclideanDistance] = self._cache_service.get_item_from_cache(
                 item_key=f'euclidean-distances{random_suffix}',
@@ -94,10 +107,29 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         # a, b, c = procrustes(model1_embeddings, model2_embeddings)
 
-        self._generate_neighbourhood_similarity_results(
-            result, word_evaluations)
-
         self._save_experiment_results(result)
+
+    def _generate_neighbourhood_plots(
+            self,
+            word_evaluations,
+            cosine_distances: Dict[str, float]):
+        target_tokens = self._get_target_tokens(cosine_distances)
+        for target_token in target_tokens:
+            i = next(i for i, word_evaluation in enumerate(
+                word_evaluations) if word_evaluation.word == target_token)
+
+            if i is None:
+                continue
+
+            word_evaluation = word_evaluations[i]
+            remaining_words = word_evaluations[:i] + word_evaluations[i+1:]
+            word_neighbourhood_stats = self._word_neighbourhood_service.get_word_neighbourhoods(
+                word_evaluation,
+                remaining_words)
+
+            self._word_neighbourhood_service.plot_word_neighbourhoods(
+                word_evaluation,
+                word_neighbourhood_stats)
 
     def _calculate_cosine_similarities(self, word_evaluations: List[WordEvaluation]) -> Dict[str, float]:
         result = {}
@@ -176,93 +208,120 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
     def _save_experiment_results(self, result: Dict[ExperimentType, Dict[str, float]]):
         experiments_folder = self._file_service.get_experiments_path()
-        distances_folder = self._file_service.combine_path(
-            experiments_folder, 'distances', create_if_missing=True)
 
-        self._log_service.log_debug(
-            f'Saving experiment results [Distances] at \'{distances_folder}\'')
+        experiment_xlims = {
+            ExperimentType.CosineDistance: (-0.05, 1.05),
+            ExperimentType.NeighbourhoodOverlap: (-0.5, 10.5)
+        }
 
         for experiment_type, word_value_pairs in result.items():
-            values = [round(x, 1) for x in word_value_pairs.values()]
+            experiment_type_folder = self._file_service.combine_path(
+                experiments_folder,
+                experiment_type.value,
+                create_if_missing=True)
 
+            self._log_service.log_debug(
+                f'Saving \'{experiment_type.value}\' experiment results at \'{experiment_type_folder}\'')
+
+            values = [round(x, 1) for x in word_value_pairs.values()]
             if values is None or len(values) == 0:
                 continue
 
             counter = Counter(values)
+            xlim = None
+            if experiment_type in experiment_xlims.keys():
+                xlim = experiment_xlims[experiment_type]
 
-            filename = f'{self._arguments_service.get_configuration_name()}-{experiment_type.value}'
-            self._log_service.log_debug(
-                f'Saving {experiment_type} as {filename}')
-            self._plot_service.plot_counters_histogram(
-                counter_labels=['a'],
-                counters=[counter],
+            filename = self._arguments_service.get_configuration_name()
+            # self._plot_service.plot_counters_histogram(
+            #     counter_labels=['a'],
+            #     counters=[counter],
+            #     title=experiment_type.value,
+            #     show_legend=False,
+            #     counter_colors=['royalblue'],
+            #     bars_padding=0,
+            #     plot_values_above_bars=True,
+            #     save_path=experiment_type_folder,
+            #     filename=f'{filename}-plt')
+            self._plot_service.plot_distribution(
+                counts=counter,
                 title=experiment_type.value,
-                show_legend=False,
-                counter_colors=['royalblue'],
-                bars_padding=0,
-                plot_values_above_bars=True,
-                save_path=distances_folder,
-                filename=filename)
+                save_path=experiment_type_folder,
+                filename=filename,
+                color='royalblue',
+                fill=True,
+                xlim=xlim)
 
-    def _generate_neighbourhood_similarity_results(self, result: Dict[ExperimentType, Dict[str, float]], word_evaluations: List[WordEvaluation]):
+    def _generate_neighbourhood_similarity(
+            self,
+            word_evaluations: List[WordEvaluation]) -> Dict[str, int]:
         self._log_service.log_debug(
             'Generating neighbourhood similarity results')
 
-        target_tokens = self._get_target_tokens(result)
-        for (target_token, _) in tqdm(iterable=target_tokens, desc='Generating neighbourhood plots', total=len(target_tokens)):
-            target_word_evaluation = next(
-                (w for w in word_evaluations if w.word == target_token), None)
-            if target_word_evaluation is None:
-                raise Exception('Could not find target word')
+        random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
+        temp_results_key = f'neighbourhood-overlaps{random_suffix}-temp'
+        result = self._cache_service.get_item_from_cache(temp_results_key, lambda: {})
 
-            remaining_words = [
-                word_evaluation
-                for word_evaluation in word_evaluations
-                if word_evaluation.word != target_word_evaluation.word]
+        common_words_indices = [i for i, word_evaluation in enumerate(word_evaluations) if (
+            word_evaluation.contains_all_embeddings() and word_evaluation.word not in result.keys())]
 
-            word_neighbourhoods = self._word_neighbourhood_service.get_word_neighbourhoods(
-                target_word_evaluation, remaining_words)
 
-            self._word_neighbourhood_service.plot_word_neighbourhoods(
-                target_word_evaluation,
-                word_neighbourhoods=word_neighbourhoods)
+        for i in tqdm(iterable=common_words_indices, desc=f'Calculating neighbourhood overlaps', total=len(common_words_indices)):
+            word_evaluation = word_evaluations[i]
+            remaining_words = word_evaluations[:i] + word_evaluations[i+1:]
+            word_neighbourhood_stats = self._word_neighbourhood_service.get_word_neighbourhoods(
+                word_evaluation,
+                remaining_words)
+
+            result[word_evaluation.word] = word_neighbourhood_stats.overlaps_amount
+
+            # Plot word neighbourhoods for the target tokens
+            # if word_evaluation.word in target_tokens:
+            #     self._word_neighbourhood_service.plot_word_neighbourhoods(
+            #         word_evaluation,
+            #         word_neighbourhood_stats)
+
+            if i % 500 == 0:
+                self._cache_service.cache_item(temp_results_key, result)
+
+        return result
+
 
     def _get_target_tokens(
             self,
-            result,
-            metric: ExperimentType = ExperimentType.CosineDistance,
-            pos_tags: List[PartOfSpeech] = [PartOfSpeech.Noun, PartOfSpeech.Verb]) -> List[Tuple[str, float]]:
-        if metric not in result.keys():
-            raise Exception(f'Metric {metric} not calculated')
-
+            cosine_distances: Dict[str, float],
+            pos_tags: List[PartOfSpeech] = [PartOfSpeech.Noun, PartOfSpeech.Verb]) -> List[str]:
         metric_results = [(word, distance)
-                          for word, distance in result[metric].items()
+                          for word, distance in cosine_distances.items()
                           if self._tagging_service.word_is_specific_tag(word, pos_tags)]
 
-        metric_results.sort(key=lambda x: x[1])
+        metric_results.sort(key=lambda x: x[1], reverse=True)
 
-        top_100_most_changed_words = [result[0] for result in metric_results[-100:][::-1]]
-        top_100_string = ', '.join(top_100_most_changed_words)
-        self._log_service.log_debug(f'Top 100 most changed words: [{top_100_string}]')
+        most_changed_100 = [result[0] for result in metric_results[-100:]]
+        most_changed_100_string = ', '.join(most_changed_100)
+        self._log_service.log_debug(
+            f'Most changed 100 words: [{most_changed_100_string}]')
 
-        most_changed = self._map_target_tokens(metric_results[::-1], targets_count=10)
+        most_changed = self._map_target_tokens(
+            metric_results,
+            targets_count=10)
 
         log_message = f'Target words to be used: [' + \
-            ', '.join([x[0] for x in most_changed]) + ']'
+            ', '.join(most_changed) + ']'
         self._log_service.log_info(log_message)
 
         return most_changed
 
     def _map_target_tokens(
-        self,
-        ordered_tuples: List[Tuple[str, float]],
-        targets_count: int):
+            self,
+            ordered_tuples: List[Tuple[str, float]],
+            targets_count: int) -> List[str]:
         result_tuples = []
         preferred_tokens = self._get_preferred_target_tokens()
 
         for tuple in ordered_tuples:
             if preferred_tokens is None or tuple[0] in preferred_tokens:
-                result_tuples.append(tuple)
+                result_tuples.append(tuple[0])
 
             if len(result_tuples) == targets_count:
                 return result_tuples

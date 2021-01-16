@@ -1,3 +1,4 @@
+from services.fit_transformation_service import FitTransformationService
 from services.tagging_service import TaggingService
 from datasets.evaluation_dataset import EvaluationDataset
 from datasets.ppmi_dataset import PPMIDataset
@@ -331,13 +332,17 @@ class IocContainer(containers.DeclarativeContainer):
     #     joint_model=joint_model,
     #     configuration=configuration)
 
+    fit_transformation_service = providers.Factory(
+        FitTransformationService)
+
     word_neighbourhood_service = providers.Factory(
         WordNeighbourhoodService,
         arguments_service=arguments_service,
         metrics_service=metrics_service,
         plot_service=plot_service,
         file_service=file_service,
-        log_service=log_service)
+        log_service=log_service,
+        fit_transformation_service=fit_transformation_service)
 
     experiment_service_selector = providers.Callable(
         get_experiment_service,

@@ -5,3 +5,4 @@ class ExperimentType(ArgumentEnum):
     CosineDistance = 'cosine-distance'
     EuclideanDistance = 'euclidean-distance'
     KLDivergence = 'kl-divergence'
+    NeighbourhoodOverlap = 'neighbourhood-overlap'
