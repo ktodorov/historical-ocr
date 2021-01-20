@@ -265,7 +265,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         ]
 
         colors = {
-            Configuration.CBOW: 'royablue',
+            Configuration.CBOW: 'royalblue',
             Configuration.PPMI: 'seagreen',
             Configuration.SkipGram: 'lightcoral',
             Configuration.BERT: 'gold',
@@ -300,6 +300,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 counts=counter,
                 color=colors[configuration],
                 fill=True,
+                xlim=(0,10),
                 ax=ax)
 
         self._plot_service.set_plot_properties(
