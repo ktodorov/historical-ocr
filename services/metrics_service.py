@@ -1,4 +1,5 @@
 import jellyfish
+import numpy as np
 from sklearn.metrics import f1_score, precision_score, recall_score, precision_recall_fscore_support
 import scipy.spatial.distance as scipy_distances
 from sklearn.metrics.pairwise import cosine_distances
@@ -61,7 +62,7 @@ class MetricsService:
         return result
 
     def calculate_cosine_distance(self, list1: list, list2: list) -> float:
-        if all(x == 0 for x in list1) and all(x == 0 for x in list2):
+        if np.sum(list1) == 0 or np.sum(list2) == 0:
             return 0
 
         cosine_distance = scipy_distances.cosine(list1, list2)

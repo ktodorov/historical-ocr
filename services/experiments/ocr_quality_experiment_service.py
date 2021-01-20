@@ -8,13 +8,11 @@ import numpy as np
 from entities.word_evaluation import WordEvaluation
 import math
 from services.cache_service import CacheService
-from matplotlib.pyplot import xticks
 from overrides.overrides import overrides
 from typing import Counter, List, Dict, Tuple
 from overrides import overrides
 from scipy.spatial import procrustes
 from tqdm import tqdm
-from decimal import Decimal
 
 from enums.experiment_type import ExperimentType
 
@@ -28,8 +26,6 @@ from services.metrics_service import MetricsService
 from services.plot_service import PlotService
 from services.word_neighbourhood_service import WordNeighbourhoodService
 from services.log_service import LogService
-
-from utils.dict_utils import stringify_dictionary
 
 
 class OCRQualityExperimentService(ExperimentServiceBase):
@@ -233,16 +229,6 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 xlim = experiment_xlims[experiment_type]
 
             filename = self._arguments_service.get_configuration_name()
-            # self._plot_service.plot_counters_histogram(
-            #     counter_labels=['a'],
-            #     counters=[counter],
-            #     title=experiment_type.value,
-            #     show_legend=False,
-            #     counter_colors=['royalblue'],
-            #     bars_padding=0,
-            #     plot_values_above_bars=True,
-            #     save_path=experiment_type_folder,
-            #     filename=f'{filename}-plt')
             self._plot_service.plot_distribution(
                 counts=counter,
                 title=experiment_type.value,
@@ -260,11 +246,11 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
         temp_results_key = f'neighbourhood-overlaps{random_suffix}-temp'
-        result = self._cache_service.get_item_from_cache(temp_results_key, lambda: {})
+        result = self._cache_service.get_item_from_cache(
+            temp_results_key, lambda: {})
 
         common_words_indices = [i for i, word_evaluation in enumerate(word_evaluations) if (
             word_evaluation.contains_all_embeddings() and word_evaluation.word not in result.keys())]
-
 
         for i in tqdm(iterable=common_words_indices, desc=f'Calculating neighbourhood overlaps', total=len(common_words_indices)):
             word_evaluation = word_evaluations[i]
@@ -275,17 +261,10 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
             result[word_evaluation.word] = word_neighbourhood_stats.overlaps_amount
 
-            # Plot word neighbourhoods for the target tokens
-            # if word_evaluation.word in target_tokens:
-            #     self._word_neighbourhood_service.plot_word_neighbourhoods(
-            #         word_evaluation,
-            #         word_neighbourhood_stats)
-
             if i % 500 == 0:
                 self._cache_service.cache_item(temp_results_key, result)
 
         return result
-
 
     def _get_target_tokens(
             self,
