@@ -1,3 +1,5 @@
+from entities.plot.legend_options import LegendOptions
+from enums.configuration import Configuration
 from entities.word_neighbourhood_stats import WordNeighbourhoodStats
 import os
 from services.tagging_service import TaggingService
@@ -67,27 +69,27 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             item_key=f'word-evaluations{random_suffix}{separate_suffix}',
             callback_function=self._generate_embeddings)
 
-        self._log_service.log_debug('Loaded word evaluations')
+        self._log_service.log_info('Loaded word evaluations')
 
         # if ExperimentType.CosineSimilarity in experiment_types:
         #     result[ExperimentType.CosineSimilarity] = self._cache_service.get_item_from_cache(
         #         item_key=f'cosine-similarities{random_suffix}',
         #         callback_function=lambda: self._calculate_cosine_similarities(word_evaluations))
-        #     self._log_service.log_debug('Loaded cosine similarities')
+        #     self._log_service.log_info('Loaded cosine similarities')
 
         if ExperimentType.CosineDistance in experiment_types:
             result[ExperimentType.CosineDistance] = self._cache_service.get_item_from_cache(
                 item_key=f'cosine-distances{random_suffix}',
                 callback_function=lambda: self._calculate_cosine_distances(word_evaluations))
 
-            self._log_service.log_debug('Loaded cosine distances')
+            self._log_service.log_info('Loaded cosine distances')
 
         if ExperimentType.NeighbourhoodOverlap in experiment_types:
             result[ExperimentType.NeighbourhoodOverlap] = self._cache_service.get_item_from_cache(
                 item_key=f'neighbourhood-overlaps{random_suffix}',
                 callback_function=lambda: self._generate_neighbourhood_similarity(word_evaluations))
 
-            self._log_service.log_debug('Loaded neighbourhood overlaps')
+            self._log_service.log_info('Loaded neighbourhood overlaps')
 
         if ExperimentType.CosineDistance in experiment_types and ExperimentType.NeighbourhoodOverlap in experiment_types:
             self._generate_neighbourhood_plots(
@@ -99,11 +101,14 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 item_key=f'euclidean-distances{random_suffix}',
                 callback_function=lambda: self._calculate_euclidean_distances(word_evaluations))
 
-            self._log_service.log_debug('Loaded euclidean distances')
+            self._log_service.log_info('Loaded euclidean distances')
 
         # a, b, c = procrustes(model1_embeddings, model2_embeddings)
 
+        self._log_service.log_info('Saving experiment results')
         self._save_experiment_results(result)
+
+        self._log_service.log_info('Experiments calculation completed successfully')
 
     def _generate_neighbourhood_plots(
             self,
@@ -203,6 +208,13 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         return result
 
     def _save_experiment_results(self, result: Dict[ExperimentType, Dict[str, float]]):
+        self._save_individual_experiments(result)
+
+        self._log_service.log_info('Generating plots')
+
+        self._generate_common_plots()
+
+    def _save_individual_experiments(self, result: Dict[ExperimentType, Dict[str, float]]):
         experiments_folder = self._file_service.get_experiments_path()
 
         experiment_xlims = {
@@ -237,6 +249,70 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 color='royalblue',
                 fill=True,
                 xlim=xlim)
+
+    def _generate_common_plots(self):
+        experiments_folder = self._file_service.get_experiments_path()
+        experiment_type_folder = self._file_service.combine_path(
+            experiments_folder,
+            ExperimentType.NeighbourhoodOverlap.value,
+            create_if_missing=True)
+
+        configurations = [
+            Configuration.CBOW,
+            Configuration.PPMI,
+            Configuration.SkipGram,
+            Configuration.BERT,
+        ]
+
+        colors = {
+            Configuration.CBOW: 'royablue',
+            Configuration.PPMI: 'seagreen',
+            Configuration.SkipGram: 'lightcoral',
+            Configuration.BERT: 'gold',
+        }
+
+        overlaps = {}
+
+        ax = self._plot_service.create_plot()
+
+        random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
+        cache_key = f'neighbourhood-overlaps{random_suffix}'
+        for configuration in configurations:
+            if not self._cache_service.item_exists(
+                cache_key,
+                configuration=configuration):
+                continue
+
+            config_overlaps = self._cache_service.get_item_from_cache(
+                cache_key,
+                configuration=configuration)
+
+            if config_overlaps is None:
+                continue
+
+            values = [round(x, 1) for x in config_overlaps.values()]
+            if values is None or len(values) == 0:
+                continue
+
+            counter = Counter(values)
+            overlaps[configuration] = counter
+            self._plot_service.plot_distribution(
+                counts=counter,
+                color=colors[configuration],
+                fill=True,
+                ax=ax)
+
+        self._plot_service.set_plot_properties(
+            ax=ax,
+            title=f'Neighbourhood overlaps ({self._arguments_service.language.value})',
+            legend_options=LegendOptions(
+                show_legend=True,
+                legend_colors=[colors[k] for k in overlaps.keys()],
+                legend_labels=[k.value for k in overlaps.keys()]))
+
+        self._plot_service.save_plot(
+            save_path=experiment_type_folder,
+            filename=f'{self._arguments_service.language.value}-combined-neighbourhood-overlaps')
 
     def _generate_neighbourhood_similarity(
             self,

@@ -1,3 +1,4 @@
+from enums.configuration import Configuration
 import os
 from services.log_service import LogService
 import time
@@ -47,16 +48,19 @@ class CacheService:
             callback_function: Callable = None,
             time_to_keep: Timespan = None,
             configuration_specific: bool = True,
-            challenge_specific: bool = True) -> Any:
-        cache_folder = self._get_cache_folder_path(
-            configuration_specific=configuration_specific,
-            challenge_specific=challenge_specific)
-
+            challenge_specific: bool = True,
+            configuration: Configuration = None) -> Any:
         cached_object = None
         if self.item_exists(
                 item_key=item_key,
                 configuration_specific=configuration_specific,
-                challenge_specific=challenge_specific):
+                challenge_specific=challenge_specific,
+                configuration=configuration):
+            cache_folder = self._get_cache_folder_path(
+                configuration_specific=configuration_specific,
+                challenge_specific=challenge_specific,
+                configuration=configuration)
+
             # try to get the cached object
             cached_object = self._data_service.load_python_obj(
                 cache_folder,
@@ -78,7 +82,8 @@ class CacheService:
                 item_key,
                 cached_object,
                 configuration_specific=configuration_specific,
-                challenge_specific=challenge_specific)
+                challenge_specific=challenge_specific,
+                configuration=configuration)
 
         return cached_object
 
@@ -102,15 +107,19 @@ class CacheService:
             item: object,
             overwrite: bool = True,
             configuration_specific: bool = True,
-            challenge_specific: bool = True):
+            challenge_specific: bool = True,
+            configuration: Configuration = None):
         self._log_service.log_debug(
             f'Attempting to cached object item with key {item_key} [config-specific: {configuration_specific} | challenge-specific: {challenge_specific}]')
-        if not overwrite and self.item_exists(item_key):
+        if not overwrite and self.item_exists(
+                item_key,
+                configuration=configuration):
             return
 
         cache_folder = self._get_cache_folder_path(
             configuration_specific=configuration_specific,
-            challenge_specific=challenge_specific)
+            challenge_specific=challenge_specific,
+            configuration=configuration)
 
         saved = self._data_service.save_python_obj(
             item,
@@ -126,10 +135,12 @@ class CacheService:
             self,
             item_key: str,
             configuration_specific: bool = True,
-            challenge_specific: bool = True) -> bool:
+            challenge_specific: bool = True,
+            configuration: Configuration = None) -> bool:
         cache_folder = self._get_cache_folder_path(
             configuration_specific=configuration_specific,
-            challenge_specific=challenge_specific)
+            challenge_specific=challenge_specific,
+            configuration=configuration)
 
         result = self._data_service.check_python_object(
             cache_folder,
@@ -171,12 +182,22 @@ class CacheService:
     def _get_cache_folder_path(
             self,
             challenge_specific: bool,
-            configuration_specific: bool):
+            configuration_specific: bool,
+            configuration: Configuration = None):
         if not challenge_specific:
             return self._global_cache_folder
 
         if not configuration_specific:
             return self._challenge_cache_folder
+
+        if configuration is not None:
+            result = self._file_service.combine_path(
+                self._challenge_cache_folder,
+                configuration.value.lower(),
+                self._arguments_service.language.value.lower(),
+                create_if_missing=True)
+
+            return result
 
         return self._internal_cache_folder
 
