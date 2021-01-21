@@ -100,7 +100,8 @@ class PPMI(ModelBase):
         assert len(embeddings[0]) == len(self._common_word_ids)
 
         result = [
-            WordEvaluation(token, embeddings_list=[embeddings[i]])
+            WordEvaluation(token, embeddings_list=[
+                           embeddings[i] if not skip_unknown or self._vocabulary_service.token_exists(token) else None])
             for i, token in enumerate(tokens)]
 
         return result
