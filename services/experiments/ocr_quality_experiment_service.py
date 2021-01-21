@@ -296,12 +296,13 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
             counter = Counter(values)
             overlaps[configuration] = counter
-            self._plot_service.plot_distribution(
+            ax = self._plot_service.plot_distribution(
                 counts=counter,
                 color=colors[configuration],
                 fill=True,
-                xlim=(0,10),
+                ylim=(0,0.5),
                 ax=ax)
+
 
         self._plot_service.set_plot_properties(
             ax=ax,
@@ -313,7 +314,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         self._plot_service.save_plot(
             save_path=experiment_type_folder,
-            filename=f'{self._arguments_service.language.value}-combined-neighbourhood-overlaps')
+            filename=f'combined-neighbourhood-overlaps-{self._arguments_service.language.value}')
 
     def _generate_neighbourhood_similarity(
             self,

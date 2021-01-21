@@ -249,6 +249,8 @@ class PlotService:
             counts_list,
             color=color,
             fill=fill,
+            bw_method=.5,
+            cut=0,
             ax=ax)
 
         if ylim is not None:
@@ -639,13 +641,16 @@ class PlotService:
         if legend_options is None or not legend_options.show_legend:
             return
 
+        bbox_to_anchor=(1.04, 1) if legend_options.external_legend else None
+        legend_location = "upper left" if legend_options.external_legend else None
+
         if legend_options.legend_colors is not None and len(legend_options.legend_colors) > 0:
             legend_lines = self._create_legend_lines(
                 legend_options.legend_colors)
             if legend_options.legend_labels is not None and len(legend_options.legend_labels) > 0:
-                ax.legend(legend_lines, legend_options.legend_labels)
+                ax.legend(legend_lines, legend_options.legend_labels, bbox_to_anchor=bbox_to_anchor, loc=legend_location)
             else:
-                ax.legend(legend_lines)
+                ax.legend(legend_lines, bbox_to_anchor=bbox_to_anchor, loc=legend_location)
         else:
             ax.legend()
 
