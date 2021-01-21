@@ -24,7 +24,7 @@ class OCREvaluationArgumentsService(PretrainedArgumentsService):
     def _add_specific_arguments(self, parser: argparse.ArgumentParser):
         super()._add_specific_arguments(parser)
 
-        parser.add_argument('--minimal-occurrence-limit', type=int, default=5,
+        parser.add_argument('--minimal-occurrence-limit', type=int, default=None,
                             help='Minimal occurrence limit for words or tokens to be included in the vocabulary. This setting is not taken into account for configurations using pre-trained vocabularies')
 
         parser.add_argument('--separate-neighbourhood-vocabularies', action='store_true',

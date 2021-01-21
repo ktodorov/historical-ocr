@@ -113,10 +113,11 @@ class JointModel(ModelBase):
 
         for (ocr_output_type, model) in zip(self._ocr_output_types, self._inner_models):
             ocr_output_type_str = 'grt' if ocr_output_type == OCROutputType.GroundTruth else ocr_output_type.value
+            limit_suffix = f'-lim-{self._arguments_service.minimal_occurrence_limit}' if self._arguments_service.minimal_occurrence_limit is not None else ''
             model.load(
                 path=path,
                 name_prefix=name_prefix,
-                name_suffix=f'-{ocr_output_type_str}-lim-{self._arguments_service.minimal_occurrence_limit}',
+                name_suffix=f'-{ocr_output_type_str}{limit_suffix}',
                 load_model_dict=load_model_dict,
                 use_checkpoint_name=use_checkpoint_name,
                 checkpoint_name=checkpoint_name)
