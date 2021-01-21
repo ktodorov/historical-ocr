@@ -12,8 +12,8 @@ import unittest
 
 
 def initialize_container(
-    ocr_output_type: OCROutputType = None, 
-    override_args: dict = None) -> IocContainer:
+        ocr_output_type: OCROutputType = None,
+        override_args: dict = None) -> IocContainer:
     custom_args = {
         'data_folder': os.path.join('tests', 'data'),
         'challenge': Challenge.OCREvaluation,
@@ -54,7 +54,7 @@ class TestCBOW(unittest.TestCase):
         ids_tensor_1 = torch.Tensor(ids_1).long()
 
         model_1 = container_1.model()
-        embeddings_1 = model_1.get_embeddings(ids_tensor_1)
+        word_evaluations_1 = model_1.get_embeddings(tokens_1, ids_tensor_1)
 
         # Ground truth model
         container_2 = initialize_container(
@@ -67,13 +67,19 @@ class TestCBOW(unittest.TestCase):
         ids_tensor_2 = torch.Tensor(ids_2).long()
 
         model_2 = container_2.model()
-        embeddings_2 = model_2.get_embeddings(ids_tensor_2)
+        word_evaluations_2 = model_2.get_embeddings(tokens_2, ids_tensor_2)
 
         # Assert
-        for embedding_1, embedding_2 in zip(embeddings_1, embeddings_2):
-            self.assertEqual(embedding_1, embedding_2)
-            self.assertEqual(metrics_service.calculate_cosine_distance(
-                embedding_1, embedding_2), 0.0)
+        for word_evaluation_1, word_evaluation_2 in zip(word_evaluations_1, word_evaluations_2):
+            self.assertEqual(
+                word_evaluation_1.get_embeddings(0),
+                word_evaluation_2.get_embeddings(0))
+
+            self.assertEqual(
+                metrics_service.calculate_cosine_distance(
+                    word_evaluation_1.get_embeddings(0),
+                    word_evaluation_2.get_embeddings(0)),
+                0.0)
 
     def test_embedding_matrix_dutch_initialization(self):
         main_container = initialize_container(
@@ -94,7 +100,7 @@ class TestCBOW(unittest.TestCase):
         ids_tensor_1 = torch.Tensor(ids_1).long()
 
         model_1 = container_1.model()
-        embeddings_1 = model_1.get_embeddings(ids_tensor_1)
+        word_evaluations_1 = model_1.get_embeddings(tokens_1, ids_tensor_1)
 
         # Ground truth model
         container_2 = initialize_container(
@@ -109,13 +115,19 @@ class TestCBOW(unittest.TestCase):
         ids_tensor_2 = torch.Tensor(ids_2).long()
 
         model_2 = container_2.model()
-        embeddings_2 = model_2.get_embeddings(ids_tensor_2)
+        word_evaluations_2 = model_2.get_embeddings(tokens_2, ids_tensor_2)
 
         # Assert
-        for embedding_1, embedding_2 in zip(embeddings_1, embeddings_2):
-            self.assertEqual(embedding_1, embedding_2)
-            self.assertEqual(metrics_service.calculate_cosine_distance(
-                embedding_1, embedding_2), 0.0)
+        for word_evaluation_1, word_evaluation_2 in zip(word_evaluations_1, word_evaluations_2):
+            self.assertEqual(
+                word_evaluation_1.get_embeddings(0),
+                word_evaluation_2.get_embeddings(0))
+
+            self.assertEqual(
+                metrics_service.calculate_cosine_distance(
+                    word_evaluation_1.get_embeddings(0),
+                    word_evaluation_2.get_embeddings(0)),
+                0.0)
 
     def test_embedding_matrix_same_different_seeds(self):
         main_container = initialize_container()
@@ -136,7 +148,7 @@ class TestCBOW(unittest.TestCase):
         ids_tensor_1 = torch.Tensor(ids_1).long()
 
         model_1 = container_1.model()
-        embeddings_1 = model_1.get_embeddings(ids_tensor_1)
+        word_evaluations_1 = model_1.get_embeddings(tokens_1, ids_tensor_1)
 
         # Ground truth model
         container_2 = initialize_container(
@@ -153,13 +165,19 @@ class TestCBOW(unittest.TestCase):
         ids_tensor_2 = torch.Tensor(ids_2).long()
 
         model_2 = container_2.model()
-        embeddings_2 = model_2.get_embeddings(ids_tensor_2)
+        word_evaluations_2 = model_2.get_embeddings(tokens_2, ids_tensor_2)
 
         # Assert
-        for embedding_1, embedding_2 in zip(embeddings_1, embeddings_2):
-            self.assertEqual(embedding_1, embedding_2)
-            self.assertEqual(metrics_service.calculate_cosine_distance(
-                embedding_1, embedding_2), 0.0)
+        for word_evaluation_1, word_evaluation_2 in zip(word_evaluations_1, word_evaluations_2):
+            self.assertEqual(
+                word_evaluation_1.get_embeddings(0),
+                word_evaluation_2.get_embeddings(0))
+
+            self.assertEqual(
+                metrics_service.calculate_cosine_distance(
+                    word_evaluation_1.get_embeddings(0),
+                    word_evaluation_2.get_embeddings(0)),
+                0.0)
 
 
 if __name__ == '__main__':

@@ -54,30 +54,35 @@ class TestBERT(unittest.TestCase):
         container_1 = initialize_container(ocr_output_type=OCROutputType.Raw)
 
         tokenize_service_1 = container_1.tokenize_service()
-        encoded_sequences_1 = [tokenize_service_1.encode_sequence(token) for token in tokens]
+        encoded_sequences_1 = [
+            tokenize_service_1.encode_sequence(token) for token in tokens]
         ids_1 = [torch.Tensor(ids) for ids, _, _, _ in encoded_sequences_1]
-        ids_tensor_1 = torch.nn.utils.rnn.pad_sequence(ids_1, batch_first=True, padding_value=0).long()
+        ids_tensor_1 = torch.nn.utils.rnn.pad_sequence(
+            ids_1, batch_first=True, padding_value=0).long()
 
         model_1 = container_1.model()
-        embeddings_1 = model_1.get_embeddings(ids_tensor_1)
+        word_evaluations_1 = model_1.get_embeddings(tokens, ids_tensor_1)
 
         # Ground truth model
         container_2 = initialize_container(
             ocr_output_type=OCROutputType.GroundTruth)
 
         tokenize_service_2 = container_2.tokenize_service()
-        encoded_sequences_2 = [tokenize_service_2.encode_sequence(token) for token in tokens]
+        encoded_sequences_2 = [
+            tokenize_service_2.encode_sequence(token) for token in tokens]
         ids_2 = [torch.Tensor(ids) for ids, _, _, _ in encoded_sequences_2]
-        ids_tensor_2 = torch.nn.utils.rnn.pad_sequence(ids_2, batch_first=True, padding_value=0).long()
+        ids_tensor_2 = torch.nn.utils.rnn.pad_sequence(
+            ids_2, batch_first=True, padding_value=0).long()
 
         model_2 = container_2.model()
-        embeddings_2 = model_2.get_embeddings(ids_tensor_2)
+        word_evaluations_2 = model_2.get_embeddings(tokens, ids_tensor_2)
 
         # Assert
-        for embedding_1, embedding_2 in zip(embeddings_1, embeddings_2):
-            self.assertEqual(embedding_1, embedding_2)
+        for word_evaluation_1, word_evaluation_2 in zip(word_evaluations_1, word_evaluations_2):
+            self.assertEqual(word_evaluation_1.get_embeddings(
+                0), word_evaluation_2.get_embeddings(0))
             self.assertEqual(metrics_service.calculate_cosine_distance(
-                embedding_1, embedding_2), 0.0)
+                word_evaluation_1.get_embeddings(0), word_evaluation_2.get_embeddings(0)), 0.0)
 
     def test_embedding_matrix_dutch_initialization(self):
         override_args = {
@@ -97,12 +102,14 @@ class TestBERT(unittest.TestCase):
             override_args=override_args)
 
         tokenize_service_1 = container_1.tokenize_service()
-        encoded_sequences_1 = [tokenize_service_1.encode_sequence(token) for token in tokens]
+        encoded_sequences_1 = [
+            tokenize_service_1.encode_sequence(token) for token in tokens]
         ids_1 = [torch.Tensor(ids) for ids, _, _, _ in encoded_sequences_1]
-        ids_tensor_1 = torch.nn.utils.rnn.pad_sequence(ids_1, batch_first=True, padding_value=0).long()
+        ids_tensor_1 = torch.nn.utils.rnn.pad_sequence(
+            ids_1, batch_first=True, padding_value=0).long()
 
         model_1 = container_1.model()
-        embeddings_1 = model_1.get_embeddings(ids_tensor_1)
+        word_evaluations_1 = model_1.get_embeddings(tokens, ids_tensor_1)
 
         # Ground truth model
         container_2 = initialize_container(
@@ -110,18 +117,21 @@ class TestBERT(unittest.TestCase):
             override_args=override_args)
 
         tokenize_service_2 = container_2.tokenize_service()
-        encoded_sequences_2 = [tokenize_service_2.encode_sequence(token) for token in tokens]
+        encoded_sequences_2 = [
+            tokenize_service_2.encode_sequence(token) for token in tokens]
         ids_2 = [torch.Tensor(ids) for ids, _, _, _ in encoded_sequences_2]
-        ids_tensor_2 = torch.nn.utils.rnn.pad_sequence(ids_2, batch_first=True, padding_value=0).long()
+        ids_tensor_2 = torch.nn.utils.rnn.pad_sequence(
+            ids_2, batch_first=True, padding_value=0).long()
 
         model_2 = container_2.model()
-        embeddings_2 = model_2.get_embeddings(ids_tensor_2)
+        word_evaluations_2 = model_2.get_embeddings(tokens, ids_tensor_2)
 
         # Assert
-        for embedding_1, embedding_2 in zip(embeddings_1, embeddings_2):
-            self.assertEqual(embedding_1, embedding_2)
+        for word_evaluation_1, word_evaluation_2 in zip(word_evaluations_1, word_evaluations_2):
+            self.assertEqual(word_evaluation_1.get_embeddings(
+                0), word_evaluation_2.get_embeddings(0))
             self.assertEqual(metrics_service.calculate_cosine_distance(
-                embedding_1, embedding_2), 0.0)
+                word_evaluation_1.get_embeddings(0), word_evaluation_2.get_embeddings(0)), 0.0)
 
     def test_embedding_matrix_same_different_seed(self):
         tokens = ['test', 'token', 'bert', 'vocabulary', 'units', 'python']
@@ -136,12 +146,14 @@ class TestBERT(unittest.TestCase):
             })
 
         tokenize_service_1 = container_1.tokenize_service()
-        encoded_sequences_1 = [tokenize_service_1.encode_sequence(token) for token in tokens]
+        encoded_sequences_1 = [
+            tokenize_service_1.encode_sequence(token) for token in tokens]
         ids_1 = [torch.Tensor(ids) for ids, _, _, _ in encoded_sequences_1]
-        ids_tensor_1 = torch.nn.utils.rnn.pad_sequence(ids_1, batch_first=True, padding_value=0).long()
+        ids_tensor_1 = torch.nn.utils.rnn.pad_sequence(
+            ids_1, batch_first=True, padding_value=0).long()
 
         model_1 = container_1.model()
-        embeddings_1 = model_1.get_embeddings(ids_tensor_1)
+        word_evaluations_1 = model_1.get_embeddings(tokens, ids_tensor_1)
 
         # Ground truth model
         container_2 = initialize_container(
@@ -151,18 +163,26 @@ class TestBERT(unittest.TestCase):
             })
 
         tokenize_service_2 = container_2.tokenize_service()
-        encoded_sequences_2 = [tokenize_service_2.encode_sequence(token) for token in tokens]
+        encoded_sequences_2 = [
+            tokenize_service_2.encode_sequence(token) for token in tokens]
         ids_2 = [torch.Tensor(ids) for ids, _, _, _ in encoded_sequences_2]
-        ids_tensor_2 = torch.nn.utils.rnn.pad_sequence(ids_2, batch_first=True, padding_value=0).long()
+        ids_tensor_2 = torch.nn.utils.rnn.pad_sequence(
+            ids_2, batch_first=True, padding_value=0).long()
 
         model_2 = container_2.model()
-        embeddings_2 = model_2.get_embeddings(ids_tensor_2)
+        word_evaluations_2 = model_2.get_embeddings(tokens, ids_tensor_2)
 
         # Assert
-        for embedding_1, embedding_2 in zip(embeddings_1, embeddings_2):
-            self.assertEqual(embedding_1, embedding_2)
-            self.assertEqual(metrics_service.calculate_cosine_distance(
-                embedding_1, embedding_2), 0.0)
+        for word_evaluation_1, word_evaluation_2 in zip(word_evaluations_1, word_evaluations_2):
+            self.assertEqual(
+                word_evaluation_1.get_embeddings(0),
+                word_evaluation_2.get_embeddings(0))
+
+            self.assertEqual(
+                metrics_service.calculate_cosine_distance(
+                    word_evaluation_1.get_embeddings(0),
+                    word_evaluation_2.get_embeddings(0)),
+                0.0)
 
 
 if __name__ == '__main__':

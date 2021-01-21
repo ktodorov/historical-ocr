@@ -98,7 +98,7 @@ class TestNeighbourhoodPlots(unittest.TestCase):
 
         experiments_container = initialize_container(
             override_args={
-                'separate_neighbourhood_vocabularies': True,
+                'separate_neighbourhood_vocabularies': False,
                 'run_experiments': True,
                 'experiment_types': [ExperimentType.CosineSimilarity, ExperimentType.CosineDistance],
                 'batch_size': 128,

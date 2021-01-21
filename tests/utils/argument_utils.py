@@ -7,7 +7,7 @@ default_values = {
     'eval_freq': 50,
     'batch_size': 8,
     'max_training_minutes': 24 * 60,
-    'device' : 'cuda',
+    'device' : 'cpu',
     'seed': 42,
     'evaluate': False,
     'patience': 30,
@@ -56,4 +56,6 @@ default_values = {
     'fine_tune_pretrained': False,
     'fine_tune_after_convergence': False,
     'fine_tune_learning_rate': None,
+    'minimal_occurrence_limit': 5,
+    'initialize_randomly': False,
 }

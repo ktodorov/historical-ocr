@@ -40,9 +40,10 @@ class BERT(TransformerBase):
     def get_embeddings(self, tokens: List[str], vocab_ids: torch.Tensor, skip_unknown: bool = False) -> List[WordEvaluation]:
         outputs = self._transformer_model.forward(
             vocab_ids, output_hidden_states=True)
+
         # BatchSize X MaxLength X EmbeddingSize
         padded_embeddings = outputs[1][-1]
-        mask = (tokens > 0).unsqueeze(-1).repeat(1, 1, 768).float()
+        mask = (vocab_ids > 0).unsqueeze(-1).repeat(1, 1, 768).float()
         means = (torch.sum(padded_embeddings * mask, dim=1) /
                  mask.sum(dim=1)).cpu().tolist()
 
