@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 from entities.cbow.cbow_entry import CBOWEntry
 
@@ -10,6 +10,7 @@ class CBOWCorpus:
 
     def cut_data(self, corpus_size: int):
         self._entries = self._entries[:corpus_size]
+        self._total_documents = len(set([x.document_index for x in self._entries]))
 
     def _generate_skip_gram_entries(self, text_lines: List[List[int]]) -> List[CBOWEntry]:
         result = []
@@ -26,15 +27,20 @@ class CBOWCorpus:
 
         return result
 
-    def get_entry(self, idx: int) -> CBOWEntry:
-        return self._entries[idx]
+    def get_entries(self, ids: List[int]) -> List[CBOWEntry]:
+        return [self._entries[idx] for idx in ids]
 
-    def get_total_documents(self) -> int:
-        return self._total_documents
+    def get_indices_per_document(self) -> Dict[int, List[int]]:
+        result = {
+            i: []
+            for i in range(self._total_documents)
+        }
 
-    def get_document_indices(self, document_idx: int) -> List[int]:
-        document_indices = len([i for i, entry in enumerate(self._entries) if entry.document_index == document_idx])
-        return document_indices
+        for i, entry in enumerate(self._entries):
+            result[entry.document_index].append(i)
+
+        return result
+
 
     @property
     def length(self) -> int:
