@@ -1,4 +1,6 @@
+from datasets.document_dataset_base import DocumentDatasetBase
 from services.log_service import LogService
+from samplers.document_sampler import DocumentSampler
 import numpy as np
 
 from typing import Tuple
@@ -69,11 +71,18 @@ class DataLoaderService:
         self._log_service.log_debug(
             f'Initializing dataset for run type \'{run_type.value}\'')
         dataset = self._dataset_service.initialize_dataset(run_type)
-
-        data_loader: DataLoader = DataLoader(
-            dataset,
-            batch_size=batch_size,
-            shuffle=shuffle)
+        if isinstance(dataset, DocumentDatasetBase):
+            data_loader: DataLoader = DataLoader(
+                dataset,
+                sampler=DocumentSampler(
+                    dataset,
+                    shuffle=shuffle,
+                    batch_size=batch_size))
+        else:
+            data_loader: DataLoader = DataLoader(
+                dataset,
+                batch_size=batch_size,
+                shuffle=shuffle)
 
         if dataset.use_collate_function():
             data_loader.collate_fn = dataset.collate_function

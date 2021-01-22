@@ -1,13 +1,18 @@
 from typing import List
 
 class CBOWEntry:
-    def __init__(self, target_token: int, context_tokens: List[int]):
+    def __init__(self, document_idx: int, target_token: int, context_tokens: List[int]):
+        self._document_idx = document_idx
         self._target_token = target_token
         self._context_tokens = context_tokens
 
     def __repr__(self):
         context_words_string = "','".join(self._context_tokens)
         return f'target: \'{self._target_token}\' | context: [{context_words_string}]'
+
+    @property
+    def document_index(self) -> int:
+        return self._document_idx
 
     @property
     def target_token(self) -> int:

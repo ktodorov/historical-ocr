@@ -11,8 +11,6 @@ class OptimizerBase():
             self,
             arguments_service: ArgumentsServiceBase,
             model: ModelBase):
-        super(OptimizerBase, self).__init__()
-
         self._model = model
         self._learning_rate = arguments_service.learning_rate
         self._optimizer = None
