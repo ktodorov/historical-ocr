@@ -56,10 +56,10 @@ class TransformerProcessService(ProcessServiceBase):
 
         self._save_common_tokens()
 
-        ocr_entries = [TransformerEntry(ids, special_tokens_mask)
-                       for ids, _, _, special_tokens_mask in encoded_ocr_sequences]
-        gs_entries = [TransformerEntry(ids, special_tokens_mask)
-                      for ids, _, _, special_tokens_mask in encoded_gs_sequences]
+        ocr_entries = [TransformerEntry(i, ids, special_tokens_mask)
+                       for i, (ids, _, _, special_tokens_mask) in enumerate(encoded_ocr_sequences)]
+        gs_entries = [TransformerEntry(i, ids, special_tokens_mask)
+                      for i, (ids, _, _, special_tokens_mask) in enumerate(encoded_gs_sequences)]
 
         ocr_ids = [x.token_ids for x in ocr_entries]
         gs_ids = [x.token_ids for x in gs_entries]

@@ -1,15 +1,16 @@
+from typing import Dict, List
 import numpy as np
 import torch
 from overrides import overrides
 
-from datasets.dataset_base import DatasetBase
+from datasets.document_dataset_base import DocumentDatasetBase
 from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
 from services.mask_service import MaskService
 from services.log_service import LogService
 
 from services.process.transformer_process_service import TransformerProcessService
 
-class TransformerLMDataset(DatasetBase):
+class TransformerLMDataset(DocumentDatasetBase):
     def __init__(
             self,
             arguments_service: OCRQualityArgumentsService,
@@ -31,23 +32,13 @@ class TransformerLMDataset(DatasetBase):
         return len(self._entries)
 
     @overrides
-    def __getitem__(self, idx):
-        entry = self._entries[idx]
-        return (entry.token_ids, entry.mask_ids)
+    def __getitem__(self, ids):
+        entries = [self._entries[idx] for idx in ids]
+        batch_size = len(ids)
 
-    @overrides
-    def use_collate_function(self) -> bool:
-        return True
+        tokens_ids = [entry.token_ids for entry in entries]
+        masks = [entry.mask_ids for entry in entries]
 
-    @overrides
-    def collate_function(self, sequences):
-        return self._pad_and_sort_batch(sequences)
-
-    def _pad_and_sort_batch(self, DataLoaderBatch):
-        batch_size = len(DataLoaderBatch)
-        batch_split = list(zip(*DataLoaderBatch))
-
-        tokens_ids, masks = batch_split
         lengths = [len(sequence) for sequence in tokens_ids]
         max_length = max(lengths)
 
@@ -70,3 +61,16 @@ class TransformerLMDataset(DatasetBase):
         seq_tensor = sequences[perm_idx]
         mask_tensor = masks[perm_idx]
         return self._mask_service.mask_tokens(seq_tensor, mask_tensor, seq_lengths)
+
+    @overrides
+    def get_indices_per_document(self) -> Dict[int, List[int]]:
+        total_documents = len(set([x.document_index for x in self._entries]))
+        result = {
+            i: []
+            for i in range(total_documents)
+        }
+
+        for i, entry in enumerate(self._entries):
+            result[entry.document_index].append(i)
+
+        return result
