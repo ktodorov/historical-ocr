@@ -43,6 +43,9 @@ class TransformerLMDataset(DocumentDatasetBase):
         max_length = max(lengths)
 
         padded_sequences = np.zeros((batch_size, max_length), dtype=np.int64)
+        if self._arguments_service.padding_idx != 0:
+            padded_sequences.fill(self._arguments_service.padding_idx)
+
         padded_masks = np.ones((batch_size, max_length), dtype=np.int64)
 
         for i, l in enumerate(lengths):

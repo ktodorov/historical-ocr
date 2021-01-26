@@ -133,6 +133,9 @@ class ArgumentsServiceBase:
         parser.add_argument('--enable-verbose-logging', action='store_true',
                             help='Optionally enable verbose logging which will output details about most operations being performed during runs')
 
+        parser.add_argument('--padding-idx', type=int, default=0,
+                            help='Idx of the PAD token if used')
+
     def _validate_arguments(self, parser: argparse.ArgumentParser):
         pass
 
@@ -317,3 +320,7 @@ class ArgumentsServiceBase:
     @property
     def verbose_logging(self) -> bool:
         return self._get_argument('enable_verbose_logging')
+
+    @property
+    def padding_idx(self) -> int:
+        return self._get_argument('padding_idx')
