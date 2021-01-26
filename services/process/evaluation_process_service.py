@@ -38,16 +38,18 @@ class EvaluationProcessService(ProcessServiceBase):
             item_key='common-tokens-information',
             callback_function=self.get_common_words)
 
-        self._log_service.log_info(f'Loaded {len(common_tokens_information)} common words')
+        self._log_service.log_info(
+            f'Loaded {len(common_tokens_information)} common words')
 
         if pos_tags is not None:
             common_tokens_information = {
-                token: value 
+                token: value
                 for token, value in common_tokens_information.items()
                 if self._tagging_service.get_part_of_speech_tag(token) in pos_tags
             }
 
-            self._log_service.log_info(f'Filtered common words. Left with {len(common_tokens_information)} common words')
+            self._log_service.log_info(
+                f'Filtered common words. Left with {len(common_tokens_information)} common words')
 
         result = [
             TokenRepresentation(
@@ -81,12 +83,40 @@ class EvaluationProcessService(ProcessServiceBase):
 
             for word, vocab_ids in common_token_pairs:
                 if word not in result.keys():
-                    continue # means the word was UNK in another vocabulary
+                    continue  # means the word was UNK in another vocabulary
 
                 if vocab_ids is None:
-                    del result[word] # means the word is UNK in this vocabulary
+                    # means the word is UNK in this vocabulary
+                    del result[word]
                     continue
 
                 result[word].append(vocab_ids)
 
+        result = self._intersect_words(result)
+        return result
+
+    def _intersect_words(
+            self,
+            current_result: Dict[str, List[List[int]]]) -> Dict[str, List[List[int]]]:
+        common_tokens_all_configs = self._cache_service.get_item_from_cache(
+            item_key=f'common-tokens-{self._arguments_service.language.value}-all-config',
+            configuration_specific=False)
+
+        if common_tokens_all_configs is None:
+            common_tokens_all_configs = {}
+
+        common_tokens_all_configs[self._arguments_service.configuration] = list(
+            current_result.keys())
+
+        self._cache_service.cache_item(
+            item_key=f'common-tokens-{self._arguments_service.language.value}-all-config',
+            item=common_tokens_all_configs,
+            configuration_specific=False)
+
+        all_words_per_config = list(common_tokens_all_configs.values())
+        words_intersection = set(all_words_per_config[0]).intersection(
+            *all_words_per_config)
+
+        result = {k: v for k, v in current_result.items()
+                  if k in words_intersection}
         return result
