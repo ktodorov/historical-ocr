@@ -52,8 +52,8 @@ class BERTTokenizeService(BaseTokenizeService):
         return result
 
     @overrides
-    def encode_sequence(self, sequence: str) -> Tuple[List[int], List[str], List[Tuple[int,int]], List[int]]:
-        encoded_representation = self._tokenizer.encode(sequence)
+    def encode_sequence(self, sequence: str, add_special_tokens: bool = True) -> Tuple[List[int], List[str], List[Tuple[int,int]], List[int]]:
+        encoded_representation = self._tokenizer.encode(sequence, add_special_tokens=add_special_tokens)
         return (
             encoded_representation.ids,
             encoded_representation.tokens,

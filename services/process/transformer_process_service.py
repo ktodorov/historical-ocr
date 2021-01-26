@@ -83,7 +83,7 @@ class TransformerProcessService(ProcessServiceBase):
 
         token_id_pairs = []
         for common_token in common_tokens:
-            token_ids, _, _, _ = self._tokenize_service.encode_sequence(common_token)
+            token_ids, _, _, _ = self._tokenize_service.encode_sequence(common_token, add_special_tokens=False)
             token_id_pairs.append((common_token, token_ids))
 
         self._cache_service.cache_item(
