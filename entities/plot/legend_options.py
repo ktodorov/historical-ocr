@@ -1,3 +1,4 @@
+from enums.plot_legend_position import PlotLegendPosition
 from typing import List
 
 
@@ -7,11 +8,11 @@ class LegendOptions:
             show_legend: bool,
             legend_colors: List[str],
             legend_labels: List[str],
-            external_legend: bool = False):
+            legend_position: PlotLegendPosition = PlotLegendPosition.Automatic):
         self._show_legend = show_legend
         self._legend_colors: List[str] = legend_colors
         self._legend_labels: List[str] = legend_labels
-        self._external_legend = external_legend
+        self._legend_position = legend_position
 
     @property
     def show_legend(self) -> bool:
@@ -26,5 +27,5 @@ class LegendOptions:
         return self._legend_labels
 
     @property
-    def external_legend(self) -> bool:
-        return self._external_legend
+    def legend_position(self) -> PlotLegendPosition:
+        return self._legend_position

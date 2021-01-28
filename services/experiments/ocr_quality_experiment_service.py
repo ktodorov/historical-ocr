@@ -1,3 +1,4 @@
+from enums.plot_legend_position import PlotLegendPosition
 from entities.plot.legend_options import LegendOptions
 from enums.configuration import Configuration
 from entities.word_neighbourhood_stats import WordNeighbourhoodStats
@@ -265,10 +266,10 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         ]
 
         colors = {
-            Configuration.CBOW: 'royalblue',
-            Configuration.PPMI: 'seagreen',
-            Configuration.SkipGram: 'lightcoral',
-            Configuration.BERT: 'gold',
+            Configuration.CBOW: 'salmon',
+            Configuration.PPMI: 'limegreen',
+            Configuration.SkipGram: 'darkblue',
+            Configuration.BERT: 'dodgerblue',
         }
 
         overlaps = {}
@@ -300,7 +301,6 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 counts=counter,
                 color=colors[configuration],
                 fill=True,
-                ylim=(0,0.5),
                 ax=ax)
 
 
@@ -310,7 +310,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             legend_options=LegendOptions(
                 show_legend=True,
                 legend_colors=[colors[k] for k in overlaps.keys()],
-                legend_labels=[k.value for k in overlaps.keys()]))
+                legend_labels=[k.value for k in overlaps.keys()],
+                legend_position=PlotLegendPosition.UpperLeft))
 
         self._plot_service.save_plot(
             save_path=experiment_type_folder,

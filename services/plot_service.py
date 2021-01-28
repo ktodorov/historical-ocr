@@ -1,3 +1,4 @@
+from enums.plot_legend_position import PlotLegendPosition
 from entities.plot.legend_options import LegendOptions
 import sys
 import seaborn as sns
@@ -249,7 +250,8 @@ class PlotService:
             counts_list,
             color=color,
             fill=fill,
-            bw_method=.5,
+            bw_adjust=5,
+            # bw_method="silverman",
             cut=0,
             ax=ax)
 
@@ -641,16 +643,25 @@ class PlotService:
         if legend_options is None or not legend_options.show_legend:
             return
 
-        bbox_to_anchor=(1.04, 1) if legend_options.external_legend else None
-        legend_location = "upper left" if legend_options.external_legend else None
+        bbox_to_anchor = None
+        legend_location = ''
+
+        if legend_options.legend_position == PlotLegendPosition.Outside:
+            bbox_to_anchor = (1.04, 1)
+            legend_location = "upper left"
+        elif (legend_options.legend_position != PlotLegendPosition.Outside and 
+              legend_options.legend_position != PlotLegendPosition.Automatic):
+            legend_location = legend_options.legend_position.value
 
         if legend_options.legend_colors is not None and len(legend_options.legend_colors) > 0:
             legend_lines = self._create_legend_lines(
                 legend_options.legend_colors)
             if legend_options.legend_labels is not None and len(legend_options.legend_labels) > 0:
-                ax.legend(legend_lines, legend_options.legend_labels, bbox_to_anchor=bbox_to_anchor, loc=legend_location)
+                ax.legend(legend_lines, legend_options.legend_labels,
+                          bbox_to_anchor=bbox_to_anchor, loc=legend_location)
             else:
-                ax.legend(legend_lines, bbox_to_anchor=bbox_to_anchor, loc=legend_location)
+                ax.legend(legend_lines, bbox_to_anchor=bbox_to_anchor,
+                          loc=legend_location)
         else:
             ax.legend()
 
