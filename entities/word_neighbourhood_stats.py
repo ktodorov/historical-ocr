@@ -16,16 +16,12 @@ class WordNeighbourhoodStats:
         if self.neighbourhoods_amount < 2:
             return []
 
-        overlapping_tokens = [x.word for x in self._neighbourhoods[0]]
+        overlaps = set(self._neighbourhoods[0])
         for neighbourhood in self._neighbourhoods[1:]:
-            new_overlaps = []
-            for overlapping_token in overlapping_tokens:
-                if any(word_evaluation.word == overlapping_token for word_evaluation in neighbourhood):
-                    new_overlaps.append(overlapping_token)
+            overlaps = overlaps & set(neighbourhood)
 
-            overlapping_tokens = new_overlaps
-
-        return overlapping_tokens
+        result = len(overlaps)
+        return result
 
     def add_neighbourhood(self, neighbourhood: List[WordEvaluation]):
         self._neighbourhoods.append(neighbourhood)
@@ -53,10 +49,6 @@ class WordNeighbourhoodStats:
 
     @property
     def overlaps_amount(self) -> int:
-        return len(self._overlapping_words)
-
-    @property
-    def overlapping_words(self) -> List[str]:
         return self._overlapping_words
 
     @property

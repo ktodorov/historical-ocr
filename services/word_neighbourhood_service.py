@@ -1,10 +1,11 @@
+from services.cache_service import CacheService
 from scipy import sparse
 from scipy.sparse import vstack
 
 from entities.word_neighbourhood_stats import WordNeighbourhoodStats
 from services.log_service import LogService
 from entities.plot.legend_options import LegendOptions
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 from matplotlib.pyplot import plot
 import math
 import numpy as np
@@ -26,7 +27,8 @@ class WordNeighbourhoodService:
             plot_service: PlotService,
             file_service: FileService,
             log_service: LogService,
-            fit_transformation_service: FitTransformationService):
+            fit_transformation_service: FitTransformationService,
+            cache_service: CacheService):
 
         self._arguments_service = arguments_service
         self._metrics_service = metrics_service
@@ -34,6 +36,13 @@ class WordNeighbourhoodService:
         self._file_service = file_service
         self._log_service = log_service
         self._fit_transformation_service = fit_transformation_service
+        self._cache_service = cache_service
+
+        self._word_similarities_cache_key = f'word-similarities-{self._arguments_service.get_configuration_name()}'
+
+        self._word_similarity_indices: Dict[str, Dict[int, list]] = self._cache_service.get_item_from_cache(
+            item_key=self._word_similarities_cache_key,
+            callback_function=lambda: {})
 
     def plot_word_neighbourhoods(
             self,
@@ -71,7 +80,9 @@ class WordNeighbourhoodService:
             self,
             word_evaluation: WordEvaluation,
             vocabulary_evaluations: List[WordEvaluation],
-            models_count: int = 2) -> WordNeighbourhoodStats:
+            neighbourhood_set_size: int,
+            models_count: int = 2,
+            include_embeddings: bool = False) -> WordNeighbourhoodStats:
         self._log_service.log_debug(
             f'Extracting neighbourhoods for word \'{word_evaluation.word}\'')
         result = WordNeighbourhoodStats(word_evaluation.word, neighbourhoods=[])
@@ -84,7 +95,9 @@ class WordNeighbourhoodService:
             word_neighbourhood = self._get_word_neighbourhood(
                 word_evaluation,
                 model_evaluations,
-                embeddings_idx=i)
+                embeddings_idx=i,
+                neighbourhood_set_size=neighbourhood_set_size,
+                output_full_evaluations=include_embeddings)
 
             result.add_neighbourhood(word_neighbourhood)
 
@@ -162,21 +175,38 @@ class WordNeighbourhoodService:
             self,
             word_evaluation: WordEvaluation,
             model_evaluations: List[WordEvaluation],
-            embeddings_idx: int) -> List[WordEvaluation]:
-        target_embeddings = np.array([word_evaluation.get_embeddings(embeddings_idx)])
-        model_embeddings = np.array([model_evaluation.get_embeddings(embeddings_idx) for model_evaluation in model_evaluations])
+            embeddings_idx: int,
+            neighbourhood_set_size: int,
+            output_full_evaluations: bool = False) -> List[WordEvaluation]:
+        if (not output_full_evaluations and word_evaluation.word in self._word_similarity_indices.keys() and embeddings_idx in self._word_similarity_indices[word_evaluation.word]):
+            indices = self._word_similarity_indices[word_evaluation.word][embeddings_idx]
+        else:
+            target_embeddings = np.array([word_evaluation.get_embeddings(embeddings_idx)])
+            model_embeddings = np.array([model_evaluation.get_embeddings(embeddings_idx) for model_evaluation in model_evaluations])
 
-        distances = self._metrics_service.calculate_cosine_similarities(target_embeddings, model_embeddings)
+            distances = self._metrics_service.calculate_cosine_similarities(target_embeddings, model_embeddings)
 
-        # distances = [
-        #     self._metrics_service.calculate_cosine_distance(
-        #         word_evaluation.get_embeddings(embeddings_idx),
-        #         model_evaluation.get_embeddings(embeddings_idx))
-        #     for model_evaluation in model_evaluations
-        # ]
+            indices = np.argsort(distances.squeeze())
 
-        indices = np.argsort(distances.squeeze())
+            if not output_full_evaluations:
+                if word_evaluation.word not in self._word_similarity_indices.keys():
+                    self._word_similarity_indices[word_evaluation.word] = {}
 
-        max_indices = indices[:10]
-        result_words = [model_evaluations[i] for i in max_indices]
-        return result_words
+                self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
+
+        if neighbourhood_set_size > len(indices):
+            self._log_service.log_warning(f'Neighbourhood set size ({neighbourhood_set_size}) is larger than the collection ({len(indices)}). Using the entire collection instead')
+            neighbourhood_set_size = len(indices)
+
+        max_indices = indices[:neighbourhood_set_size]
+
+        if output_full_evaluations:
+            result_evaluations = [x for i, x in enumerate(model_evaluations) if i in max_indices]
+            return result_evaluations
+
+        return max_indices
+
+    def cache_calculations(self):
+        self._cache_service.cache_item(
+            item_key=self._word_similarities_cache_key,
+            item=self._word_similarity_indices)

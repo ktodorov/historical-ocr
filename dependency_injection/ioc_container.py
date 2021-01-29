@@ -342,7 +342,8 @@ class IocContainer(containers.DeclarativeContainer):
         plot_service=plot_service,
         file_service=file_service,
         log_service=log_service,
-        fit_transformation_service=fit_transformation_service)
+        fit_transformation_service=fit_transformation_service,
+        cache_service=cache_service)
 
     experiment_service_selector = providers.Callable(
         get_experiment_service,

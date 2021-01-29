@@ -127,7 +127,9 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             remaining_words = word_evaluations[:i] + word_evaluations[i+1:]
             word_neighbourhood_stats = self._word_neighbourhood_service.get_word_neighbourhoods(
                 word_evaluation,
-                remaining_words)
+                remaining_words,
+                neighbourhood_set_size=50,
+                include_embeddings=True)
 
             self._word_neighbourhood_service.plot_word_neighbourhoods(
                 word_evaluation,
@@ -323,10 +325,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._log_service.log_debug(
             'Generating neighbourhood similarity results')
 
-        random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
-        temp_results_key = f'neighbourhood-overlaps{random_suffix}-temp'
-        result = self._cache_service.get_item_from_cache(
-            temp_results_key, lambda: {})
+        result = {}
 
         common_words_indices = [i for i, word_evaluation in enumerate(word_evaluations) if (
             word_evaluation.contains_all_embeddings() and word_evaluation.word not in result.keys())]
@@ -336,12 +335,13 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             remaining_words = word_evaluations[:i] + word_evaluations[i+1:]
             word_neighbourhood_stats = self._word_neighbourhood_service.get_word_neighbourhoods(
                 word_evaluation,
-                remaining_words)
+                remaining_words,
+                neighbourhood_set_size=self._arguments_service.neighbourhood_set_size)
 
             result[word_evaluation.word] = word_neighbourhood_stats.overlaps_amount
 
             if i % 500 == 0:
-                self._cache_service.cache_item(temp_results_key, result)
+                self._word_neighbourhood_service.cache_calculations()
 
         return result
 

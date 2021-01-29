@@ -33,6 +33,9 @@ class OCREvaluationArgumentsService(PretrainedArgumentsService):
         parser.add_argument('--initialize-randomly', action='store_true',
                             help='If this is set to True, then the initial embeddings will be initialized randomly.')
 
+        parser.add_argument('--neighbourhood-set-size', type=int, default=1000,
+                            help='The neighbourhood_set_size set size. Larger values tend to produce more stable results. Default value is 1000.')
+
     @property
     def minimal_occurrence_limit(self) -> int:
         return self._get_argument('minimal_occurrence_limit')
@@ -44,3 +47,7 @@ class OCREvaluationArgumentsService(PretrainedArgumentsService):
     @property
     def initialize_randomly(self) -> bool:
         return self._get_argument('initialize_randomly')
+
+    @property
+    def neighbourhood_set_size(self) -> int:
+        return self._get_argument('neighbourhood_set_size')

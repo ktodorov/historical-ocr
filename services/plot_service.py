@@ -250,9 +250,8 @@ class PlotService:
             counts_list,
             color=color,
             fill=fill,
-            bw_adjust=5,
-            # bw_method="silverman",
-            cut=0,
+            # bw_adjust=5,
+            # cut=0,
             ax=ax)
 
         if ylim is not None:
