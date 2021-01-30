@@ -1,3 +1,4 @@
+from entities.cache.cache_options import CacheOptions
 from enums.part_of_speech import PartOfSpeech
 from services.tagging_service import TaggingService
 from services.arguments.ocr_quality_non_context_arguments_service import OCRQualityNonContextArgumentsService
@@ -35,7 +36,8 @@ class EvaluationProcessService(ProcessServiceBase):
 
     def get_target_tokens(self, pos_tags: List[PartOfSpeech] = None) -> List[TokenRepresentation]:
         common_tokens_information: Dict[str, List[List[int]]] = self._cache_service.get_item_from_cache(
-            item_key='common-tokens-information',
+            CacheOptions(
+                f'common-tokens-information-lim{self._arguments_service.minimal_occurrence_limit}'),
             callback_function=self.get_common_words)
 
         self._log_service.log_info(
@@ -63,8 +65,9 @@ class EvaluationProcessService(ProcessServiceBase):
 
     def get_common_words(self) -> Dict[str, List[List[int]]]:
         common_tokens = self._cache_service.get_item_from_cache(
-            item_key=f'common-tokens-{self._arguments_service.language.value}',
-            configuration_specific=False)
+            CacheOptions(
+                f'common-tokens-{self._arguments_service.language.value}',
+                configuration_specific=False))
 
         result: Dict[str, List[List[int]]] = {x: [] for x in common_tokens}
 
@@ -74,7 +77,8 @@ class EvaluationProcessService(ProcessServiceBase):
                 limit_suffix = f'-lim-{self._arguments_service.minimal_occurrence_limit}'
 
             common_token_pairs: List[Tuple[str, List[int]]] = self._cache_service.get_item_from_cache(
-                item_key=f'common-token-pairs-{ocr_output_type.value}{limit_suffix}')
+                CacheOptions(
+                    f'common-token-pairs-{ocr_output_type.value}{limit_suffix}'))
 
             if common_token_pairs is None:
                 error_message = f'Token pairs not found for OCR output type \'{ocr_output_type.value}\''
@@ -99,19 +103,19 @@ class EvaluationProcessService(ProcessServiceBase):
             self,
             current_result: Dict[str, List[List[int]]]) -> Dict[str, List[List[int]]]:
         common_tokens_all_configs = self._cache_service.get_item_from_cache(
-            item_key=f'common-tokens-{self._arguments_service.language.value}-all-config',
-            configuration_specific=False)
-
-        if common_tokens_all_configs is None:
-            common_tokens_all_configs = {}
+            CacheOptions(
+                f'common-tokens-{self._arguments_service.language.value}-all-config',
+                configuration_specific=False),
+            callback_function=lambda: {})
 
         common_tokens_all_configs[self._arguments_service.configuration] = list(
             current_result.keys())
 
         self._cache_service.cache_item(
-            item_key=f'common-tokens-{self._arguments_service.language.value}-all-config',
-            item=common_tokens_all_configs,
-            configuration_specific=False)
+            common_tokens_all_configs,
+            CacheOptions(
+                f'common-tokens-{self._arguments_service.language.value}-all-config',
+                configuration_specific=False))
 
         all_words_per_config = list(common_tokens_all_configs.values())
         words_intersection = set(all_words_per_config[0]).intersection(

@@ -1,3 +1,4 @@
+from entities.cache.cache_options import CacheOptions
 from enums.plot_legend_position import PlotLegendPosition
 from entities.plot.legend_options import LegendOptions
 from enums.configuration import Configuration
@@ -67,7 +68,9 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
         separate_suffix = '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else ''
         word_evaluations: List[WordEvaluation] = self._cache_service.get_item_from_cache(
-            item_key=f'word-evaluations{random_suffix}{separate_suffix}',
+            CacheOptions(
+                f'word-evaluations{random_suffix}{separate_suffix}',
+                seed_specific=True),
             callback_function=self._generate_embeddings)
 
         self._log_service.log_info('Loaded word evaluations')
@@ -80,14 +83,18 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         if ExperimentType.CosineDistance in experiment_types:
             result[ExperimentType.CosineDistance] = self._cache_service.get_item_from_cache(
-                item_key=f'cosine-distances{random_suffix}',
+                CacheOptions(
+                    f'cosine-distances{random_suffix}',
+                    seed_specific=True),
                 callback_function=lambda: self._calculate_cosine_distances(word_evaluations))
 
             self._log_service.log_info('Loaded cosine distances')
 
         if ExperimentType.NeighbourhoodOverlap in experiment_types:
             result[ExperimentType.NeighbourhoodOverlap] = self._cache_service.get_item_from_cache(
-                item_key=f'neighbourhood-overlaps{random_suffix}',
+                CacheOptions(
+                    f'neighbourhood-overlaps{random_suffix}',
+                    seed_specific=True),
                 callback_function=lambda: self._generate_neighbourhood_similarity(word_evaluations))
 
             self._log_service.log_info('Loaded neighbourhood overlaps')
@@ -99,7 +106,9 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         if ExperimentType.EuclideanDistance in experiment_types:
             result[ExperimentType.EuclideanDistance] = self._cache_service.get_item_from_cache(
-                item_key=f'euclidean-distances{random_suffix}',
+                CacheOptions(
+                    f'euclidean-distances{random_suffix}',
+                    seed_specific=True),
                 callback_function=lambda: self._calculate_euclidean_distances(word_evaluations))
 
             self._log_service.log_info('Loaded euclidean distances')
@@ -281,14 +290,11 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
         cache_key = f'neighbourhood-overlaps{random_suffix}'
         for configuration in configurations:
-            if not self._cache_service.item_exists(
-                cache_key,
-                configuration=configuration):
-                continue
-
             config_overlaps = self._cache_service.get_item_from_cache(
-                cache_key,
-                configuration=configuration)
+                CacheOptions(
+                    cache_key,
+                    configuration=configuration,
+                    seed_specific=True)) # TODO Fix seed iteration
 
             if config_overlaps is None:
                 continue

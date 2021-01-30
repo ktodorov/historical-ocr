@@ -12,11 +12,16 @@ class OCREvaluationArgumentsService(PretrainedArgumentsService):
 
     @overrides
     def get_configuration_name(self) -> str:
-        result = f'{str(self.language)[:2]}'
-        result += f'-{self.configuration.value}'
+        result = super().get_configuration_name()
 
         if self.initialize_randomly:
             result += f'-rnd'
+
+        if self.separate_neighbourhood_vocabularies:
+            result += f'-sep'
+
+        if self.minimal_occurrence_limit is not None:
+            result += f'-min{self.minimal_occurrence_limit}'
 
         return result
 

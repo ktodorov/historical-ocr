@@ -24,9 +24,11 @@ class ArgumentsServiceBase:
         return self._arguments
 
     def get_configuration_name(self) -> str:
-        result = f'{str(self.challenge)}-{str(self.language)}'
+        result = f'{str(self.language)[:2]}-{str(self.configuration)}'
         if self.checkpoint_name is not None:
             result += f'-{str(self.checkpoint_name)}'
+
+        result += f'-s{self.seed}'
 
         return result
 

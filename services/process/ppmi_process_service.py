@@ -1,3 +1,4 @@
+from entities.cache.cache_options import CacheOptions
 import os
 from services.file_service import FileService
 
@@ -39,7 +40,7 @@ class PPMIProcessService(ICDARProcessService):
 
     def get_occurrence_stats(self, ocr_output_type: OCROutputType) -> TokensOccurrenceStats:
         occurrence_stats: TokensOccurrenceStats = self._cache_service.get_item_from_cache(
-            item_key=f'tokens-occurrences-stats-{ocr_output_type.value}',
+            CacheOptions(f'tokens-occurrences-stats-{ocr_output_type.value}'),
             callback_function=self._generate_ocr_corpora)
 
         return occurrence_stats

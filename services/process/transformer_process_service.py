@@ -1,3 +1,4 @@
+from entities.cache.cache_options import CacheOptions
 from typing import List, Tuple
 import random
 
@@ -45,9 +46,7 @@ class TransformerProcessService(ProcessServiceBase):
         self._ocr_download_service.download_data(
             self._arguments_service.language, max_string_length=500)
 
-        ocr_file_data, gs_file_data = self._cache_service.get_item_from_cache(
-            item_key='train-validation-data',
-            callback_function=self._read_data)
+        ocr_file_data, gs_file_data = self._read_data()
 
         encoded_ocr_sequences = self._tokenize_service.encode_sequences(
             ocr_file_data)
@@ -65,30 +64,32 @@ class TransformerProcessService(ProcessServiceBase):
         gs_ids = [x.token_ids for x in gs_entries]
 
         self._cache_service.cache_item(
-            item_key='token-ids',
-            item=(ocr_ids, gs_ids))
+            (ocr_ids, gs_ids),
+            CacheOptions('token-ids'))
 
         return ocr_entries, gs_entries
 
     def _save_common_tokens(self):
         self._log_service.log_debug('Saving common tokens')
         token_pairs_cache_key = f'common-token-pairs-{self._arguments_service.ocr_output_type.value}'
-        if self._cache_service.item_exists(token_pairs_cache_key):
+        if self._cache_service.item_exists(CacheOptions(token_pairs_cache_key)):
             return
 
         common_tokens_cache_key = f'common-tokens-{self._arguments_service.language.value}'
         common_tokens = self._cache_service.get_item_from_cache(
-            item_key=common_tokens_cache_key,
-            configuration_specific=False)
+            CacheOptions(
+                common_tokens_cache_key,
+                configuration_specific=False))
 
         token_id_pairs = []
         for common_token in common_tokens:
-            token_ids, _, _, _ = self._tokenize_service.encode_sequence(common_token, add_special_tokens=False)
+            token_ids, _, _, _ = self._tokenize_service.encode_sequence(
+                common_token, add_special_tokens=False)
             token_id_pairs.append((common_token, token_ids))
 
         self._cache_service.cache_item(
-            item_key=token_pairs_cache_key,
-            item=token_id_pairs)
+            token_id_pairs,
+            CacheOptions(token_pairs_cache_key))
 
         self._log_service.log_debug(
             f'Saved {len(token_id_pairs)} common token pairs successfully')
@@ -98,7 +99,7 @@ class TransformerProcessService(ProcessServiceBase):
             ocr_output_type: OCROutputType,
             reduction: int) -> List[TransformerEntry]:
         ocr_entries, gs_entries = self._cache_service.get_item_from_cache(
-            item_key=f'entries',
+            CacheOptions('entries'),
             callback_function=self._generate_entries)
 
         entries = ocr_entries if ocr_output_type == OCROutputType.Raw else gs_entries
@@ -128,7 +129,10 @@ class TransformerProcessService(ProcessServiceBase):
 
         for i, cache_key in enumerate(cache_keys):
             print(f'{i}/{number_of_files}             \r', end='')
-            result = self._cache_service.get_item_from_cache(cache_key)
+            result = self._cache_service.get_item_from_cache(
+                CacheOptions(
+                    cache_key,
+                    configuration_specific=False))
             if result is None:
                 self._log_service.log_debug(
                     f'Did not find \'{cache_key}\' data to load')
@@ -144,7 +148,9 @@ class TransformerProcessService(ProcessServiceBase):
     def _read_data(self):
         ocr_gs_file_data_cache_key = f'ocr-gs-file-data'
         (ocr_file_data, gs_file_data) = self._cache_service.get_item_from_cache(
-            item_key=ocr_gs_file_data_cache_key,
+            CacheOptions(
+                ocr_gs_file_data_cache_key,
+                configuration_specific=False),
             callback_function=self._load_file_data)
 
         return ocr_file_data, gs_file_data

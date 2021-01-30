@@ -1,3 +1,4 @@
+from entities.cache.cache_options import CacheOptions
 import os
 from services.log_service import LogService
 from typing import Counter, List, Dict, Tuple
@@ -34,9 +35,9 @@ class VocabularyService:
         self.load_cached_vocabulary(self._vocabulary_cache_key)
 
     def load_cached_vocabulary(self, cache_key: str) -> bool:
-        cached_vocabulary_exists = self._cache_service.item_exists(cache_key)
+        cached_vocabulary_exists = self._cache_service.item_exists(CacheOptions(cache_key))
         if cached_vocabulary_exists:
-            cached_vocabulary = self._cache_service.get_item_from_cache(cache_key)
+            cached_vocabulary = self._cache_service.get_item_from_cache(CacheOptions(cache_key))
             if cached_vocabulary is not None:
                 self._log_service.log_debug('Cached vocabulary found')
                 (self._token2idx, self._id2token) = cached_vocabulary
@@ -170,11 +171,11 @@ class VocabularyService:
 
     def _cache_vocabulary(self, vocab_key: str):
         self._cache_service.cache_item(
-            vocab_key,
             [
                 self._token2idx,
                 self._id2token
             ],
+            CacheOptions(vocab_key),
             overwrite=False)
 
     def vocabulary_is_initialized(self) -> bool:

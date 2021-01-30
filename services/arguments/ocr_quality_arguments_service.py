@@ -12,13 +12,16 @@ class OCRQualityArgumentsService(PretrainedArgumentsService):
 
     @overrides
     def get_configuration_name(self) -> str:
-        result = f'{str(self.language)[:2]}'
-        result += f'-{self.configuration.value}'
+        result = super().get_configuration_name()
 
+        output_type_suffix = ''
         if self.ocr_output_type == OCROutputType.GroundTruth:
-            result += f'-grt'
+            output_type_suffix = f'-grt'
         else:
-            result += f'-{self.ocr_output_type.value}'
+            output_type_suffix = f'-{self.ocr_output_type.value}'
+
+        result = result.replace(output_type_suffix, '')
+        result += output_type_suffix
 
         return result
 

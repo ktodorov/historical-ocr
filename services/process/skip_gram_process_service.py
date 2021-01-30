@@ -1,3 +1,4 @@
+from entities.cache.cache_options import CacheOptions
 import os
 from services.file_service import FileService
 
@@ -60,7 +61,7 @@ class SkipGramProcessService(Word2VecProcessService):
             ocr_output_type: OCROutputType,
             reduction: int) -> SkipGramCorpus:
         corpus: SkipGramCorpus = self._cache_service.get_item_from_cache(
-            item_key=f'skip-gram-{ocr_output_type.value}-data',
+            CacheOptions(f'skip-gram-{ocr_output_type.value}-data'),
             callback_function=self._generate_ocr_corpora)
 
         total_amount = corpus.length

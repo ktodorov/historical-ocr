@@ -1,3 +1,4 @@
+from entities.cache.cache_options import CacheOptions
 from logging import error
 import os
 from services.file_service import FileService
@@ -78,7 +79,7 @@ class Word2VecProcessService(ICDARProcessService):
             random_suffix = '-rnd-init'
 
         token_matrix = self._cache_service.get_item_from_cache(
-            item_key=f'word-matrix-{ocr_output_type.value}{random_suffix}',
+            CacheOptions(f'word-matrix-{ocr_output_type.value}{random_suffix}'),
             callback_function=self._generate_token_matrix)
 
         token_matrix = token_matrix.to(self._arguments_service.device)
@@ -98,7 +99,7 @@ class Word2VecProcessService(ICDARProcessService):
         initialized_tokens_cache_key = f'initialized-tokens-s{self._arguments_service.seed}'
         if not self._arguments_service.initialize_randomly:
             initialized_tokens = self._cache_service.get_item_from_cache(
-                item_key=initialized_tokens_cache_key,
+                CacheOptions(initialized_tokens_cache_key),
                 callback_function=lambda: {})
 
         pretrained_weight_matrix = np.random.rand(
@@ -118,7 +119,9 @@ class Word2VecProcessService(ICDARProcessService):
                     initialized_tokens[token] = pretrained_weight_matrix[index]
 
             self._log_service.log_debug(f'Populating pretrained matrix finished successfully')
-            self._cache_service.cache_item(initialized_tokens_cache_key, initialized_tokens)
+            self._cache_service.cache_item(
+                initialized_tokens,
+                CacheOptions(initialized_tokens_cache_key))
 
         result = torch.from_numpy(pretrained_weight_matrix).float()
         return result
@@ -138,7 +141,7 @@ class Word2VecProcessService(ICDARProcessService):
             ocr_output_type: OCROutputType,
             reduction: int) -> CBOWCorpus:
         corpus = self._cache_service.get_item_from_cache(
-            item_key=f'word2vec-data-{ocr_output_type.value}-ws-2',
+            CacheOptions(f'word2vec-data-{ocr_output_type.value}-ws-2'),
             callback_function=self._generate_ocr_corpora)
 
         total_amount = corpus.length

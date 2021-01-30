@@ -1,3 +1,4 @@
+from entities.cache.cache_options import CacheOptions
 import os
 from services.log_service import LogService
 import urllib.request
@@ -43,44 +44,69 @@ class OCRDownloadService:
 
         if language in self._languages_2017:
             newseye_2017_key = 'newseye-2017-full-dataset'
-            if not self._cache_service.item_exists(newseye_2017_key):
-                self._log_service.log_debug('Processing NewsEye 2017 dataset...')
+            if not self._cache_service.item_exists(
+                CacheOptions(
+                    newseye_2017_key,
+                    configuration_specific=False)):
+                self._log_service.log_debug(
+                    'Processing NewsEye 2017 dataset...')
                 newseye_2017_path = os.path.join(newseye_path, '2017')
                 newseye_2017_data = self.process_newseye_files(
                     language, newseye_2017_path, max_string_length=max_string_length)
                 self._cache_service.cache_item(
-                    newseye_2017_key, newseye_2017_data)
+                    newseye_2017_data,
+                    CacheOptions(
+                        newseye_2017_key,
+                        configuration_specific=False))
 
         newseye_2019_key = 'newseye-2019-train-dataset'
-        if not self._cache_service.item_exists(newseye_2019_key):
+        if not self._cache_service.item_exists(CacheOptions(
+                newseye_2019_key,
+                configuration_specific=False)):
             self._log_service.log_debug('Processing NewsEye 2019 dataset...')
             newseye_2019_path = os.path.join(newseye_path, '2019')
             newseye_2019_data = self.process_newseye_files(
                 language, newseye_2019_path, subfolder_to_use='train', max_string_length=max_string_length)
-            self._cache_service.cache_item(newseye_2019_key, newseye_2019_data)
+            self._cache_service.cache_item(
+                newseye_2019_data, CacheOptions(
+                    newseye_2019_key,
+                    configuration_specific=False))
 
         if language == Language.English and self._use_trove:
             trove_cache_key = 'trove-dataset'
-            if not self._cache_service.item_exists(trove_cache_key):
+            if not self._cache_service.item_exists(CacheOptions(
+                    trove_cache_key,
+                    configuration_specific=False)):
                 self._log_service.log_debug('Processing TroVe dataset...')
                 trove_items_cache_key = 'trove-item-keys'
                 cache_item_keys = self._cache_service.get_item_from_cache(
-                    item_key=trove_items_cache_key,
+                    CacheOptions(
+                        trove_items_cache_key,
+                        configuration_specific=False),
                     callback_function=self._download_trove_files)
 
                 trove_data = self._process_trove_files(cache_item_keys)
-                self._cache_service.cache_item(trove_cache_key, trove_data)
+                self._cache_service.cache_item(
+                    trove_data, CacheOptions(
+                        trove_cache_key,
+                        configuration_specific=False))
 
     def download_test_data(self, language: Language):
         newseye_path = os.path.join('data', 'newseye', '2019')
         newseye_eval_key = 'newseye-2019-eval-dataset'
-        if self._cache_service.item_exists(newseye_eval_key):
+        if self._cache_service.item_exists(CacheOptions(
+                newseye_eval_key,
+                configuration_specific=False)):
             return
 
         self._log_service.log_debug('Downloading test data...')
         newseye_eval_data = self.process_newseye_files(
             language, newseye_path, subfolder_to_use='eval')
-        self._cache_service.cache_item(newseye_eval_key, newseye_eval_data)
+        self._cache_service.cache_item(
+            newseye_eval_data,
+            CacheOptions(
+                newseye_eval_key,
+                configuration_specific=False))
 
     def _cut_string(
             self,
@@ -175,7 +201,11 @@ class OCRDownloadService:
         for cache_item_key in cache_item_keys:
             # Get the downloaded file from the cache, process it and add it to the total collection of items
             file_content: str = self._cache_service.load_file_from_cache(
-                cache_item_key).decode('utf-8')
+                CacheOptions(
+                    cache_item_key,
+                    configuration_specific=False)
+            ).decode('utf-8')
+
             file_content_lines = file_content.splitlines()
             for file_line in file_content_lines:
                 if file_line.startswith(title_prefix) or file_line == separator:
@@ -209,8 +239,10 @@ class OCRDownloadService:
         for i, file_url in enumerate(dataset1_file_urls):
             cache_key = f'trove-d1-{i}'
             cached_successfully = self._cache_service.download_and_cache(
-                item_key=cache_key,
-                download_url=file_url,
+                file_url,
+                CacheOptions(
+                    cache_key,
+                    configuration_specific=False),
                 overwrite=False)
 
             if cached_successfully:
@@ -220,8 +252,10 @@ class OCRDownloadService:
         dataset2_file_url = 'http://overproof.projectcomputing.com/datasets/dataset2/rawTextAndHumanCorrectionAndOverproofCorrectionTriples/allArticles.txt'
         dataset2_key = 'trove-d2'
         cached_successfully = self._cache_service.download_and_cache(
-            item_key=dataset2_key,
-            download_url=dataset2_file_url,
+            dataset2_file_url,
+            CacheOptions(
+                dataset2_key,
+                configuration_specific=False),
             overwrite=False)
 
         if cached_successfully:
@@ -231,8 +265,10 @@ class OCRDownloadService:
         dataset3_file_url = 'http://overproof.projectcomputing.com/datasets/dataset3/rawTextAndHumanCorrectionAndOverproofCorrectionTriples/allArticles.txt'
         dataset3_key = 'trove-d3'
         cached_successfully = self._cache_service.download_and_cache(
-            item_key=dataset3_key,
-            download_url=dataset3_file_url,
+            dataset3_file_url,
+            CacheOptions(
+                dataset3_key,
+                configuration_specific=False),
             overwrite=False)
 
         if cached_successfully:

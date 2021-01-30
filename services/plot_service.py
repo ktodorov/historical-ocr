@@ -643,7 +643,7 @@ class PlotService:
             return
 
         bbox_to_anchor = None
-        legend_location = ''
+        legend_location = None
 
         if legend_options.legend_position == PlotLegendPosition.Outside:
             bbox_to_anchor = (1.04, 1)

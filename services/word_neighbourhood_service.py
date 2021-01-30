@@ -1,3 +1,4 @@
+from entities.cache.cache_options import CacheOptions
 from services.cache_service import CacheService
 from scipy import sparse
 from scipy.sparse import vstack
@@ -12,7 +13,7 @@ import numpy as np
 
 from entities.word_evaluation import WordEvaluation
 
-from services.arguments.arguments_service_base import ArgumentsServiceBase
+from services.arguments.ocr_evaluation_arguments_service import OCREvaluationArgumentsService
 from services.file_service import FileService
 from services.metrics_service import MetricsService
 from services.plot_service import PlotService
@@ -22,7 +23,7 @@ from services.fit_transformation_service import FitTransformationService
 class WordNeighbourhoodService:
     def __init__(
             self,
-            arguments_service: ArgumentsServiceBase,
+            arguments_service: OCREvaluationArgumentsService,
             metrics_service: MetricsService,
             plot_service: PlotService,
             file_service: FileService,
@@ -38,10 +39,17 @@ class WordNeighbourhoodService:
         self._fit_transformation_service = fit_transformation_service
         self._cache_service = cache_service
 
-        self._word_similarities_cache_key = f'word-similarities-{self._arguments_service.get_configuration_name()}'
+        self._word_similarities_cache_options = CacheOptions(
+            'word-similarities',
+            seed_specific=True,
+            key_suffixes=[
+                '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else '',
+                '-min',
+                str(self._arguments_service.minimal_occurrence_limit)
+            ])
 
         self._word_similarity_indices: Dict[str, Dict[int, list]] = self._cache_service.get_item_from_cache(
-            item_key=self._word_similarities_cache_key,
+            self._word_similarities_cache_options,
             callback_function=lambda: {})
 
     def plot_word_neighbourhoods(
@@ -85,7 +93,8 @@ class WordNeighbourhoodService:
             include_embeddings: bool = False) -> WordNeighbourhoodStats:
         self._log_service.log_debug(
             f'Extracting neighbourhoods for word \'{word_evaluation.word}\'')
-        result = WordNeighbourhoodStats(word_evaluation.word, neighbourhoods=[])
+        result = WordNeighbourhoodStats(
+            word_evaluation.word, neighbourhoods=[])
         for i in range(models_count):
             model_evaluations = [
                 vocabulary_evaluation
@@ -181,10 +190,13 @@ class WordNeighbourhoodService:
         if (not output_full_evaluations and word_evaluation.word in self._word_similarity_indices.keys() and embeddings_idx in self._word_similarity_indices[word_evaluation.word]):
             indices = self._word_similarity_indices[word_evaluation.word][embeddings_idx]
         else:
-            target_embeddings = np.array([word_evaluation.get_embeddings(embeddings_idx)])
-            model_embeddings = np.array([model_evaluation.get_embeddings(embeddings_idx) for model_evaluation in model_evaluations])
+            target_embeddings = np.array(
+                [word_evaluation.get_embeddings(embeddings_idx)])
+            model_embeddings = np.array([model_evaluation.get_embeddings(
+                embeddings_idx) for model_evaluation in model_evaluations])
 
-            distances = self._metrics_service.calculate_cosine_similarities(target_embeddings, model_embeddings)
+            distances = self._metrics_service.calculate_cosine_similarities(
+                target_embeddings, model_embeddings)
 
             indices = np.argsort(distances.squeeze())
 
@@ -195,18 +207,20 @@ class WordNeighbourhoodService:
                 self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
 
         if neighbourhood_set_size > len(indices):
-            self._log_service.log_warning(f'Neighbourhood set size ({neighbourhood_set_size}) is larger than the collection ({len(indices)}). Using the entire collection instead')
+            self._log_service.log_warning(
+                f'Neighbourhood set size ({neighbourhood_set_size}) is larger than the collection ({len(indices)}). Using the entire collection instead')
             neighbourhood_set_size = len(indices)
 
         max_indices = indices[:neighbourhood_set_size]
 
         if output_full_evaluations:
-            result_evaluations = [x for i, x in enumerate(model_evaluations) if i in max_indices]
+            result_evaluations = [x for i, x in enumerate(
+                model_evaluations) if i in max_indices]
             return result_evaluations
 
         return max_indices
 
     def cache_calculations(self):
         self._cache_service.cache_item(
-            item_key=self._word_similarities_cache_key,
-            item=self._word_similarity_indices)
+            self._word_similarity_indices,
+            self._word_similarities_cache_options)
