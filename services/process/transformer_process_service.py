@@ -75,10 +75,9 @@ class TransformerProcessService(ProcessServiceBase):
         if self._cache_service.item_exists(CacheOptions(token_pairs_cache_key)):
             return
 
-        common_tokens_cache_key = f'common-tokens-{self._arguments_service.language.value}'
         common_tokens = self._cache_service.get_item_from_cache(
             CacheOptions(
-                common_tokens_cache_key,
+                'common-tokens',
                 configuration_specific=False))
 
         token_id_pairs = []
@@ -146,10 +145,9 @@ class TransformerProcessService(ProcessServiceBase):
         return ocr_file_data, gs_file_data
 
     def _read_data(self):
-        ocr_gs_file_data_cache_key = f'ocr-gs-file-data'
         (ocr_file_data, gs_file_data) = self._cache_service.get_item_from_cache(
             CacheOptions(
-                ocr_gs_file_data_cache_key,
+                'ocr-gs-file-data',
                 configuration_specific=False),
             callback_function=self._load_file_data)
 

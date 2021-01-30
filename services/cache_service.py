@@ -37,10 +37,14 @@ class CacheService:
             self._arguments_service.challenge.value.lower(),
             create_if_missing=True)
 
-        self._internal_cache_folder = self._file_service.combine_path(
+        self._language_cache_folder = self._file_service.combine_path(
             self._challenge_cache_folder,
-            self._arguments_service.configuration.value.lower(),
             self._arguments_service.language.value.lower(),
+            create_if_missing=True)
+
+        self._internal_cache_folder = self._file_service.combine_path(
+            self._language_cache_folder,
+            self._arguments_service.configuration.value.lower(),
             create_if_missing=True)
 
         self._seed_cache_folder = self._file_service.combine_path(
@@ -141,14 +145,16 @@ class CacheService:
         if not cache_options.challenge_specific:
             return self._global_cache_folder
 
-        if not cache_options.configuration_specific:
+        if not cache_options.language_specific:
             return self._challenge_cache_folder
+
+        if not cache_options.configuration_specific:
+            return self._language_cache_folder
 
         if cache_options.configuration is not None:
             result_path = self._file_service.combine_path(
-                self._challenge_cache_folder,
+                self._language_cache_folder,
                 cache_options.configuration.value.lower(),
-                self._arguments_service.language.value.lower(),
                 create_if_missing=True)
 
             if cache_options.seed_specific:

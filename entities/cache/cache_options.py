@@ -7,6 +7,7 @@ class CacheOptions:
             self,
             item_key: str,
             configuration_specific: bool = True,
+            language_specific: bool = True,
             challenge_specific: bool = True,
             seed_specific: bool = False,
             configuration: Configuration = None,
@@ -14,6 +15,7 @@ class CacheOptions:
 
         self._item_key = item_key
         self._configuration_specific = configuration_specific
+        self._language_specific = language_specific
         self._challenge_specific = challenge_specific
         self._seed_specific = seed_specific
         self._configuration = configuration
@@ -30,6 +32,10 @@ class CacheOptions:
     @property
     def configuration_specific(self) -> bool:
         return self._configuration_specific
+
+    @property
+    def language_specific(self) -> bool:
+        return self._language_specific
 
     @property
     def challenge_specific(self) -> bool:

@@ -17,16 +17,17 @@ class OCRQualityNonContextArgumentsService(OCRQualityArgumentsService):
         if self.initialize_randomly:
             result += f'-rnd'
 
-        if self.separate_neighbourhood_vocabularies:
-            result += f'-sep'
-
         if self.minimal_occurrence_limit is not None:
             result += f'-min{self.minimal_occurrence_limit}'
 
+        output_type_suffix = ''
         if self.ocr_output_type == OCROutputType.GroundTruth:
-            result += f'-grt'
+            output_type_suffix = f'-grt'
         else:
-            result += f'-{self.ocr_output_type.value}'
+            output_type_suffix = f'-{self.ocr_output_type.value}'
+
+        result = result.replace(output_type_suffix, '')
+        result += output_type_suffix
 
         return result
 

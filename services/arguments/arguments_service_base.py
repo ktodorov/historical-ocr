@@ -79,6 +79,8 @@ class ArgumentsServiceBase:
                             help="resume training using saved checkpoints")
         parser.add_argument("--resume-checkpoint-name", type=str, default=None,
                             help="Checkpoint name that will be used to resume training from. If None is given, then current checkpoint name will be used. Default is `None`")
+        parser.add_argument("--overwrite-previous-model", action='store_true',
+                            help="If training is not resumed and previous model exists, this setting must be provided in order for the existing model to be overwritten")
         parser.add_argument("--skip-best-metrics-on-resume", action='store_true',
                             help="Whether to skip loading saved metrics and continuing from last best checkpoint. Default is `False`")
         parser.add_argument("--data-folder", type=str, default='data',
@@ -222,6 +224,10 @@ class ArgumentsServiceBase:
     @property
     def resume_checkpoint_name(self) -> str:
         return self._get_argument('resume_checkpoint_name')
+
+    @property
+    def overwrite_previous_model(self) -> bool:
+        return self._get_argument('overwrite_previous_model')
 
     @property
     def skip_best_metrics_on_resume(self) -> bool:

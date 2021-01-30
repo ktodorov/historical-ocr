@@ -17,9 +17,6 @@ class OCREvaluationArgumentsService(PretrainedArgumentsService):
         if self.initialize_randomly:
             result += f'-rnd'
 
-        if self.separate_neighbourhood_vocabularies:
-            result += f'-sep'
-
         if self.minimal_occurrence_limit is not None:
             result += f'-min{self.minimal_occurrence_limit}'
 

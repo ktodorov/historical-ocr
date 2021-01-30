@@ -155,9 +155,6 @@ class ModelBase(nn.Module):
         if name_suffix is not None:
             result = f'{result}{name_suffix}'
 
-        if self._arguments_service.checkpoint_name is not None:
-            result += f'-{self._arguments_service.checkpoint_name}'
-
         return result
 
     def on_convergence(self) -> bool:

@@ -66,7 +66,7 @@ class EvaluationProcessService(ProcessServiceBase):
     def get_common_words(self) -> Dict[str, List[List[int]]]:
         common_tokens = self._cache_service.get_item_from_cache(
             CacheOptions(
-                f'common-tokens-{self._arguments_service.language.value}',
+                'common-tokens',
                 configuration_specific=False))
 
         result: Dict[str, List[List[int]]] = {x: [] for x in common_tokens}
@@ -102,10 +102,12 @@ class EvaluationProcessService(ProcessServiceBase):
     def _intersect_words(
             self,
             current_result: Dict[str, List[List[int]]]) -> Dict[str, List[List[int]]]:
+        common_tokens_config_cache_options = CacheOptions(
+            'common-tokens-all-config',
+            configuration_specific=False)
+
         common_tokens_all_configs = self._cache_service.get_item_from_cache(
-            CacheOptions(
-                f'common-tokens-{self._arguments_service.language.value}-all-config',
-                configuration_specific=False),
+            common_tokens_config_cache_options,
             callback_function=lambda: {})
 
         common_tokens_all_configs[self._arguments_service.configuration] = list(
@@ -113,9 +115,7 @@ class EvaluationProcessService(ProcessServiceBase):
 
         self._cache_service.cache_item(
             common_tokens_all_configs,
-            CacheOptions(
-                f'common-tokens-{self._arguments_service.language.value}-all-config',
-                configuration_specific=False))
+            common_tokens_config_cache_options)
 
         all_words_per_config = list(common_tokens_all_configs.values())
         words_intersection = set(all_words_per_config[0]).intersection(

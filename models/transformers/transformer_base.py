@@ -76,7 +76,7 @@ class TransformerBase(ModelBase):
         model_name = self._get_model_name(name_prefix)
 
         saved = super().save(path, epoch, iteration, best_metrics,
-                             resets_left, model_name, save_model_dict=False)
+                             resets_left, name_prefix, save_model_dict=False)
 
         if not saved:
             self._log_service.log_debug(f'Saving transformer model failed')

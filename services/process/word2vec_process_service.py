@@ -96,10 +96,12 @@ class Word2VecProcessService(ICDARProcessService):
             word2vec_model_path, binary=word2vec_binary)
 
         initialized_tokens: Dict[str, list] = None
-        initialized_tokens_cache_key = f'initialized-tokens-s{self._arguments_service.seed}'
+        initialized_tokens_cache_key = 'initialized-tokens'
         if not self._arguments_service.initialize_randomly:
             initialized_tokens = self._cache_service.get_item_from_cache(
-                CacheOptions(initialized_tokens_cache_key),
+                CacheOptions(
+                    initialized_tokens_cache_key,
+                    seed_specific=True),
                 callback_function=lambda: {})
 
         pretrained_weight_matrix = np.random.rand(
@@ -121,7 +123,9 @@ class Word2VecProcessService(ICDARProcessService):
             self._log_service.log_debug(f'Populating pretrained matrix finished successfully')
             self._cache_service.cache_item(
                 initialized_tokens,
-                CacheOptions(initialized_tokens_cache_key))
+                CacheOptions(
+                    initialized_tokens_cache_key,
+                    seed_specific=True))
 
         result = torch.from_numpy(pretrained_weight_matrix).float()
         return result

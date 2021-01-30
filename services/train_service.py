@@ -90,6 +90,10 @@ class TrainService:
                     start_iteration = model_checkpoint.iteration
                     resets_left = model_checkpoint.resets_left
                     metric.initialize(best_metrics)
+            else:
+                model_exists, model_name = self._model_already_exists()
+                if model_exists and not self._arguments_service.overwrite_previous_model:
+                    raise Exception(f'Model \'{model_name}\' already exists. You must provide `--overwrite-previous-model` if you want to overwrite the previous model')
 
             self.data_loader_train, self.data_loader_validation = self._dataloader_service.get_train_dataloaders()
             self._optimizer = self._optimizer_base.get_optimizer()
@@ -303,6 +307,11 @@ class TrainService:
 
         return model_checkpoint
 
+    def _model_already_exists(self) -> bool:
+        model_name = self._model._get_model_name('BEST')
+        model_exists = os.path.exists(os.path.join(self._model_path, f'{model_name}.pickle'))
+        return (model_exists, model_name)
+
     def _evaluate(self) -> Metric:
         metric = Metric(amount_limit=None)
         data_loader_length = len(self.data_loader_validation)
@@ -364,7 +373,7 @@ class TrainService:
             resets_left: int):
         best_metrics = validation_metric
         self._model.save(self._model_path, epoch_num, i,
-                         best_metrics, resets_left, name_prefix=f'BEST')
+                         best_metrics, resets_left, name_prefix='BEST')
 
         best_accuracies = best_metrics.get_current_accuracies()
 
