@@ -42,8 +42,12 @@ class OCRDownloadService:
     def download_data(self, language: Language, max_string_length: int = None):
         newseye_path = os.path.join('data', 'newseye')
 
+        key_length_suffix = ''
+        if max_string_length is not None:
+            key_length_suffix = f'-{max_string_length}'
+
         if language in self._languages_2017:
-            newseye_2017_key = 'newseye-2017-full-dataset'
+            newseye_2017_key = f'newseye-2017-full-dataset{key_length_suffix}'
             if not self._cache_service.item_exists(
                 CacheOptions(
                     newseye_2017_key,
@@ -59,8 +63,9 @@ class OCRDownloadService:
                         newseye_2017_key,
                         configuration_specific=False))
 
-        newseye_2019_key = 'newseye-2019-train-dataset'
-        if not self._cache_service.item_exists(CacheOptions(
+        newseye_2019_key = f'newseye-2019-train-dataset{key_length_suffix}'
+        if not self._cache_service.item_exists(
+            CacheOptions(
                 newseye_2019_key,
                 configuration_specific=False)):
             self._log_service.log_debug('Processing NewsEye 2019 dataset...')
@@ -68,13 +73,15 @@ class OCRDownloadService:
             newseye_2019_data = self.process_newseye_files(
                 language, newseye_2019_path, subfolder_to_use='train', max_string_length=max_string_length)
             self._cache_service.cache_item(
-                newseye_2019_data, CacheOptions(
+                newseye_2019_data, 
+                CacheOptions(
                     newseye_2019_key,
                     configuration_specific=False))
 
         if language == Language.English and self._use_trove:
-            trove_cache_key = 'trove-dataset'
-            if not self._cache_service.item_exists(CacheOptions(
+            trove_cache_key = f'trove-dataset'
+            if not self._cache_service.item_exists(
+                CacheOptions(
                     trove_cache_key,
                     configuration_specific=False)):
                 self._log_service.log_debug('Processing TroVe dataset...')
@@ -87,7 +94,8 @@ class OCRDownloadService:
 
                 trove_data = self._process_trove_files(cache_item_keys)
                 self._cache_service.cache_item(
-                    trove_data, CacheOptions(
+                    trove_data,
+                    CacheOptions(
                         trove_cache_key,
                         configuration_specific=False))
 

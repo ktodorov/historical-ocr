@@ -32,6 +32,8 @@ class TransformerProcessService(ProcessServiceBase):
         self._cache_service = cache_service
         self._log_service = log_service
 
+        self._preprocess_max_string_length = 500
+
     def get_entries(self, ocr_output_type: OCROutputType):
         entries = None
         limit_size = self._arguments_service.train_dataset_limit_size
@@ -44,7 +46,7 @@ class TransformerProcessService(ProcessServiceBase):
 
     def _generate_entries(self):
         self._ocr_download_service.download_data(
-            self._arguments_service.language, max_string_length=500)
+            self._arguments_service.language, max_string_length=self._preprocess_max_string_length)
 
         ocr_file_data, gs_file_data = self._read_data()
 
@@ -121,6 +123,8 @@ class TransformerProcessService(ProcessServiceBase):
             'newseye-2019-train-dataset',
             'newseye-2019-eval-dataset']
 
+        cache_keys = [f'{x}-{self._preprocess_max_string_length}' for x in cache_keys]
+
         number_of_files = len(cache_keys)
 
         ocr_file_data = []
@@ -147,7 +151,7 @@ class TransformerProcessService(ProcessServiceBase):
     def _read_data(self):
         (ocr_file_data, gs_file_data) = self._cache_service.get_item_from_cache(
             CacheOptions(
-                'ocr-gs-file-data',
+                f'ocr-gs-file-data-{self._preprocess_max_string_length}',
                 configuration_specific=False),
             callback_function=self._load_file_data)
 
