@@ -157,10 +157,14 @@ class CacheService:
                 cache_options.configuration.value.lower(),
                 create_if_missing=True)
 
-            if cache_options.seed_specific:
+            if cache_options.seed_specific or cache_options.seed is not None:
+                seed = str(self._arguments_service.seed)
+                if cache_options.seed is not None:
+                    seed = str(cache_options.seed)
+
                 result_path = self._file_service.combine_path(
                     result_path,
-                    str(self._arguments_service.seed),
+                    seed,
                     create_if_missing=True)
         else:
             if cache_options.seed_specific:

@@ -11,6 +11,7 @@ class CacheOptions:
             challenge_specific: bool = True,
             seed_specific: bool = False,
             configuration: Configuration = None,
+            seed: int = None,
             key_suffixes: List[str] = None):
 
         self._item_key = item_key
@@ -19,6 +20,7 @@ class CacheOptions:
         self._challenge_specific = challenge_specific
         self._seed_specific = seed_specific
         self._configuration = configuration
+        self._seed = seed
         self._key_suffixes = key_suffixes
 
     def get_item_key(self) -> str:
@@ -48,3 +50,7 @@ class CacheOptions:
     @property
     def configuration(self) -> Configuration:
         return self._configuration
+
+    @property
+    def seed(self) -> int:
+        return self._seed
