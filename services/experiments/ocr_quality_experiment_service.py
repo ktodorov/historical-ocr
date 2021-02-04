@@ -1,3 +1,6 @@
+from collections import defaultdict
+
+import seaborn
 from entities.cache.cache_options import CacheOptions
 from enums.plot_legend_position import PlotLegendPosition
 from entities.plot.legend_options import LegendOptions
@@ -31,6 +34,7 @@ from services.plot_service import PlotService
 from services.word_neighbourhood_service import WordNeighbourhoodService
 from services.log_service import LogService
 
+import pandas as pd
 
 class OCRQualityExperimentService(ExperimentServiceBase):
     def __init__(
@@ -118,7 +122,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._log_service.log_info('Saving experiment results')
         self._save_experiment_results(result)
 
-        self._log_service.log_info('Experiments calculation completed successfully')
+        self._log_service.log_info(
+            'Experiments calculation completed successfully')
 
     def _generate_neighbourhood_plots(
             self,
@@ -253,14 +258,14 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 xlim = experiment_xlims[experiment_type]
 
             filename = self._arguments_service.get_configuration_name()
-            self._plot_service.plot_distribution(
-                counts=counter,
-                title=experiment_type.value,
-                save_path=experiment_type_folder,
-                filename=filename,
-                color='royalblue',
-                fill=True,
-                xlim=xlim)
+            # self._plot_service.plot_distribution(
+            #     counts=counter,
+            #     title=experiment_type.value,
+            #     save_path=experiment_type_folder,
+            #     filename=filename,
+            #     color='royalblue',
+            #     fill=True,
+            #     xlim=xlim)
 
     def _generate_common_plots(self):
         experiments_folder = self._file_service.get_experiments_path()
@@ -269,6 +274,153 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             ExperimentType.NeighbourhoodOverlap.value,
             create_if_missing=True)
 
+        alpha_values = [
+            # .1,
+            .3,
+            1,
+            1,
+        ]
+
+        fill = [
+            True,
+            False,
+            True
+        ]
+
+        linewidths = [
+            0,
+            1,
+            0
+        ]
+
+        colors = {
+            Configuration.CBOW: [
+                # 'lightsalmon',
+                'red',
+                'red',
+                # 'lightsalmon',
+                'white',
+            ],
+            Configuration.PPMI: [
+                # 'limegreen',
+                'green',
+                'green',
+                # 'limegreen',
+                'white',
+            ],
+            Configuration.SkipGram: [
+                # 'cornflowerblue',
+                'darkblue',
+                'darkblue',
+                # 'cornflowerblue',
+                'white',
+            ],
+            Configuration.BERT: [
+                # 'palevioletred',
+                'crimson',
+                'crimson',
+                # 'palevioletred',
+                'white',
+            ],
+        }
+
+        line_styles = [
+            'solid',
+            'dashed',
+            # 'solid',
+            'solid',
+        ]
+
+        # overlaps = {}
+
+        ax = self._plot_service.create_plot()
+        overlaps_by_config_and_seed = self._get_calculated_overlaps()
+
+        for configuration, overlaps_by_seed in overlaps_by_config_and_seed.items():
+            if all(x is None for x in overlaps_by_seed.values()):
+                continue
+
+            combined_overlaps = defaultdict(
+                lambda: [None for _ in range(len(overlaps_by_seed.keys()))])
+
+            for i, current_overlaps in enumerate(overlaps_by_seed.values()):
+                if current_overlaps is None:
+                    continue
+
+                for overlap_amount in current_overlaps.values():
+                    overlap_amount = int(overlap_amount / 10)
+
+                    if combined_overlaps[overlap_amount][i] is None:
+                        combined_overlaps[overlap_amount][i] = 0
+
+                    combined_overlaps[overlap_amount][i] = combined_overlaps[overlap_amount][i] + 1
+
+            min_overlaps, max_overlaps, avg_overlaps = {}, {}, {}
+            for i in range(0, self._arguments_service.neighbourhood_set_size, 1):
+                if i not in combined_overlaps.keys():
+                    continue
+
+                valid_overlaps = [x for x in combined_overlaps[i] if x is not None]
+
+                min_overlaps[i] = min(valid_overlaps)
+                max_overlaps[i] = max(valid_overlaps)
+                avg_overlaps[i] = int(np.mean(valid_overlaps))
+
+            # ax = self._plot_service.plot_line_variance(
+            #     Counter(min_overlaps),
+            #     Counter(max_overlaps),
+            #     Counter(avg_overlaps),
+            #     color=colors[configuration],
+            #     ax=ax)
+            labels = [
+                'max',
+                'avg',
+                'min',
+            ]
+
+            for i, overlap_line in enumerate([max_overlaps, avg_overlaps, min_overlaps]):
+                # if i != 1: continue
+                # counter = Counter(overlap_line)
+
+                # counters = [Counter(x) for x in [min_overlaps, max_overlaps, avg_overlaps]]
+            # a = pd.DataFrame(
+            #     [
+            #         {'name': 'min', 'overlapping words': list(min_overlaps.keys()), 'values': list(min_overlaps.values()) },
+            #         {'name': 'max', 'overlapping words': list(max_overlaps.keys()), 'values': list(max_overlaps.values()) },
+            #         {'name': 'avg', 'overlapping words': list(avg_overlaps.keys()), 'values': list(avg_overlaps.values()) }
+            #     ])
+
+            # a = pd.DataFrame(
+            #     {
+            #         'overlapping words': list(min_overlaps.keys()),
+            #         'amount of overlaps': list(min_overlaps.values())
+            #     })
+
+            # overlaps[configuration] = counters
+                ax = self._plot_service.plot_distribution(
+                    counts=overlap_line,
+                    color=colors[configuration][i],
+                    linestyle=line_styles[i],
+                    fill=fill[i],
+                    label=f'{configuration.value}-{labels[i]}',
+                    alpha=alpha_values[i],
+                    linewidth=linewidths[i],
+                    ax=ax)
+
+        self._plot_service.set_plot_properties(
+            ax=ax,
+            title=f'Neighbourhood overlaps ({self._arguments_service.language.value})',
+            legend_options=LegendOptions(
+                show_legend=True,
+                # legend_colors=[colors[k] for k in overlaps.keys()],
+                # legend_labels=[k.value for k in overlaps.keys()],
+                legend_position=PlotLegendPosition.UpperLeft))
+
+        self._plot_service.save_plot(
+            save_path=experiment_type_folder,
+            filename=f'combined-neighbourhood-overlaps-{self._arguments_service.language.value}')
+
+    def _get_calculated_overlaps(self) -> Dict[Configuration, Dict[int, dict]]:
         configurations = [
             Configuration.CBOW,
             Configuration.PPMI,
@@ -276,54 +428,26 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             Configuration.BERT,
         ]
 
-        colors = {
-            Configuration.CBOW: 'salmon',
-            Configuration.PPMI: 'limegreen',
-            Configuration.SkipGram: 'darkblue',
-            Configuration.BERT: 'dodgerblue',
-        }
-
-        overlaps = {}
-
-        ax = self._plot_service.create_plot()
+        seeds = [7, 13, 42]
 
         random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
         cache_key = f'neighbourhood-overlaps{random_suffix}'
+
+        result = {}
+
         for configuration in configurations:
-            config_overlaps = self._cache_service.get_item_from_cache(
-                CacheOptions(
-                    cache_key,
-                    configuration=configuration,
-                    seed_specific=True)) # TODO Fix seed iteration
+            result[configuration] = {}
 
-            if config_overlaps is None:
-                continue
+            for seed in seeds:
+                config_overlaps = self._cache_service.get_item_from_cache(
+                    CacheOptions(
+                        cache_key,
+                        configuration=configuration,
+                        seed=seed))
 
-            values = [round(x, 1) for x in config_overlaps.values()]
-            if values is None or len(values) == 0:
-                continue
+                result[configuration][seed] = config_overlaps
 
-            counter = Counter(values)
-            overlaps[configuration] = counter
-            ax = self._plot_service.plot_distribution(
-                counts=counter,
-                color=colors[configuration],
-                fill=True,
-                ax=ax)
-
-
-        self._plot_service.set_plot_properties(
-            ax=ax,
-            title=f'Neighbourhood overlaps ({self._arguments_service.language.value})',
-            legend_options=LegendOptions(
-                show_legend=True,
-                legend_colors=[colors[k] for k in overlaps.keys()],
-                legend_labels=[k.value for k in overlaps.keys()],
-                legend_position=PlotLegendPosition.UpperLeft))
-
-        self._plot_service.save_plot(
-            save_path=experiment_type_folder,
-            filename=f'combined-neighbourhood-overlaps-{self._arguments_service.language.value}')
+        return result
 
     def _generate_neighbourhood_similarity(
             self,

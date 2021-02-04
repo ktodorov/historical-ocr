@@ -6,8 +6,8 @@ class LegendOptions:
     def __init__(
             self,
             show_legend: bool,
-            legend_colors: List[str],
-            legend_labels: List[str],
+            legend_colors: List[str] = None,
+            legend_labels: List[str] = None,
             legend_position: PlotLegendPosition = PlotLegendPosition.Automatic):
         self._show_legend = show_legend
         self._legend_colors: List[str] = legend_colors

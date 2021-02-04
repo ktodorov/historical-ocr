@@ -225,7 +225,7 @@ class PlotService:
 
     def plot_distribution(
             self,
-            counts: Counter,
+            counts,
             ax=None,
             ylim: float = None,
             xlim: float = None,
@@ -236,6 +236,10 @@ class PlotService:
             tight_layout: bool = True,
             hide_axis: bool = False,
             color: str = None,
+            linestyle: str = 'solid',
+            alpha = None,
+            label: str = None,
+            linewidth: float = 1,
             fill: bool = False):
 
         if ax is None:
@@ -247,12 +251,71 @@ class PlotService:
                 counts_list.append(k)
 
         ax = sns.kdeplot(
-            counts_list,
+            data=counts_list,
+            # x='overlapping words',
+            # y='values',
+            # y='amount of overlaps',
             color=color,
             fill=fill,
-            # bw_adjust=5,
+            bw_adjust=.5,
             # cut=0,
+            linestyle=linestyle,
+            label=label,
+            legend=True,
+            # palette="crest",
+            # common_norm=True,
+            linewidth=linewidth,
+            alpha=alpha,
             ax=ax)
+
+        if ylim is not None:
+            ax.set_ylim(ylim[0], ylim[1])
+
+        if xlim is not None:
+            ax.set_xlim(xlim[0], xlim[1])
+
+        self._add_properties(
+            ax,
+            title,
+            title_padding,
+            save_path,
+            filename,
+            hide_axis,
+            tight_layout)
+
+        return ax
+        
+
+    def plot_line_variance(
+            self,
+            min_counter: Counter,
+            max_counter: Counter,
+            avg_counter: Counter,
+            ax=None,
+            ylim: float = None,
+            xlim: float = None,
+            title: str = None,
+            title_padding: float = None,
+            save_path: str = None,
+            filename: str = None,
+            tight_layout: bool = True,
+            hide_axis: bool = False,
+            color: str = None,
+            linestyle: str = 'solid',
+            fill: bool = False):
+
+        if ax is None:
+            ax = self.create_plot()
+
+        ax.fill_between(
+            list(min_counter.keys()),
+            list(min_counter.values()),
+            list(max_counter.values()),
+            alpha=0.2)
+
+        ax.plot(
+            list(avg_counter.keys()),
+            list(avg_counter.values()))
 
         if ylim is not None:
             ax.set_ylim(ylim[0], ylim[1])
