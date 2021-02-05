@@ -83,5 +83,11 @@ then
     PADDINGIDXARG="$PADDINGIDX"
 fi
 
+RANDOMINITARG=""
+if [ ! -z "$RANDOMINIT" ]
+then
+    RANDOMINITARG="--initialize-randomly"
+fi
 
-srun python3 -u run.py --configuration $CONF --challenge ocr-evaluation --epochs 500000 --device cuda --eval-freq $EVALFREQARG --seed $SEEDARG --learning-rate $LEARNINGRATE --skip-validation --metric-types levenshtein-distance jaccard-similarity --language $LANGUAGEARG --batch-size $BATCHSIZEARG --ocr-output-type $OUTPUTTYPEARG --patience $PATIENCEARG $INCLUDEPRETRARG $PRETRMODELARG --pretrained-model-size 768 --pretrained-max-length 512 $PRETRWEIGHTSARG --enable-external-logging --padding-idx $PADDINGIDXARG
+
+srun python3 -u run.py --configuration $CONF --challenge ocr-evaluation --epochs 500000 --device cuda --eval-freq $EVALFREQARG --seed $SEEDARG --learning-rate $LEARNINGRATE --skip-validation --metric-types levenshtein-distance jaccard-similarity --language $LANGUAGEARG --batch-size $BATCHSIZEARG --ocr-output-type $OUTPUTTYPEARG --patience $PATIENCEARG $INCLUDEPRETRARG $PRETRMODELARG --pretrained-model-size 768 --pretrained-max-length 512 $PRETRWEIGHTSARG --enable-external-logging --padding-idx $PADDINGIDXARG $RANDOMINITARG

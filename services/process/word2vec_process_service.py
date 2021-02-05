@@ -79,15 +79,19 @@ class Word2VecProcessService(ICDARProcessService):
             random_suffix = '-rnd-init'
 
         token_matrix = self._cache_service.get_item_from_cache(
-            CacheOptions(f'word-matrix-{ocr_output_type.value}{random_suffix}'),
+            CacheOptions(
+                f'word-matrix-{ocr_output_type.value}{random_suffix}',
+                seed_specific=True),
             callback_function=self._generate_token_matrix)
 
         token_matrix = token_matrix.to(self._arguments_service.device)
         return token_matrix
 
     def _generate_token_matrix(self):
-        data_path = self._file_service.combine_path(self._file_service.get_challenge_path(
-        ), 'word2vec', self._arguments_service.language.value)
+        data_path = self._file_service.combine_path(
+            self._file_service.get_challenge_path(),
+            'word2vec',
+            self._arguments_service.language.value)
 
         word2vec_model_name, word2vec_binary = self._get_word2vec_model_info()
         word2vec_model_path = os.path.join(data_path, word2vec_model_name)

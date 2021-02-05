@@ -49,7 +49,10 @@ class NeighbourhoodOverlapProcessService:
 
         return result
 
-    def combine_seed_overlaps(self, overlaps_by_seed: Dict[int, Dict[str, int]]) -> Dict[int, List[int]]:
+    def combine_seed_overlaps(
+        self,
+        overlaps_by_seed: Dict[int, Dict[str, int]],
+        minimize_bins: bool = True) -> Dict[int, List[int]]:
         if all(x is None for x in overlaps_by_seed.values()):
             return None
 
@@ -61,7 +64,8 @@ class NeighbourhoodOverlapProcessService:
                 continue
 
             for overlap_amount in current_overlaps.values():
-                overlap_amount = int(overlap_amount / 10)
+                if minimize_bins:
+                    overlap_amount = int(overlap_amount / 10)
 
                 if combined_overlaps[overlap_amount][i] is None:
                     combined_overlaps[overlap_amount][i] = 0
