@@ -8,7 +8,8 @@ from datasets.word2vec_dataset import Word2VecDataset
 from datasets.dataset_base import DatasetBase
 from services.process.ppmi_process_service import PPMIProcessService
 from losses.simple_loss import SimpleLoss
-from services.word_neighbourhood_service import WordNeighbourhoodService
+from services.experiments.process.word_neighbourhood_service import WordNeighbourhoodService
+from services.experiments.process.metrics_process_service import MetricsProcessService
 from models.joint_model import JointModel
 
 import dependency_injector.containers as containers
@@ -71,6 +72,9 @@ from services.experiments.experiment_service_base import ExperimentServiceBase
 from services.experiments.ocr_quality_experiment_service import OCRQualityExperimentService
 from services.cache_service import CacheService
 from services.string_process_service import StringProcessService
+
+from services.experiments.process.neighbourhood_overlap_process_service import NeighbourhoodOverlapProcessService
+from services.experiments.process.neighbourhood_similarity_process_service import NeighbourhoodSimilarityProcessService
 
 import logging
 
@@ -335,6 +339,13 @@ class IocContainer(containers.DeclarativeContainer):
     fit_transformation_service = providers.Factory(
         FitTransformationService)
 
+    neighbourhood_similarity_process_service = providers.Factory(
+        NeighbourhoodSimilarityProcessService,
+        arguments_service=arguments_service,
+        file_service=file_service,
+        log_service=log_service,
+        tagging_service=tagging_service)
+
     word_neighbourhood_service = providers.Factory(
         WordNeighbourhoodService,
         arguments_service=arguments_service,
@@ -343,7 +354,17 @@ class IocContainer(containers.DeclarativeContainer):
         file_service=file_service,
         log_service=log_service,
         fit_transformation_service=fit_transformation_service,
+        cache_service=cache_service,
+        neighbourhood_similarity_process_service=neighbourhood_similarity_process_service)
+
+    neighbourhood_overlap_process_service = providers.Factory(
+        NeighbourhoodOverlapProcessService,
+        arguments_service=arguments_service,
         cache_service=cache_service)
+
+    metrics_process_service = providers.Factory(
+        MetricsProcessService,
+        metrics_service=metrics_service)
 
     experiment_service_selector = providers.Callable(
         get_experiment_service,
@@ -363,6 +384,8 @@ class IocContainer(containers.DeclarativeContainer):
             word_neighbourhood_service=word_neighbourhood_service,
             log_service=log_service,
             tagging_service=tagging_service,
+            neighbourhood_overlap_process_service=neighbourhood_overlap_process_service,
+            metrics_process_service=metrics_process_service,
             model=model),
         none=providers.Object(None))
 

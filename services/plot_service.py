@@ -175,7 +175,7 @@ class PlotService:
             fill=plot_options.fill,
             # bw_adjust=.5,
             # cut=0,
-            linestyle=plot_options.linestyle,
+            linestyle=plot_options.linestyle.value,
             label=plot_options.label,
             legend=True,
             # palette="crest",

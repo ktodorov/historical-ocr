@@ -1,3 +1,4 @@
+from services.experiments.process.neighbourhood_similarity_process_service import NeighbourhoodSimilarityProcessService
 from enums.font_weight import FontWeight
 from entities.plot.label_options import LabelOptions
 from entities.plot.figure_options import FigureOptions
@@ -6,6 +7,7 @@ from entities.cache.cache_options import CacheOptions
 from services.cache_service import CacheService
 from scipy import sparse
 from scipy.sparse import vstack
+from tqdm import tqdm
 
 from entities.word_neighbourhood_stats import WordNeighbourhoodStats
 from services.log_service import LogService
@@ -33,7 +35,8 @@ class WordNeighbourhoodService:
             file_service: FileService,
             log_service: LogService,
             fit_transformation_service: FitTransformationService,
-            cache_service: CacheService):
+            cache_service: CacheService,
+            neighbourhood_similarity_process_service: NeighbourhoodSimilarityProcessService):
 
         self._arguments_service = arguments_service
         self._metrics_service = metrics_service
@@ -42,6 +45,7 @@ class WordNeighbourhoodService:
         self._log_service = log_service
         self._fit_transformation_service = fit_transformation_service
         self._cache_service = cache_service
+        self._neighbourhood_similarity_process_service = neighbourhood_similarity_process_service
 
         self._word_similarities_cache_options = CacheOptions(
             'word-similarities',
@@ -227,7 +231,57 @@ class WordNeighbourhoodService:
 
         return max_indices
 
-    def cache_calculations(self):
+    def generate_neighbourhood_plots(
+            self,
+            word_evaluations,
+            cosine_distances: Dict[str, float]):
+        target_tokens = self._neighbourhood_similarity_process_service.get_target_tokens(cosine_distances)
+        for target_token in target_tokens:
+            i = next(i for i, word_evaluation in enumerate(
+                word_evaluations) if word_evaluation.word == target_token)
+
+            if i is None:
+                continue
+
+            word_evaluation = word_evaluations[i]
+            remaining_words = word_evaluations[:i] + word_evaluations[i+1:]
+            word_neighbourhood_stats = self.get_word_neighbourhoods(
+                word_evaluation,
+                remaining_words,
+                neighbourhood_set_size=50,
+                include_embeddings=True)
+
+            self.plot_word_neighbourhoods(
+                word_evaluation,
+                word_neighbourhood_stats)
+
+    def generate_neighbourhood_similarities(
+            self,
+            word_evaluations: List[WordEvaluation]) -> Dict[str, int]:
+        self._log_service.log_debug(
+            'Generating neighbourhood similarity results')
+
+        result = {}
+
+        common_words_indices = [i for i, word_evaluation in enumerate(word_evaluations) if (
+            word_evaluation.contains_all_embeddings() and word_evaluation.word not in result.keys())]
+
+        for i in tqdm(iterable=common_words_indices, desc=f'Calculating neighbourhood overlaps', total=len(common_words_indices)):
+            word_evaluation = word_evaluations[i]
+            remaining_words = word_evaluations[:i] + word_evaluations[i+1:]
+            word_neighbourhood_stats = self.get_word_neighbourhoods(
+                word_evaluation,
+                remaining_words,
+                neighbourhood_set_size=self._arguments_service.neighbourhood_set_size)
+
+            result[word_evaluation.word] = word_neighbourhood_stats.overlaps_amount
+
+            if i % 500 == 0:
+                self._cache_calculations()
+
+        return result
+
+    def _cache_calculations(self):
         self._cache_service.cache_item(
             self._word_similarity_indices,
             self._word_similarities_cache_options)
