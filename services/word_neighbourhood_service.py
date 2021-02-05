@@ -1,3 +1,7 @@
+from enums.font_weight import FontWeight
+from entities.plot.label_options import LabelOptions
+from entities.plot.figure_options import FigureOptions
+from entities.plot.plot_options import PlotOptions
 from entities.cache.cache_options import CacheOptions
 from services.cache_service import CacheService
 from scipy import sparse
@@ -123,10 +127,11 @@ class WordNeighbourhoodService:
 
         labels_colors = ['crimson', 'royalblue', 'darkgreen']
         word_neighbourhood_length = word_neighbourhoods.neighbourhood_size
-        bold_mask = [False for _ in range(word_neighbourhood_length + 1)]
-        bold_mask[0] = True
-        font_sizes = [None for _ in range(word_neighbourhood_length + 1)]
-        font_sizes[0] = 15
+
+        plot_options = PlotOptions(
+            ax=ax,
+            figure_options=FigureOptions(
+                show_plot=False))
 
         for i in range(word_neighbourhoods.neighbourhoods_amount):
             target_word_fitted_vector = target_word_fitted_vectors[i]
@@ -141,29 +146,31 @@ class WordNeighbourhoodService:
             self._plot_service.plot_scatter(
                 x_coords,
                 y_coords,
-                color='white',
-                ax=ax,
-                show_plot=False)
+                plot_options=plot_options)
 
             current_words = [target_word_evaluation.word] + all_words[(
                 i*word_neighbourhood_length):((i+1)*word_neighbourhood_length)]
             current_word_colors = [labels_colors[i]] + [labels_colors[i] if all_words.count(
                 x) == 1 else labels_colors[-1] for x in current_words[1:]]
 
-            self._plot_service.plot_labels(
-                x_coords,
-                y_coords,
-                current_words,
-                colors=current_word_colors,
-                ax=ax,
-                show_plot=False,
-                bold_mask=bold_mask,
-                font_sizes=font_sizes)
+            labels_options = [
+                LabelOptions(
+                    x=x_coords[i],
+                    y=y_coords[i],
+                    text=current_words[i],
+                    text_color=current_word_colors[i])
+                for i in range(word_neighbourhood_length + 1)]
+
+            labels_options[0].font_weight = FontWeight.Bold
+            labels_options[0].font_size = 15
+
+            self._plot_service.plot_labels(labels_options, plot_options)
 
         self._plot_service.set_plot_properties(
             ax=ax,
-            title=f'Neighbourhoods `{target_word_evaluation.word}`',
-            hide_axis=True,
+            figure_options=FigureOptions(
+                title=f'Neighbourhoods `{target_word_evaluation.word}`',
+                hide_axis=True),
             legend_options=LegendOptions(
                 show_legend=True,
                 legend_colors=labels_colors,

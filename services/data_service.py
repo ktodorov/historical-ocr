@@ -192,7 +192,7 @@ class DataService:
         """
         return pickle.loads(obj)
 
-    def save_figure(self, path: str, name: str, extension: str = 'png', no_axis: bool = True):
+    def save_figure(self, path: str, name: str, extension: str = 'png'):
         """saves figure to the file system
 
         :param path: path to the folder where the figure should be saved
@@ -204,9 +204,6 @@ class DataService:
         :param no_axis: whether to remove axis when saving the figure, defaults to True
         :type no_axis: bool, optional
         """
-        if (no_axis):
-            plt.axis('off')
-
         filepath = os.path.join(path, f'{name}.{extension}')
         self._log_service.log_debug(f'Saving plot figure to filesystem [filepath: \'{filepath}\']')
         plt.savefig(filepath, bbox_inches='tight')

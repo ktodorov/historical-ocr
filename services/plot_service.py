@@ -1,5 +1,9 @@
+from entities.plot.histogram_options import HistogramOptions
+from entities.plot.label_options import LabelOptions
+from entities.plot.figure_options import FigureOptions
 from enums.plot_legend_position import PlotLegendPosition
 from entities.plot.legend_options import LegendOptions
+from entities.plot.plot_options import PlotOptions
 import sys
 import seaborn as sns
 import numpy as np
@@ -8,11 +12,12 @@ from services.data_service import DataService
 from typing import List
 import matplotlib.pyplot as plt
 import matplotlib
-from matplotlib.pyplot import cm
+from matplotlib.pyplot import cm, plot
 from matplotlib.lines import Line2D
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from collections import Counter
+
 
 plt.rcParams["figure.figsize"] = (15, 10)
 # plt.rcParams["text.usetex"] = True
@@ -41,9 +46,10 @@ class PlotService:
 
         self._data_service = data_service
 
-        self._default_font_size: int = 10
+    def create_plot(self, plot_options: PlotOptions = None) -> Axes:
+        if plot_options is not None and plot_options.ax is not None:
+            return plot_options.ax
 
-    def create_plot(self) -> Axes:
         fig = plt.figure()
         # workaround for Exception in Tkinter callback
         fig.canvas.start_event_loop(sys.float_info.min)
@@ -54,26 +60,17 @@ class PlotService:
     def plot_histogram(
             self,
             values: list,
-            number_of_bins: int = None,
-            start_x: float = None,
-            end_x: float = None,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            ax=None,
-            hide_axis: bool = False):
-        if ax is None:
-            ax = self.create_plot()
+            plot_options: PlotOptions,
+            number_of_bins: int = None):
+        ax = self.create_plot(plot_options)
 
         if number_of_bins is None:
             number_of_bins = len(set(values))
 
-        if not start_x:
-            start_x = min(values)
-
-        if not end_x:
-            end_x = max(values)
+        if plot_options.xlim is None:
+            start_x, end_x = min(values), max(values)
+        else:
+            start_x, end_x = plot_options.xlim
 
         distance_bin = (end_x - start_x) / number_of_bins
 
@@ -81,19 +78,7 @@ class PlotService:
 
         ax.hist(values, bins=bins, edgecolor='none')
 
-        self._add_properties(
-            ax,
-            title,
-            title_padding,
-            save_path,
-            filename,
-            hide_axis)
-
-        if save_path is None or filename is None:
-            plt.show()
-
-        plt.clf()
-
+        self._add_properties(ax, plot_options)
         return ax
 
     def autolabel_heights(self, ax, rects, rotation: int = 0):
@@ -114,27 +99,11 @@ class PlotService:
             self,
             counter_labels: List[str],
             counters: List[Counter],
-            counter_colors: List[str] = None,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            xlabel: str = None,
-            ylabel: str = None,
-            plot_values_above_bars: bool = False,
-            values_above_bars_rotation: int = 0,
-            x_labels_rotation_angle: int = 0,
-            space_x_labels_vertically: bool = False,
-            tight_layout: bool = True,
-            external_legend: bool = False,
-            show_legend: bool = True,
-            ax=None,
-            bars_padding: float = 0.2,
-            xticks_count: int = None,
-            hide_axis: bool = False):
+            plot_options: PlotOptions,
+            histogram_options: HistogramOptions,
+            counter_colors: List[str] = None):
 
-        if ax is None:
-            ax = self.create_plot()
+        ax = self.create_plot(plot_options)
 
         unique_labels = list(
             sorted(set([label for x in counters for label in x.keys()])))
@@ -144,10 +113,7 @@ class PlotService:
             values.append([(counter[label] if label in counter.keys() else 0)
                            for label in unique_labels])
 
-        if bars_padding >= 1 or bars_padding < 0:
-            raise Exception('bars_padding must be between 0 and 1')
-
-        total_width = 1 - bars_padding  # the width of the bars
+        total_width = 1 - histogram_options.bars_padding  # the width of the bars
         dim = len(counters)
         dimw = total_width / dim
 
@@ -163,10 +129,10 @@ class PlotService:
 
         xticks = x + (total_width - dimw) / 2
         xtick_labels = unique_labels
-        if xticks_count is not None:
+        if plot_options.xticks_count is not None:
 
             indices = np.round(np.linspace(
-                0, len(xticks) - 1, xticks_count)).astype(int)
+                0, len(xticks) - 1, plot_options.xticks_count)).astype(int)
             leftover_ticks = [xticks[idx] for idx in indices]
             xtick_labels = [unique_labels[idx] for idx in indices]
 
@@ -174,76 +140,29 @@ class PlotService:
 
         ax.set_xticks(xticks)
         labels = ax.set_xticklabels(
-            xtick_labels, rotation=x_labels_rotation_angle)
+            xtick_labels, rotation=plot_options.x_labels_rotation_angle)
 
-        if space_x_labels_vertically:
+        if plot_options.space_x_labels_vertically:
             for i, label in enumerate(labels):
                 label.set_y(label.get_position()[1] - (i % 2) * 0.075)
 
-        if show_legend:
-            if external_legend:
-                ax.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
-            else:
-                ax.legend()
-
-        # fontweight = 'bold'
-        # fontproperties = {
-        #     'family': 'sans-serif',
-        #     'sans-serif': ['Helvetica'],
-        #     'weight': fontweight
-        # }
-
-        if ylabel is not None:
-            ax.set_ylabel(ylabel, fontweight='bold')
-
-        if xlabel is not None:
-            ax.set_xlabel(xlabel, fontweight='bold')
-
-        if plot_values_above_bars:
+        if histogram_options.plot_values_above_bars:
             for rect in rects:
                 self.autolabel_heights(
-                    ax, rect, rotation=values_above_bars_rotation)
+                    ax, rect, rotation=histogram_options.values_above_bars_rotation)
 
         x1, x2, y1, y2 = ax.axis()
         ax.axis((x1, x2, y1, y2 + 5))
 
-        self._add_properties(
-            ax,
-            title,
-            title_padding,
-            save_path,
-            filename,
-            hide_axis,
-            tight_layout)
-
-        if save_path is None or filename is None:
-            plt.show()
-
-        plt.clf()
+        self._add_properties(ax, plot_options)
 
         return ax
 
     def plot_distribution(
             self,
             counts,
-            ax=None,
-            ylim: float = None,
-            xlim: float = None,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            tight_layout: bool = True,
-            hide_axis: bool = False,
-            color: str = None,
-            linestyle: str = 'solid',
-            alpha = None,
-            label: str = None,
-            linewidth: float = 1,
-            fill: bool = False):
-
-        if ax is None:
-            ax = self.create_plot()
+            plot_options: PlotOptions):
+        ax = self.create_plot(plot_options)
 
         counts_list = []
         for k, v in counts.items():
@@ -252,60 +171,31 @@ class PlotService:
 
         ax = sns.kdeplot(
             data=counts_list,
-            # x='overlapping words',
-            # y='values',
-            # y='amount of overlaps',
-            color=color,
-            fill=fill,
-            bw_adjust=.5,
+            color=plot_options.color,
+            fill=plot_options.fill,
+            # bw_adjust=.5,
             # cut=0,
-            linestyle=linestyle,
-            label=label,
+            linestyle=plot_options.linestyle,
+            label=plot_options.label,
             legend=True,
             # palette="crest",
             # common_norm=True,
-            linewidth=linewidth,
-            alpha=alpha,
+            linewidth=plot_options.line_width,
+            alpha=plot_options.alpha,
             ax=ax)
 
-        if ylim is not None:
-            ax.set_ylim(ylim[0], ylim[1])
-
-        if xlim is not None:
-            ax.set_xlim(xlim[0], xlim[1])
-
-        self._add_properties(
-            ax,
-            title,
-            title_padding,
-            save_path,
-            filename,
-            hide_axis,
-            tight_layout)
+        self._add_properties(ax, plot_options)
 
         return ax
-        
 
     def plot_line_variance(
             self,
             min_counter: Counter,
             max_counter: Counter,
             avg_counter: Counter,
-            ax=None,
-            ylim: float = None,
-            xlim: float = None,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            tight_layout: bool = True,
-            hide_axis: bool = False,
-            color: str = None,
-            linestyle: str = 'solid',
-            fill: bool = False):
+            plot_options: PlotOptions):
 
-        if ax is None:
-            ax = self.create_plot()
+        ax = self.create_plot(plot_options)
 
         ax.fill_between(
             list(min_counter.keys()),
@@ -317,20 +207,7 @@ class PlotService:
             list(avg_counter.keys()),
             list(avg_counter.values()))
 
-        if ylim is not None:
-            ax.set_ylim(ylim[0], ylim[1])
-
-        if xlim is not None:
-            ax.set_xlim(xlim[0], xlim[1])
-
-        self._add_properties(
-            ax,
-            title,
-            title_padding,
-            save_path,
-            filename,
-            hide_axis,
-            tight_layout)
+        self._add_properties(ax, plot_options)
 
         return ax
 
@@ -338,60 +215,26 @@ class PlotService:
             self,
             x_values: list,
             y_values: list,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            color: str = None,
-            ax=None,
-            show_plot: bool = True,
-            hide_axis: bool = False):
-        if ax is None:
-            ax = self.create_plot()
-
-        ax.scatter(x_values, y_values, color=color)
-
-        self._add_properties(
-            ax,
-            title,
-            title_padding,
-            save_path,
-            filename,
-            hide_axis)
-
-        if show_plot and (save_path is None or filename is None):
-            plt.show()
-
-        if show_plot or (save_path is not None and filename is not None):
-            plt.clf()
-
+            plot_options: PlotOptions):
+        ax = self.create_plot(plot_options)
+        ax.scatter(x_values, y_values, color=plot_options.color)
+        self._add_properties(ax, plot_options)
         return ax
 
     def plot_overlapping_bars(
             self,
             numbers_per_type: List[List[int]],
             bar_titles: List[str],
-            colors: List[str] = None,
-            show_legend: bool = False,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            ax=None,
-            show_plot: bool = True,
-            hide_axis: bool = False,
-            tight_layout: bool = False,
-            ylim: float = None,
-            xlim: float = None,
-            ylabel: str = None,
-            xlabel: str = None):
+            plot_options: PlotOptions,
+            colors: List[str] = None):
 
-        if ax is None:
-            ax = self.create_plot()
+        ax = self.create_plot(plot_options)
 
         unique_numbers = set([item for v in numbers_per_type for item in v])
-        counters_per_type = {bar_titles[i]: Counter(
-            v) for i, v in enumerate(numbers_per_type)}
+        counters_per_type = {
+            bar_titles[i]: Counter(v)
+            for i, v in enumerate(numbers_per_type)
+        }
 
         normalized_counters_per_type = {
             type_name: Counter({
@@ -400,8 +243,6 @@ class PlotService:
             })
             for type_name, unnormalized_counter in counters_per_type.items()
         }
-
-        # print(normalized_counters_per_type)
 
         argmaxes = {}
         for i, number in enumerate(unique_numbers):
@@ -428,87 +269,29 @@ class PlotService:
 
             ax.bar(x, norm_y, width=x[1]-x[0], color=colors[i], bottom=p)
 
-        if ylim is not None:
-            ax.set_ylim(top=ylim)
-
-        if xlim is not None:
-            ax.set_xlim(right=xlim)
-
-        if ylabel is not None:
-            ax.set_ylabel(ylabel)
-
-        if xlabel is not None:
-            ax.set_xlabel(xlabel)
-
-        if show_legend:
-            ax.legend(bar_titles)
-
-        self._add_properties(
-            ax,
-            title,
-            title_padding,
-            save_path,
-            filename,
-            hide_axis,
-            tight_layout)
-
-        if show_plot and (save_path is None or filename is None):
-            plt.show()
-
-        if show_plot or (save_path is not None and filename is not None):
-            plt.clf()
+        self._add_properties(ax, plot_options)
 
         return ax
 
     def plot_labels(
             self,
-            x_values: list,
-            y_values: list,
-            labels: list,
-            color: str = None,
-            colors: List[str] = None,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            ax=None,
-            show_plot: bool = True,
-            bold_mask: list = None,
-            hide_axis: bool = False,
-            font_sizes: List[int] = None):
-        if ax is None:
-            ax = self.create_plot()
+            labels_options: List[LabelOptions],
+            plot_options: PlotOptions):
+        ax = self.create_plot(plot_options)
 
-        if font_sizes is None or len(font_sizes) < len(labels):
-            font_sizes = [self._default_font_size for _ in range(len(labels))]
-        else:
-            font_sizes = [font_sizes[i] if font_sizes[i]
-                          is not None else self._default_font_size for i in range(len(font_sizes))]
+        for label_options in labels_options:
+            label_color = label_options.text_color if label_options.text_color is not None else plot_options.color
 
-        for i, (label, x, y) in enumerate(zip(labels, x_values, y_values)):
-            weight = 'light'
-            if bold_mask is not None and bold_mask[i]:
-                weight = 'bold'
+            ax.annotate(
+                label_options.text,
+                xy=(labels_options.x, labels_options.y),
+                xytext=(0, 0),
+                textcoords='offset points',
+                color=label_color,
+                weight=label_options.font_weight.value,
+                fontsize=label_options.font_size)
 
-            label_color = colors[i] if colors is not None else color
-
-            ax.annotate(label, xy=(x, y), xytext=(
-                0, 0), textcoords='offset points', color=label_color, weight=weight, fontsize=font_sizes[i])
-
-        self._add_properties(
-            ax,
-            title,
-            title_padding,
-            save_path,
-            filename,
-            hide_axis)
-
-        if show_plot and (save_path is None or filename is None):
-            plt.show()
-
-        if show_plot or (save_path is not None and filename is not None):
-            plt.clf()
-
+        self._add_properties(ax, plot_options)
         return ax
 
     def plot_arrow(
@@ -517,52 +300,24 @@ class PlotService:
             y: float,
             dx: float,
             dy: float,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            color: str = None,
-            ax=None,
-            show_plot: bool = True,
-            hide_axis: bool = False):
-        if ax is None:
-            ax = self.create_plot()
+            plot_options: PlotOptions):
+        ax = self.create_plot(plot_options)
 
         ax.annotate("", xy=(x+dx, y+dy), xytext=(x, y),
-                    arrowprops=dict(arrowstyle="-|>", color=color),
+                    arrowprops=dict(arrowstyle="-|>", color=plot_options.color),
                     bbox=dict(pad=7, facecolor="none", edgecolor="none"))
 
-        self._add_properties(
-            ax,
-            title,
-            title_padding,
-            save_path,
-            filename,
-            hide_axis)
-
-        if show_plot and (save_path is None or filename is None):
-            plt.show()
-
-        if show_plot or (save_path is not None and filename is not None):
-            plt.clf()
-
+        self._add_properties(ax, plot_options)
         return ax
 
     def plot_confusion_matrix(
             self,
             true_values: list,
             predicted_values: list,
+            plot_options: PlotOptions,
             labels: List[str] = None,
-            normalize: bool = False,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            ax=None,
-            show_plot: bool = True,
-            hide_axis: bool = False):
-        if ax is None:
-            ax = self.create_plot()
+            normalize: bool = False):
+        ax = self.create_plot(plot_options)
 
         cm = confusion_matrix(true_values, predicted_values, labels)
 
@@ -592,40 +347,18 @@ class PlotService:
             sns_heatmap.set_xticklabels(
                 labels, rotation=45, horizontalalignment='right')
 
-        self._add_properties(
-            ax,
-            title,
-            title_padding,
-            save_path,
-            filename,
-            hide_axis)
-
-        if show_plot and (save_path is None or filename is None):
-            plt.show()
-
-        if show_plot or (save_path is not None and filename is not None):
-            plt.clf()
-
+        self._add_properties(ax, plot_options)
         return ax
 
     def plot_heatmap(
             self,
             values: np.array,
+            plot_options: PlotOptions,
             labels: List[str] = None,
-            title: str = None,
-            title_padding: float = None,
             vmin: float = None,
             vmax: float = None,
-            y_title: str = None,
-            x_title: str = None,
-            show_colorbar: bool = True,
-            save_path: str = None,
-            filename: str = None,
-            ax=None,
-            show_plot: bool = True,
-            hide_axis: bool = False):
-        if ax is None:
-            ax = self.create_plot()
+            show_colorbar: bool = True):
+        ax = self.create_plot(plot_options)
 
         if vmin is None:
             vmin = np.min(values)
@@ -641,13 +374,6 @@ class PlotService:
             cmap='Greens',
             square=True,
             cbar=show_colorbar)
-
-        if x_title is not None:
-            ax.set_xlabel(x_title)
-
-        if y_title is not None:
-            ax.set_ylabel(y_title)
-
         if labels is not None:
             ax.set_ylim(0, len(labels) + 0.5)
             ax.set_ylim(0, len(labels) + 0.5)
@@ -656,20 +382,7 @@ class PlotService:
             sns_heatmap.set_xticklabels(
                 labels, rotation=45, horizontalalignment='right')
 
-        self._add_properties(
-            ax,
-            title,
-            title_padding,
-            save_path,
-            filename,
-            hide_axis)
-
-        if show_plot and (save_path is None or filename is None):
-            plt.show()
-
-        if show_plot or (save_path is not None and filename is not None):
-            plt.clf()
-
+        self._add_properties(ax, plot_options)
         return ax
 
     def show_plot(self):
@@ -678,23 +391,20 @@ class PlotService:
     def set_plot_properties(
             self,
             ax: Axes,
-            title: str = None,
-            title_padding: float = None,
-            hide_axis: bool = False,
-            tight_layout: bool = True,
+            figure_options: FigureOptions,
             legend_options: LegendOptions = None):
 
-        if tight_layout:
+        if figure_options.tight_layout:
             plt.tight_layout()
 
-        if hide_axis:
+        if figure_options.hide_axis:
             ax.axis('off')
 
         if legend_options is not None:
             self.show_legend(ax, legend_options)
 
-        if title is not None:
-            ax.set_title(title, pad=title_padding,
+        if figure_options.title is not None:
+            ax.set_title(figure_options.title, pad=figure_options.title_padding,
                          fontdict={'fontweight': 'bold'})
 
     def show_legend(
@@ -711,7 +421,7 @@ class PlotService:
         if legend_options.legend_position == PlotLegendPosition.Outside:
             bbox_to_anchor = (1.04, 1)
             legend_location = "upper left"
-        elif (legend_options.legend_position != PlotLegendPosition.Outside and 
+        elif (legend_options.legend_position != PlotLegendPosition.Outside and
               legend_options.legend_position != PlotLegendPosition.Automatic):
             legend_location = legend_options.legend_position.value
 
@@ -727,11 +437,8 @@ class PlotService:
         else:
             ax.legend()
 
-    def save_plot(
-            self,
-            save_path: str,
-            filename: str):
-        self._data_service.save_figure(save_path, filename, no_axis=False)
+    def save_plot(self, save_path: str, filename: str):
+        self._data_service.save_figure(save_path, filename)
 
     def _create_legend_lines(
             self,
@@ -743,19 +450,39 @@ class PlotService:
     def _add_properties(
             self,
             ax: Axes,
-            title: str = None,
-            title_padding: float = None,
-            save_path: str = None,
-            filename: str = None,
-            hide_axis: bool = False,
-            tight_layout: bool = True):
+            plot_options: PlotOptions):
 
-        self.set_plot_properties(
-            ax,
-            title,
-            title_padding,
-            hide_axis,
-            tight_layout)
+        self.show_legend(ax, plot_options.legend_options)
+        self._set_labels(ax, plot_options)
+        self._set_plot_limits(ax, plot_options)
+        self.set_plot_properties(ax, plot_options.figure_options)
 
-        if save_path is not None and filename is not None:
-            self.save_plot(save_path, filename)
+        if plot_options.figure_options is None:
+            return
+
+        if plot_options.figure_options.save_path is not None and plot_options.figure_options.filename is not None:
+            self.save_plot(plot_options.figure_options.save_path,
+                           plot_options.figure_options.filename)
+        elif plot_options.figure_options.show_plot:
+            self.show_plot()
+
+        if plot_options.clear_figure:
+            plt.clf()
+
+    def _set_labels(self, ax: Axes, plot_options: PlotOptions):
+        if plot_options.ylabel_options.text is not None:
+            ax.set_ylabel(
+                plot_options.ylabel_options.text,
+                fontweight=plot_options.ylabel_options.font_weight.value)
+
+        if plot_options.xlabel_options.text is not None:
+            ax.set_xlabel(
+                plot_options.xlabel_options.text,
+                fontweight=plot_options.xlabel_options.font_weight.value)
+
+    def _set_plot_limits(self, ax: Axes, plot_options: PlotOptions):
+        if plot_options.ylim is not None:
+            ax.set_ylim(plot_options.ylim[0], plot_options.ylim[1])
+
+        if plot_options.xlim is not None:
+            ax.set_xlim(plot_options.xlim[0], plot_options.xlim[1])

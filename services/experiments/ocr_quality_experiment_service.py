@@ -1,5 +1,10 @@
 from collections import defaultdict
 
+from matplotlib.axes import Axes
+from enums.value_summary import ValueSummary
+from entities.plot.plot_options import PlotOptions
+from entities.plot.figure_options import FigureOptions
+
 import seaborn
 from entities.cache.cache_options import CacheOptions
 from enums.plot_legend_position import PlotLegendPosition
@@ -274,65 +279,6 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             ExperimentType.NeighbourhoodOverlap.value,
             create_if_missing=True)
 
-        alpha_values = [
-            # .1,
-            .3,
-            1,
-            1,
-        ]
-
-        fill = [
-            True,
-            False,
-            True
-        ]
-
-        linewidths = [
-            0,
-            1,
-            0
-        ]
-
-        colors = {
-            Configuration.CBOW: [
-                # 'lightsalmon',
-                'red',
-                'red',
-                # 'lightsalmon',
-                'white',
-            ],
-            Configuration.PPMI: [
-                # 'limegreen',
-                'green',
-                'green',
-                # 'limegreen',
-                'white',
-            ],
-            Configuration.SkipGram: [
-                # 'cornflowerblue',
-                'darkblue',
-                'darkblue',
-                # 'cornflowerblue',
-                'white',
-            ],
-            Configuration.BERT: [
-                # 'palevioletred',
-                'crimson',
-                'crimson',
-                # 'palevioletred',
-                'white',
-            ],
-        }
-
-        line_styles = [
-            'solid',
-            'dashed',
-            # 'solid',
-            'solid',
-        ]
-
-        # overlaps = {}
-
         ax = self._plot_service.create_plot()
         overlaps_by_config_and_seed = self._get_calculated_overlaps()
 
@@ -355,66 +301,33 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
                     combined_overlaps[overlap_amount][i] = combined_overlaps[overlap_amount][i] + 1
 
-            min_overlaps, max_overlaps, avg_overlaps = {}, {}, {}
+            value_summaries = {
+                ValueSummary.Maximum: {},
+                ValueSummary.Average: {},
+                ValueSummary.Minimum: {},
+            }
             for i in range(0, self._arguments_service.neighbourhood_set_size, 1):
                 if i not in combined_overlaps.keys():
                     continue
 
                 valid_overlaps = [x for x in combined_overlaps[i] if x is not None]
 
-                min_overlaps[i] = min(valid_overlaps)
-                max_overlaps[i] = max(valid_overlaps)
-                avg_overlaps[i] = int(np.mean(valid_overlaps))
+                value_summaries[ValueSummary.Minimum][i] = min(valid_overlaps)
+                value_summaries[ValueSummary.Maximum][i] = max(valid_overlaps)
+                value_summaries[ValueSummary.Average][i] = int(np.mean(valid_overlaps))
 
-            # ax = self._plot_service.plot_line_variance(
-            #     Counter(min_overlaps),
-            #     Counter(max_overlaps),
-            #     Counter(avg_overlaps),
-            #     color=colors[configuration],
-            #     ax=ax)
-            labels = [
-                'max',
-                'avg',
-                'min',
-            ]
-
-            for i, overlap_line in enumerate([max_overlaps, avg_overlaps, min_overlaps]):
-                # if i != 1: continue
-                # counter = Counter(overlap_line)
-
-                # counters = [Counter(x) for x in [min_overlaps, max_overlaps, avg_overlaps]]
-            # a = pd.DataFrame(
-            #     [
-            #         {'name': 'min', 'overlapping words': list(min_overlaps.keys()), 'values': list(min_overlaps.values()) },
-            #         {'name': 'max', 'overlapping words': list(max_overlaps.keys()), 'values': list(max_overlaps.values()) },
-            #         {'name': 'avg', 'overlapping words': list(avg_overlaps.keys()), 'values': list(avg_overlaps.values()) }
-            #     ])
-
-            # a = pd.DataFrame(
-            #     {
-            #         'overlapping words': list(min_overlaps.keys()),
-            #         'amount of overlaps': list(min_overlaps.values())
-            #     })
-
-            # overlaps[configuration] = counters
+            for value_summary, overlap_line in value_summaries.items():
                 ax = self._plot_service.plot_distribution(
                     counts=overlap_line,
-                    color=colors[configuration][i],
-                    linestyle=line_styles[i],
-                    fill=fill[i],
-                    label=f'{configuration.value}-{labels[i]}',
-                    alpha=alpha_values[i],
-                    linewidth=linewidths[i],
-                    ax=ax)
+                    plot_options=self._get_distribution_plot_options(
+                        ax,
+                        configuration,
+                        value_summary))
 
         self._plot_service.set_plot_properties(
             ax=ax,
-            title=f'Neighbourhood overlaps ({self._arguments_service.language.value})',
-            legend_options=LegendOptions(
-                show_legend=True,
-                # legend_colors=[colors[k] for k in overlaps.keys()],
-                # legend_labels=[k.value for k in overlaps.keys()],
-                legend_position=PlotLegendPosition.UpperLeft))
+            figure_options=FigureOptions(
+                title=f'Neighbourhood overlaps ({self._arguments_service.language.value})'))
 
         self._plot_service.save_plot(
             save_path=experiment_type_folder,
@@ -446,6 +359,69 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                         seed=seed))
 
                 result[configuration][seed] = config_overlaps
+
+        return result
+
+    def _get_distribution_plot_options(
+        self,
+        ax: Axes,
+        configuration: Configuration,
+        value_summary: ValueSummary):
+        alpha_values = {
+            ValueSummary.Maximum: .3,
+            ValueSummary.Average: 1,
+            ValueSummary.Minimum: 1,
+        }
+
+        fill = {
+            ValueSummary.Maximum: True,
+            ValueSummary.Average: False,
+            ValueSummary.Minimum: True,
+        }
+
+        linewidths = {
+            ValueSummary.Maximum: 0,
+            ValueSummary.Average: 1,
+            ValueSummary.Minimum: 0,
+        }
+
+        colors = {
+            Configuration.CBOW: {
+                ValueSummary.Maximum: 'red',
+                ValueSummary.Average: 'red',
+                ValueSummary.Minimum: 'white',
+            },
+            Configuration.PPMI: {
+                ValueSummary.Maximum: 'green',
+                ValueSummary.Average: 'green',
+                ValueSummary.Minimum: 'white',
+            },
+            Configuration.SkipGram: {
+                ValueSummary.Maximum: 'darkblue',
+                ValueSummary.Average: 'darkblue',
+                ValueSummary.Minimum: 'white',
+            },
+            Configuration.BERT: {
+                ValueSummary.Maximum: 'crimson',
+                ValueSummary.Average: 'crimson',
+                ValueSummary.Minimum: 'white',
+            },
+        }
+
+        line_styles = {
+            ValueSummary.Maximum: 'solid',
+            ValueSummary.Average: 'dashed',
+            ValueSummary.Minimum: 'solid',
+        }
+
+        result = PlotOptions(
+            color=colors[configuration][value_summary],
+            linestyle=line_styles[value_summary],
+            fill=fill[value_summary],
+            label=f'{configuration.value} [{value_summary.value}]',
+            alpha=alpha_values[value_summary],
+            line_width=linewidths[value_summary],
+            ax=ax)
 
         return result
 
