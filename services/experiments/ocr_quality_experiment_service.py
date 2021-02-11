@@ -1,3 +1,6 @@
+import numpy as np
+
+from scipy.spatial import procrustes
 from entities.plot.plot_options import PlotOptions
 from services.experiments.process.metrics_process_service import MetricsProcessService
 from services.experiments.process.neighbourhood_similarity_process_service import NeighbourhoodSimilarityProcessService
@@ -27,6 +30,7 @@ from services.metrics_service import MetricsService
 from services.plot_service import PlotService
 from services.experiments.process.word_neighbourhood_service import WordNeighbourhoodService
 from services.log_service import LogService
+
 
 class OCRQualityExperimentService(ExperimentServiceBase):
     def __init__(
@@ -113,8 +117,6 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
             self._log_service.log_info('Loaded euclidean distances')
 
-        # a, b, c = procrustes(model1_embeddings, model2_embeddings)
-
         self._log_service.log_info('Saving experiment results')
         self._save_experiment_results(result)
 
@@ -131,7 +133,9 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             outputs = self._model.get_embeddings(tokens, vocab_ids)
             result.extend(outputs)
 
-        if self._arguments_service.separate_neighbourhood_vocabularies:
+        if self._arguments_service.initialize_randomly:
+            result = self._align_word_embeddings(result)
+        elif self._arguments_service.separate_neighbourhood_vocabularies:
             processed_tokens = [we.word for we in result]
             for ocr_output_type in [OCROutputType.Raw, OCROutputType.GroundTruth]:
                 self._log_service.log_debug(
@@ -220,3 +224,28 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._plot_service.save_plot(
             save_path=experiment_type_folder,
             filename=f'combined-neighbourhood-overlaps-{self._arguments_service.language.value}')
+
+    def _align_word_embeddings(self, evaluations: List[WordEvaluation]) -> List[WordEvaluation]:
+        if len(evaluations) == 0:
+            raise Exception('Evaluations list is empty')
+
+        embeddings_size = evaluations[0].get_embeddings_size()
+        model1_embeddings = np.zeros((len(evaluations), embeddings_size))
+        model2_embeddings = np.zeros((len(evaluations), embeddings_size))
+
+        for i, word_evaluation in enumerate(evaluations):
+            model1_embeddings[i] = word_evaluation.get_embeddings(0)
+            model2_embeddings[i] = word_evaluation.get_embeddings(1)
+
+        standardized_model1_embeddings, standardized_model2_embeddings, disparity = procrustes(
+            model1_embeddings, model2_embeddings)
+        self._log_service.log_debug(f'Disparity found: {disparity}')
+
+        new_evaluations = []
+        for i, word_evaluation in enumerate(evaluations):
+            new_evaluations.append(WordEvaluation(
+                word_evaluation.word,
+                [standardized_model1_embeddings[i],
+                 standardized_model2_embeddings[i]]))
+
+        return new_evaluations

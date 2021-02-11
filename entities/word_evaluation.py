@@ -28,6 +28,13 @@ class WordEvaluation:
 
         return self._embeddings[idx]
 
+    def get_embeddings_size(self) -> int:
+        filled_embeddings = list(filter(lambda x: x is not None, self._embeddings))
+        if len(filled_embeddings) == 0:
+            return None
+
+        return len(filled_embeddings[0])
+
     @property
     def word(self) -> str:
         return self._word
