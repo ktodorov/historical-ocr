@@ -52,6 +52,7 @@ class WordNeighbourhoodService:
             seed_specific=True,
             key_suffixes=[
                 '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else '',
+                '-rnd' if self._arguments_service.initialize_randomly else '',
                 '-min',
                 str(self._arguments_service.minimal_occurrence_limit)
             ])

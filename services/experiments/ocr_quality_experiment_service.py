@@ -15,8 +15,9 @@ from services.vocabulary_service import VocabularyService
 from entities.word_evaluation import WordEvaluation
 from services.cache_service import CacheService
 from overrides.overrides import overrides
-from typing import Counter, List, Dict, Tuple
+from typing import Counter, List, Dict
 from overrides import overrides
+from tqdm import tqdm
 
 from enums.experiment_type import ExperimentType
 
@@ -204,9 +205,15 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         ax = self._plot_service.create_plot()
         overlaps_by_config_and_seed = self._neighbourhood_overlap_process_service.get_calculated_overlaps()
 
-        for configuration, overlaps_by_seed in overlaps_by_config_and_seed.items():
-            combined_overlaps = self._neighbourhood_overlap_process_service.combine_seed_overlaps(overlaps_by_seed)
-            value_summaries = self._neighbourhood_overlap_process_service.extract_value_summaries(combined_overlaps)
+        for (configuration, is_random_initialized), overlaps_by_seed in overlaps_by_config_and_seed.items():
+            if all(x is None for x in list(overlaps_by_seed.values())):
+                continue
+
+            combined_overlaps = self._neighbourhood_overlap_process_service.combine_seed_overlaps(
+                overlaps_by_seed)
+
+            value_summaries = self._neighbourhood_overlap_process_service.extract_value_summaries(
+                combined_overlaps)
 
             for value_summary, overlap_line in value_summaries.items():
                 ax = self._plot_service.plot_distribution(
@@ -214,6 +221,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                     plot_options=self._neighbourhood_overlap_process_service.get_distribution_plot_options(
                         ax,
                         configuration,
+                        is_random_initialized,
                         value_summary))
 
         self._plot_service.set_plot_properties(

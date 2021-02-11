@@ -5,7 +5,7 @@ import numpy as np
 from services.cache_service import CacheService
 from services.arguments.ocr_evaluation_arguments_service import OCREvaluationArgumentsService
 from entities.cache.cache_options import CacheOptions
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from entities.plot.plot_options import PlotOptions
 from enums.value_summary import ValueSummary
 from enums.configuration import Configuration
@@ -20,7 +20,7 @@ class NeighbourhoodOverlapProcessService:
         self._arguments_service = arguments_service
         self._cache_service = cache_service
 
-    def get_calculated_overlaps(self) -> Dict[Configuration, Dict[int, dict]]:
+    def get_calculated_overlaps(self) -> Dict[Tuple[Configuration, bool], Dict[int, dict]]:
         configurations = [
             Configuration.CBOW,
             Configuration.PPMI,
@@ -30,22 +30,22 @@ class NeighbourhoodOverlapProcessService:
 
         seeds = [7, 13, 42]
 
-        random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
-        cache_key = f'neighbourhood-overlaps{random_suffix}'
-
         result = {}
 
         for configuration in configurations:
-            result[configuration] = {}
+            for is_random_initialized in [False, True]:
+                random_suffix = '-rnd' if is_random_initialized else ''
+                cache_key = f'neighbourhood-overlaps{random_suffix}'
+                result[(configuration, is_random_initialized)] = {}
 
-            for seed in seeds:
-                config_overlaps = self._cache_service.get_item_from_cache(
-                    CacheOptions(
-                        cache_key,
-                        configuration=configuration,
-                        seed=seed))
+                for seed in seeds:
+                    config_overlaps = self._cache_service.get_item_from_cache(
+                        CacheOptions(
+                            cache_key,
+                            configuration=configuration,
+                            seed=seed))
 
-                result[configuration][seed] = config_overlaps
+                    result[(configuration, is_random_initialized)][seed] = config_overlaps
 
         return result
 
@@ -97,6 +97,7 @@ class NeighbourhoodOverlapProcessService:
         self,
         ax: Axes,
         configuration: Configuration,
+        is_random_initialized: bool,
         value_summary: ValueSummary) -> PlotOptions:
         alpha_values = {
             ValueSummary.Maximum: .3,
@@ -117,26 +118,50 @@ class NeighbourhoodOverlapProcessService:
         }
 
         colors = {
-            Configuration.CBOW: {
-                ValueSummary.Maximum: 'red',
-                ValueSummary.Average: 'red',
-                ValueSummary.Minimum: 'white',
+            False: {
+                Configuration.CBOW: {
+                    ValueSummary.Maximum: 'red',
+                    ValueSummary.Average: 'red',
+                    ValueSummary.Minimum: 'white',
+                },
+                Configuration.PPMI: {
+                    ValueSummary.Maximum: 'green',
+                    ValueSummary.Average: 'green',
+                    ValueSummary.Minimum: 'white',
+                },
+                Configuration.SkipGram: {
+                    ValueSummary.Maximum: 'darkblue',
+                    ValueSummary.Average: 'darkblue',
+                    ValueSummary.Minimum: 'white',
+                },
+                Configuration.BERT: {
+                    ValueSummary.Maximum: 'crimson',
+                    ValueSummary.Average: 'crimson',
+                    ValueSummary.Minimum: 'white',
+                }
             },
-            Configuration.PPMI: {
-                ValueSummary.Maximum: 'green',
-                ValueSummary.Average: 'green',
-                ValueSummary.Minimum: 'white',
-            },
-            Configuration.SkipGram: {
-                ValueSummary.Maximum: 'darkblue',
-                ValueSummary.Average: 'darkblue',
-                ValueSummary.Minimum: 'white',
-            },
-            Configuration.BERT: {
-                ValueSummary.Maximum: 'crimson',
-                ValueSummary.Average: 'crimson',
-                ValueSummary.Minimum: 'white',
-            },
+            True: {
+                Configuration.CBOW: {
+                    ValueSummary.Maximum: 'indianred',
+                    ValueSummary.Average: 'indianred',
+                    ValueSummary.Minimum: 'white',
+                },
+                Configuration.PPMI: {
+                    ValueSummary.Maximum: 'seagreen',
+                    ValueSummary.Average: 'seagreen',
+                    ValueSummary.Minimum: 'white',
+                },
+                Configuration.SkipGram: {
+                    ValueSummary.Maximum: 'royalblue',
+                    ValueSummary.Average: 'royalblue',
+                    ValueSummary.Minimum: 'white',
+                },
+                Configuration.BERT: {
+                    ValueSummary.Maximum: 'palevioletred',
+                    ValueSummary.Average: 'palevioletred',
+                    ValueSummary.Minimum: 'white',
+                },
+            }
         }
 
         line_styles = {
@@ -145,11 +170,12 @@ class NeighbourhoodOverlapProcessService:
             ValueSummary.Minimum: LineStyle.Solid,
         }
 
+        random_label_suffix = ' [random]' if is_random_initialized else ''
         result = PlotOptions(
-            color=colors[configuration][value_summary],
+            color=colors[is_random_initialized][configuration][value_summary],
             linestyle=line_styles[value_summary],
             fill=fill[value_summary],
-            label=f'{configuration.value} [{value_summary.value}]',
+            label=f'{configuration.value} [{value_summary.value}]{random_label_suffix}',
             alpha=alpha_values[value_summary],
             line_width=linewidths[value_summary],
             ax=ax)
