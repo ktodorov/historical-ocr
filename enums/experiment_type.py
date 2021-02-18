@@ -6,3 +6,4 @@ class ExperimentType(ArgumentEnum):
     EuclideanDistance = 'euclidean-distance'
     KLDivergence = 'kl-divergence'
     NeighbourhoodOverlap = 'neighbourhood-overlap'
+    OverlapSetSizeComparison = 'overlap-set-size-comparison'

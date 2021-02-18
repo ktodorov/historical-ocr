@@ -98,9 +98,15 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         if ExperimentType.NeighbourhoodOverlap in experiment_types:
             result[ExperimentType.NeighbourhoodOverlap] = self._cache_service.get_item_from_cache(
                 CacheOptions(
-                    f'neighbourhood-overlaps{random_suffix}',
+                    'neighbourhood-overlaps',
+                    key_suffixes=[
+                        random_suffix,
+                        f'-{self._arguments_service.neighbourhood_set_size}'
+                    ],
                     seed_specific=True),
-                callback_function=lambda: self._word_neighbourhood_service.generate_neighbourhood_similarities(word_evaluations))
+                callback_function=lambda: self._word_neighbourhood_service.generate_neighbourhood_similarities(
+                    word_evaluations,
+                    neighbourhood_set_size=self._arguments_service.neighbourhood_set_size))
 
             self._log_service.log_info('Loaded neighbourhood overlaps')
 
@@ -166,6 +172,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._save_individual_experiments(result)
         self._log_service.log_info('Generating plots')
         self._generate_common_plots()
+        self._generate_set_sized_based_plot()
 
     def _save_individual_experiments(self, result: Dict[ExperimentType, Dict[str, float]]):
         experiments_folder = self._file_service.get_experiments_path()
@@ -203,14 +210,16 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             create_if_missing=True)
 
         ax = self._plot_service.create_plot()
-        overlaps_by_config_and_seed = self._neighbourhood_overlap_process_service.get_calculated_overlaps()
+        overlaps_by_config_and_seed = self._neighbourhood_overlap_process_service.get_calculated_overlaps(
+            self._arguments_service.neighbourhood_set_size)
 
         for (configuration, is_random_initialized), overlaps_by_seed in overlaps_by_config_and_seed.items():
             if all(x is None for x in list(overlaps_by_seed.values())):
                 continue
 
             combined_overlaps = self._neighbourhood_overlap_process_service.combine_seed_overlaps(
-                overlaps_by_seed)
+                overlaps_by_seed,
+                self._arguments_service.neighbourhood_set_size)
 
             value_summaries = self._neighbourhood_overlap_process_service.extract_value_summaries(
                 combined_overlaps)
@@ -231,7 +240,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         self._plot_service.save_plot(
             save_path=experiment_type_folder,
-            filename=f'combined-neighbourhood-overlaps-{self._arguments_service.language.value}')
+            filename=f'combined-neighbourhood-overlaps-{self._arguments_service.language.value}-{self._arguments_service.neighbourhood_set_size}')
 
     def _align_word_embeddings(self, evaluations: List[WordEvaluation]) -> List[WordEvaluation]:
         if len(evaluations) == 0:
@@ -257,3 +266,80 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                  standardized_model2_embeddings[i]]))
 
         return new_evaluations
+
+    def _generate_set_sized_based_plot(self):
+        experiments_folder = self._file_service.get_experiments_path()
+        experiment_type_folder = self._file_service.combine_path(
+            experiments_folder,
+            ExperimentType.OverlapSetSizeComparison.value,
+            create_if_missing=True)
+
+        ax = self._plot_service.create_plot(
+            PlotOptions(
+                figure_options=FigureOptions(
+                    seaborn_style='whitegrid')))
+        percentages = {}
+
+        for set_size in range(100, 1050, 50):
+            overlaps_by_config_and_seed = self._neighbourhood_overlap_process_service.get_calculated_overlaps(
+                set_size)
+
+            for (configuration, is_random_initialized), overlaps_by_seed in overlaps_by_config_and_seed.items():
+                if (configuration, is_random_initialized) not in percentages.keys():
+                    percentages[(configuration, is_random_initialized)] = {}
+
+                if all(x is None for x in list(overlaps_by_seed.values())):
+                    continue
+
+                combined_overlaps = self._neighbourhood_overlap_process_service.combine_seed_overlaps(
+                    overlaps_by_seed,
+                    set_size,
+                    max_bins=set_size)
+
+                percentage_value = self._get_overlap_percentage(
+                    combined_overlaps, set_size)
+                percentages[(configuration, is_random_initialized)
+                            ][set_size] = percentage_value
+
+        keys_to_delete = [key for key, values in percentages.items() if all(x == 0 for x in values)]
+        for key in keys_to_delete:
+            del percentages[key]
+
+        set_sizes = [x for x in range(100, 1050, 50)]
+        y_values = [[ 0 for _ in range(len(set_sizes)) ] for _ in range(len(percentages.keys()))]
+        for i, ((configuration, is_random_initialized), percentages_by_set_size) in enumerate(percentages.items()):
+            for k, set_size in enumerate(set_sizes):
+                if set_size in percentages_by_set_size.keys():
+                    y_values[i][k] = percentages_by_set_size[set_size]
+
+        labels = [
+            f'{configuration.value}' +
+            ('[random]' if is_random_initialized else '')
+            for (configuration, is_random_initialized) in percentages.keys()]
+
+        self._plot_service.plot_lines(
+            x_values=set_sizes,
+            y_values=y_values,
+            labels=labels,
+            plot_options=PlotOptions(
+                ax=ax,
+                figure_options=FigureOptions(
+                    title=f'{ExperimentType.OverlapSetSizeComparison.value}-{self._arguments_service.language.value}',
+                    save_path=experiment_type_folder,
+                    filename=f'overlap-set-size-comparison-{self._arguments_service.language.value}')))
+
+    def _get_overlap_percentage(self, combined_overlaps: Dict[int, List[int]], set_size: int):
+        result = 0
+        count = 0
+
+        for overlap_amount, overlap_values in combined_overlaps.items():
+            current_percentage = overlap_amount / set_size
+            for overlap_value in overlap_values:
+                if overlap_value is None:
+                    continue
+
+                result = result + (overlap_value * current_percentage)
+                count = count + overlap_value
+
+        final_percentage = result / count
+        return final_percentage

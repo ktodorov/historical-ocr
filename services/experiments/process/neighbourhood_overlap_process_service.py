@@ -20,7 +20,7 @@ class NeighbourhoodOverlapProcessService:
         self._arguments_service = arguments_service
         self._cache_service = cache_service
 
-    def get_calculated_overlaps(self) -> Dict[Tuple[Configuration, bool], Dict[int, dict]]:
+    def get_calculated_overlaps(self, neighbourhood_set_size: int) -> Dict[Tuple[Configuration, bool], Dict[int, dict]]:
         configurations = [
             Configuration.CBOW,
             Configuration.PPMI,
@@ -34,14 +34,16 @@ class NeighbourhoodOverlapProcessService:
 
         for configuration in configurations:
             for is_random_initialized in [False, True]:
-                random_suffix = '-rnd' if is_random_initialized else ''
-                cache_key = f'neighbourhood-overlaps{random_suffix}'
                 result[(configuration, is_random_initialized)] = {}
 
                 for seed in seeds:
                     config_overlaps = self._cache_service.get_item_from_cache(
                         CacheOptions(
-                            cache_key,
+                            'neighbourhood-overlaps',
+                            key_suffixes=[
+                                '-rnd' if is_random_initialized else '',
+                                f'-{neighbourhood_set_size}'
+                            ],
                             configuration=configuration,
                             seed=seed))
 
@@ -52,9 +54,14 @@ class NeighbourhoodOverlapProcessService:
     def combine_seed_overlaps(
         self,
         overlaps_by_seed: Dict[int, Dict[str, int]],
-        minimize_bins: bool = True) -> Dict[int, List[int]]:
+        neighbourhood_set_size: int,
+        max_bins: int = 100) -> Dict[int, List[int]]:
         if all(x is None for x in overlaps_by_seed.values()):
             return None
+
+        reduce_factor = 1
+        if neighbourhood_set_size > max_bins:
+            reduce_factor = neighbourhood_set_size / max_bins
 
         combined_overlaps = defaultdict(
             lambda: [None for _ in range(len(overlaps_by_seed.keys()))])
@@ -64,8 +71,7 @@ class NeighbourhoodOverlapProcessService:
                 continue
 
             for overlap_amount in current_overlaps.values():
-                if minimize_bins:
-                    overlap_amount = int(overlap_amount / 10)
+                overlap_amount = int(overlap_amount / reduce_factor)
 
                 if combined_overlaps[overlap_amount][i] is None:
                     combined_overlaps[overlap_amount][i] = 0
@@ -120,8 +126,8 @@ class NeighbourhoodOverlapProcessService:
         colors = {
             False: {
                 Configuration.CBOW: {
-                    ValueSummary.Maximum: 'red',
-                    ValueSummary.Average: 'red',
+                    ValueSummary.Maximum: 'darkgoldenrod',
+                    ValueSummary.Average: 'darkgoldenrod',
                     ValueSummary.Minimum: 'white',
                 },
                 Configuration.PPMI: {
@@ -142,8 +148,8 @@ class NeighbourhoodOverlapProcessService:
             },
             True: {
                 Configuration.CBOW: {
-                    ValueSummary.Maximum: 'indianred',
-                    ValueSummary.Average: 'indianred',
+                    ValueSummary.Maximum: 'orange',
+                    ValueSummary.Average: 'orange',
                     ValueSummary.Minimum: 'white',
                 },
                 Configuration.PPMI: {

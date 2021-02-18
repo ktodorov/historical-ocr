@@ -42,13 +42,18 @@ class PlotService:
             data_service: DataService):
         sns.set()
         # sns.set(font_scale=2)  # crazy big
-        sns.set_style("ticks")
+        # sns.set_style("ticks")
 
         self._data_service = data_service
 
     def create_plot(self, plot_options: PlotOptions = None) -> Axes:
         if plot_options is not None and plot_options.ax is not None:
             return plot_options.ax
+
+        if plot_options is not None and plot_options.figure_options is not None:
+            sns.set_style(plot_options.figure_options.seaborn_style)
+        else:
+            sns.set_style('ticks')
 
         fig = plt.figure()
         # workaround for Exception in Tkinter callback
@@ -284,7 +289,7 @@ class PlotService:
 
             ax.annotate(
                 label_options.text,
-                xy=(labels_options.x, labels_options.y),
+                xy=(label_options.x, label_options.y),
                 xytext=(0, 0),
                 textcoords='offset points',
                 color=label_color,
@@ -381,6 +386,20 @@ class PlotService:
             sns_heatmap.set_yticklabels(labels, rotation=0)
             sns_heatmap.set_xticklabels(
                 labels, rotation=45, horizontalalignment='right')
+
+        self._add_properties(ax, plot_options)
+        return ax
+
+    def plot_lines(
+        self,
+        x_values: List[float],
+        y_values: List[List[float]],
+        labels: List[str],
+        plot_options: PlotOptions):
+        ax = self.create_plot(plot_options)
+
+        for value_list, label in zip(y_values, labels):
+            ax.plot(x_values, value_list, label=label)
 
         self._add_properties(ax, plot_options)
         return ax

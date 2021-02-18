@@ -7,7 +7,8 @@ class FigureOptions:
         filename: str = None,
         tight_layout: bool = True,
         hide_axis: bool = False,
-        show_plot: bool = False):
+        show_plot: bool = False,
+        seaborn_style: str = 'ticks'):
 
         self._title = title
         self._title_padding = title_padding
@@ -16,6 +17,7 @@ class FigureOptions:
         self._tight_layout = tight_layout
         self._hide_axis = hide_axis
         self._show_plot = show_plot
+        self._seaborn_style = seaborn_style
 
     @property
     def title(self) -> str:
@@ -44,3 +46,7 @@ class FigureOptions:
     @property
     def show_plot(self) -> bool:
         return self._show_plot
+
+    @property
+    def seaborn_style(self) -> str:
+        return self._seaborn_style

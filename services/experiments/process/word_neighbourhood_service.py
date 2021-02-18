@@ -58,8 +58,12 @@ class WordNeighbourhoodService:
             ])
 
         self._word_similarity_indices: Dict[str, Dict[int, list]] = self._cache_service.get_item_from_cache(
-            self._word_similarities_cache_options,
-            callback_function=lambda: {})
+            self._word_similarities_cache_options)
+
+        self._cache_word_similarity_indices = False
+        if self._word_similarity_indices is None:
+            self._cache_word_similarity_indices = True
+            self._word_similarity_indices = {}
 
     def plot_word_neighbourhoods(
             self,
@@ -160,14 +164,14 @@ class WordNeighbourhoodService:
 
             labels_options = [
                 LabelOptions(
-                    x=x_coords[i],
-                    y=y_coords[i],
-                    text=current_words[i],
-                    text_color=current_word_colors[i])
-                for i in range(word_neighbourhood_length + 1)]
+                    x=x_coords[k],
+                    y=y_coords[k],
+                    text=current_words[k],
+                    text_color=current_word_colors[k])
+                for k in range(word_neighbourhood_length)]
 
-            labels_options[0].font_weight = FontWeight.Bold
-            labels_options[0].font_size = 15
+            labels_options[0]._font_weight = FontWeight.Bold
+            labels_options[0]._font_size = 15
 
             self._plot_service.plot_labels(labels_options, plot_options)
 
@@ -199,7 +203,7 @@ class WordNeighbourhoodService:
             embeddings_idx: int,
             neighbourhood_set_size: int,
             output_full_evaluations: bool = False) -> List[WordEvaluation]:
-        if (not output_full_evaluations and word_evaluation.word in self._word_similarity_indices.keys() and embeddings_idx in self._word_similarity_indices[word_evaluation.word]):
+        if (not output_full_evaluations and word_evaluation.word in self._word_similarity_indices.keys() and embeddings_idx in self._word_similarity_indices[word_evaluation.word].keys()):
             indices = self._word_similarity_indices[word_evaluation.word][embeddings_idx]
         else:
             target_embeddings = np.array(
@@ -216,7 +220,9 @@ class WordNeighbourhoodService:
                 if word_evaluation.word not in self._word_similarity_indices.keys():
                     self._word_similarity_indices[word_evaluation.word] = {}
 
-                self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
+                if embeddings_idx not in self._word_similarity_indices[word_evaluation.word].keys():
+                    self._cache_word_similarity_indices = True # We mark the indices to be cached because we add a new entry
+                    self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
 
         if neighbourhood_set_size > len(indices):
             self._log_service.log_warning(
@@ -258,7 +264,8 @@ class WordNeighbourhoodService:
 
     def generate_neighbourhood_similarities(
             self,
-            word_evaluations: List[WordEvaluation]) -> Dict[str, int]:
+            word_evaluations: List[WordEvaluation],
+            neighbourhood_set_size: int) -> Dict[str, int]:
         self._log_service.log_debug(
             'Generating neighbourhood similarity results')
 
@@ -273,7 +280,7 @@ class WordNeighbourhoodService:
             word_neighbourhood_stats = self.get_word_neighbourhoods(
                 word_evaluation,
                 remaining_words,
-                neighbourhood_set_size=self._arguments_service.neighbourhood_set_size)
+                neighbourhood_set_size=neighbourhood_set_size)
 
             result[word_evaluation.word] = word_neighbourhood_stats.overlaps_amount
 
@@ -283,6 +290,11 @@ class WordNeighbourhoodService:
         return result
 
     def _cache_calculations(self):
+        if not self._cache_word_similarity_indices:
+            return
+
         self._cache_service.cache_item(
             self._word_similarity_indices,
             self._word_similarities_cache_options)
+
+        self._cache_word_similarity_indices = False
