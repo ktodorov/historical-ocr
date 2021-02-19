@@ -89,5 +89,10 @@ then
     RANDOMINITARG="--initialize-randomly"
 fi
 
+DATASETSARG="icdar-2017 icdar-2019"
+if [ ! -z "$DATASETS" ]
+then
+    DATASETSARG="$DATASETS"
+fi
 
-srun python3 -u run.py --configuration $CONF --challenge ocr-evaluation --epochs 500000 --device cuda --eval-freq $EVALFREQARG --seed $SEEDARG --learning-rate $LEARNINGRATE --skip-validation --metric-types levenshtein-distance jaccard-similarity --language $LANGUAGEARG --batch-size $BATCHSIZEARG --ocr-output-type $OUTPUTTYPEARG --patience $PATIENCEARG $INCLUDEPRETRARG $PRETRMODELARG --pretrained-model-size 768 --pretrained-max-length 512 $PRETRWEIGHTSARG --enable-external-logging --padding-idx $PADDINGIDXARG $RANDOMINITARG
+srun python3 -u run.py --configuration $CONF --challenge ocr-evaluation --epochs 500000 --device cuda --eval-freq $EVALFREQARG --seed $SEEDARG --learning-rate $LEARNINGRATE --skip-validation --metric-types levenshtein-distance jaccard-similarity --language $LANGUAGEARG --batch-size $BATCHSIZEARG --ocr-output-type $OUTPUTTYPEARG --patience $PATIENCEARG $INCLUDEPRETRARG $PRETRMODELARG --pretrained-model-size 768 --pretrained-max-length 512 $PRETRWEIGHTSARG --enable-external-logging --padding-idx $PADDINGIDXARG $RANDOMINITARG --datasets $DATASETSARG
