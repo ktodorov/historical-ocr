@@ -140,6 +140,9 @@ class ArgumentsServiceBase:
         parser.add_argument('--padding-idx', type=int, default=0,
                             help='Idx of the PAD token if used')
 
+        parser.add_argument('--datasets', nargs='+', default=['icdar-2019', 'icdar-2017'],
+                            help='What datasets should be used')
+
     def _validate_arguments(self, parser: argparse.ArgumentParser):
         pass
 
@@ -332,3 +335,7 @@ class ArgumentsServiceBase:
     @property
     def padding_idx(self) -> int:
         return self._get_argument('padding_idx')
+
+    @property
+    def datasets(self) -> List[str]:
+        return self._get_argument('datasets')

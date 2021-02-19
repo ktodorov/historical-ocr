@@ -42,7 +42,7 @@ class ICDARProcessService(ProcessServiceBase):
         self._log_service = log_service
 
         self._min_occurrence_limit = self._arguments_service.minimal_occurrence_limit
-        self._vocab_key = f'vocab-{arguments_service.ocr_output_type.value}'
+        self._vocab_key = f'vocab-{self._get_dataset_string()}-{arguments_service.ocr_output_type.value}'
 
         if not self._vocabulary_service.load_cached_vocabulary(self._vocab_key):
             self._log_service.log_debug(
@@ -82,7 +82,7 @@ class ICDARProcessService(ProcessServiceBase):
         self._cache_service.cache_item(
             data_ids,
             CacheOptions(
-                f'token-ids-{self._arguments_service.ocr_output_type.value}'))
+                f'token-ids-{self._get_dataset_string()}-{self._arguments_service.ocr_output_type.value}'))
 
         result = self._generate_corpora_entries(data_ids)
         return result
@@ -92,7 +92,7 @@ class ICDARProcessService(ProcessServiceBase):
 
     def _save_common_tokens(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
         self._log_service.log_debug('Saving common tokens')
-        token_pairs_cache_key = f'common-token-pairs-{self._arguments_service.ocr_output_type.value}-lim-{self._arguments_service.minimal_occurrence_limit}'
+        token_pairs_cache_key = f'common-t-pairs-{self._get_dataset_string()}-{self._arguments_service.ocr_output_type.value}-lim-{self._arguments_service.minimal_occurrence_limit}'
         if self._cache_service.item_exists(CacheOptions(token_pairs_cache_key)):
             return
 
@@ -127,27 +127,20 @@ class ICDARProcessService(ProcessServiceBase):
         return common_tokens
 
     def _load_file_data(self):
-        cache_keys = [
-            'trove-dataset',
-            'newseye-2017-full-dataset',
-            'newseye-2019-train-dataset',
-            'newseye-2019-eval-dataset']
-
-        number_of_files = len(cache_keys)
+        number_of_files = len(self._arguments_service.datasets)
 
         ocr_file_data = []
         gs_file_data = []
 
-        for i, cache_key in enumerate(cache_keys):
+        for i, dataset in enumerate(self._arguments_service.datasets):
             print(f'{i}/{number_of_files}             \r', end='')
-            result = self._cache_service.get_item_from_cache(
-                CacheOptions(cache_key, configuration_specific=False))
+            result = self._ocr_download_service.get_downloaded_dataset(dataset)
             if result is None:
                 self._log_service.log_debug(
-                    f'Did not find \'{cache_key}\' data to load')
+                    f'Did not find \'{dataset}\' dataset to load')
                 continue
             else:
-                self._log_service.log_debug(f'Loading \'{cache_key}\' data')
+                self._log_service.log_debug(f'Loading \'{dataset}\' data')
 
             ocr_file_data.extend(result[0])
             gs_file_data.extend(result[1])
@@ -157,8 +150,11 @@ class ICDARProcessService(ProcessServiceBase):
     def _read_data(self):
         ocr_file_data, gs_file_data = self._cache_service.get_item_from_cache(
             CacheOptions(
-                'ocr-gs-file-data',
+                f'ocr-gs-file-data-{self._get_dataset_string()}',
                 configuration_specific=False),
             callback_function=self._load_file_data)
 
         return ocr_file_data, gs_file_data
+
+    def _get_dataset_string(self):
+        return '-'.join(sorted(self._arguments_service.datasets))

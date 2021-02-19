@@ -67,7 +67,7 @@ class TransformerProcessService(ProcessServiceBase):
 
         self._cache_service.cache_item(
             (ocr_ids, gs_ids),
-            CacheOptions('token-ids'))
+            CacheOptions(f'token-ids-{self._get_datasets_string()}'))
 
         return ocr_entries, gs_entries
 
@@ -79,7 +79,7 @@ class TransformerProcessService(ProcessServiceBase):
 
         common_tokens = self._cache_service.get_item_from_cache(
             CacheOptions(
-                'common-tokens',
+                f'common-tokens-{self._get_datasets_string()}',
                 configuration_specific=False))
 
         token_id_pairs = []
@@ -100,7 +100,7 @@ class TransformerProcessService(ProcessServiceBase):
             ocr_output_type: OCROutputType,
             reduction: int) -> List[TransformerEntry]:
         ocr_entries, gs_entries = self._cache_service.get_item_from_cache(
-            CacheOptions('entries'),
+            CacheOptions(f'entries-{self._get_datasets_string()}'),
             callback_function=self._generate_entries)
 
         entries = ocr_entries if ocr_output_type == OCROutputType.Raw else gs_entries
@@ -117,41 +117,40 @@ class TransformerProcessService(ProcessServiceBase):
         return entries
 
     def _load_file_data(self):
-        cache_keys = [
-            'trove-dataset',
-            'newseye-2017-full-dataset',
-            'newseye-2019-train-dataset',
-            'newseye-2019-eval-dataset']
+        # cache_keys = [
+        #     'trove',
+        #     f'icdar-2017-{self._preprocess_max_string_length}',
+        #     f'icdar-2019-{self._preprocess_max_string_length}']
 
-        cache_keys = [f'{x}-{self._preprocess_max_string_length}' for x in cache_keys]
-
-        number_of_files = len(cache_keys)
+        number_of_files = len(self._arguments_service.datasets)
 
         ocr_file_data = []
         gs_file_data = []
 
-        for i, cache_key in enumerate(cache_keys):
+        for i, dataset in enumerate(self._arguments_service.datasets):
             print(f'{i}/{number_of_files}             \r', end='')
-            result = self._cache_service.get_item_from_cache(
-                CacheOptions(
-                    cache_key,
-                    configuration_specific=False))
+            result = self._ocr_download_service.get_downloaded_dataset(dataset, self._preprocess_max_string_length)
             if result is None:
                 self._log_service.log_debug(
-                    f'Did not find \'{cache_key}\' data to load')
+                    f'Did not find \'{dataset}\' dataset to load')
                 continue
             else:
-                self._log_service.log_debug(f'Loading \'{cache_key}\' data')
+                self._log_service.log_debug(f'Loading \'{dataset}\' data')
 
             ocr_file_data.extend(result[0])
             gs_file_data.extend(result[1])
 
         return ocr_file_data, gs_file_data
 
+    def _get_datasets_string(self):
+        datasets_string = '-'.join(sorted(self._arguments_service.datasets))
+        return datasets_string
+    
     def _read_data(self):
+
         (ocr_file_data, gs_file_data) = self._cache_service.get_item_from_cache(
             CacheOptions(
-                f'ocr-gs-file-data-{self._preprocess_max_string_length}',
+                f'ocr-gs-file-data-{self._get_datasets_string()}-{self._preprocess_max_string_length}',
                 configuration_specific=False),
             callback_function=self._load_file_data)
 

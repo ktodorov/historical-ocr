@@ -179,6 +179,7 @@ class IocContainer(containers.DeclarativeContainer):
 
     ocr_download_service = providers.Factory(
         OCRDownloadService,
+        arguments_service=arguments_service,
         data_service=data_service,
         string_process_service=string_process_service,
         cache_service=cache_service,

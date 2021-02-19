@@ -1,3 +1,4 @@
+from services.arguments.arguments_service_base import ArgumentsServiceBase
 from entities.cache.cache_options import CacheOptions
 import os
 from services.log_service import LogService
@@ -9,7 +10,7 @@ import functools
 import sys
 import pickle
 
-from typing import List
+from typing import Callable, List
 
 from transformers import PreTrainedTokenizer
 
@@ -23,6 +24,7 @@ from services.cache_service import CacheService
 class OCRDownloadService:
     def __init__(
             self,
+            arguments_service: ArgumentsServiceBase,
             data_service: DataService,
             string_process_service: StringProcessService,
             cache_service: CacheService,
@@ -31,90 +33,78 @@ class OCRDownloadService:
         self._string_process_service = string_process_service
         self._cache_service = cache_service
         self._log_service = log_service
+        self._arguments_service = arguments_service
 
         self._languages_2017 = [
             Language.English,
             Language.French
         ]
 
-        self._use_trove = False
+        self._datasets = arguments_service.datasets
 
     def download_data(self, language: Language, max_string_length: int = None):
-        newseye_path = os.path.join('data', 'newseye')
-
         key_length_suffix = ''
         if max_string_length is not None:
             key_length_suffix = f'-{max_string_length}'
 
         if language in self._languages_2017:
-            newseye_2017_key = f'newseye-2017-full-dataset{key_length_suffix}'
-            if not self._cache_service.item_exists(
-                CacheOptions(
-                    newseye_2017_key,
-                    configuration_specific=False)):
-                self._log_service.log_debug(
-                    'Processing NewsEye 2017 dataset...')
-                newseye_2017_path = os.path.join(newseye_path, '2017')
-                newseye_2017_data = self.process_newseye_files(
-                    language, newseye_2017_path, max_string_length=max_string_length)
-                self._cache_service.cache_item(
-                    newseye_2017_data,
-                    CacheOptions(
-                        newseye_2017_key,
-                        configuration_specific=False))
+            self._download_dataset(
+                'icdar-2017',
+                f'icdar-2017{key_length_suffix}',
+                extraction_function=lambda: self.process_newseye_files(
+                    language,
+                    os.path.join('data', 'newseye', '2017'),
+                    max_string_length=max_string_length))
 
-        newseye_2019_key = f'newseye-2019-train-dataset{key_length_suffix}'
-        if not self._cache_service.item_exists(
+        self._download_dataset(
+            'icdar-2019',
+            f'icdar-2019{key_length_suffix}',
+            extraction_function=lambda: self.process_newseye_files(
+                language,
+                os.path.join('data', 'newseye', '2019'),
+                max_string_length=max_string_length))
+
+        if language == Language.English:
+            self._download_dataset(
+                'trove',
+                'trove',
+                extraction_function=self._process_trove_data)
+
+    def get_downloaded_dataset(
+        self,
+        dataset:str,
+        max_string_length: int = None):
+        cache_key = dataset
+        if dataset != 'trove' and max_string_length is not None:
+            cache_key = f'{dataset}-{max_string_length}'
+
+        return self._cache_service.get_item_from_cache(
             CacheOptions(
-                newseye_2019_key,
-                configuration_specific=False)):
-            self._log_service.log_debug('Processing NewsEye 2019 dataset...')
-            newseye_2019_path = os.path.join(newseye_path, '2019')
-            newseye_2019_data = self.process_newseye_files(
-                language, newseye_2019_path, subfolder_to_use='train', max_string_length=max_string_length)
-            self._cache_service.cache_item(
-                newseye_2019_data, 
-                CacheOptions(
-                    newseye_2019_key,
-                    configuration_specific=False))
+                cache_key,
+                configuration_specific=False))
 
-        if language == Language.English and self._use_trove:
-            trove_cache_key = f'trove-dataset'
-            if not self._cache_service.item_exists(
-                CacheOptions(
-                    trove_cache_key,
-                    configuration_specific=False)):
-                self._log_service.log_debug('Processing TroVe dataset...')
-                trove_items_cache_key = 'trove-item-keys'
-                cache_item_keys = self._cache_service.get_item_from_cache(
-                    CacheOptions(
-                        trove_items_cache_key,
-                        configuration_specific=False),
-                    callback_function=self._download_trove_files)
-
-                trove_data = self._process_trove_files(cache_item_keys)
-                self._cache_service.cache_item(
-                    trove_data,
-                    CacheOptions(
-                        trove_cache_key,
-                        configuration_specific=False))
-
-    def download_test_data(self, language: Language):
-        newseye_path = os.path.join('data', 'newseye', '2019')
-        newseye_eval_key = 'newseye-2019-eval-dataset'
-        if self._cache_service.item_exists(CacheOptions(
-                newseye_eval_key,
-                configuration_specific=False)):
+    def _download_dataset(
+            self,
+            dataset: str,
+            dataset_cache_key: str,
+            extraction_function: Callable):
+        # we skip this dataset if it is not one of the used ones for the current run
+        if dataset not in self._datasets:
             return
 
-        self._log_service.log_debug('Downloading test data...')
-        newseye_eval_data = self.process_newseye_files(
-            language, newseye_path, subfolder_to_use='eval')
-        self._cache_service.cache_item(
-            newseye_eval_data,
-            CacheOptions(
-                newseye_eval_key,
-                configuration_specific=False))
+        cache_options = CacheOptions(
+            dataset_cache_key,
+            configuration_specific=False)
+
+        # if the dataset was already processed before we do not need to do anything else
+        if self._cache_service.item_exists(cache_options):
+            return
+
+        self._log_service.log_debug(f'Processing "{dataset}" dataset...')
+
+        # get the data from the extraction callable function and cache it
+        dataset_data = extraction_function()
+        self._cache_service.cache_item(dataset_data, cache_options)
 
     def _cut_string(
             self,
@@ -197,9 +187,13 @@ class OCRDownloadService:
 
         return result
 
-    def _process_trove_files(
-            self,
-            cache_item_keys: List[str]):
+    def _process_trove_data(self):
+        cache_item_keys = self._cache_service.get_item_from_cache(
+            CacheOptions(
+                'trove-item-keys',
+                configuration_specific=False),
+            callback_function=self._download_trove_files)
+
         title_prefix = '*$*OVERPROOF*$*'
         separator = '||@@||'
 

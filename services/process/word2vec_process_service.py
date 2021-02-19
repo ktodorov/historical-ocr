@@ -80,7 +80,7 @@ class Word2VecProcessService(ICDARProcessService):
 
         token_matrix = self._cache_service.get_item_from_cache(
             CacheOptions(
-                f'word-matrix-{ocr_output_type.value}{random_suffix}',
+                f'word-matrix-{self._get_dataset_string()}-{ocr_output_type.value}{random_suffix}',
                 seed_specific=True),
             callback_function=self._generate_token_matrix)
 
@@ -100,7 +100,7 @@ class Word2VecProcessService(ICDARProcessService):
             word2vec_model_path, binary=word2vec_binary)
 
         initialized_tokens: Dict[str, list] = None
-        initialized_tokens_cache_key = 'initialized-tokens'
+        initialized_tokens_cache_key = f'initialized-tokens-{self._get_dataset_string()}'
         if not self._arguments_service.initialize_randomly:
             initialized_tokens = self._cache_service.get_item_from_cache(
                 CacheOptions(
@@ -149,7 +149,7 @@ class Word2VecProcessService(ICDARProcessService):
             ocr_output_type: OCROutputType,
             reduction: int) -> CBOWCorpus:
         corpus = self._cache_service.get_item_from_cache(
-            CacheOptions(f'word2vec-data-{ocr_output_type.value}-ws-2'),
+            CacheOptions(f'word2vec-data-{self._get_dataset_string()}-{ocr_output_type.value}-ws-2'),
             callback_function=self._generate_ocr_corpora)
 
         total_amount = corpus.length

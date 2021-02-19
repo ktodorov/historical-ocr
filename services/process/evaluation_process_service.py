@@ -35,9 +35,13 @@ class EvaluationProcessService(ProcessServiceBase):
         self._tagging_service = tagging_service
 
     def get_target_tokens(self, pos_tags: List[PartOfSpeech] = None) -> List[TokenRepresentation]:
+        limit_suffix = ''
+        if self._arguments_service.minimal_occurrence_limit is not None:
+            limit_suffix = f'-lim{self._arguments_service.minimal_occurrence_limit}'
+
+        datasets_string = '-'.join(self._arguments_service.datasets)
         common_tokens_information: Dict[str, List[List[int]]] = self._cache_service.get_item_from_cache(
-            CacheOptions(
-                f'common-tokens-information-lim{self._arguments_service.minimal_occurrence_limit}'),
+            CacheOptions(f'common-tokens-information{datasets_string}{limit_suffix}'),
             callback_function=self.get_common_words)
 
         self._log_service.log_info(
