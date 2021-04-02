@@ -12,8 +12,6 @@ import pickle
 
 from typing import Callable, List
 
-from transformers import PreTrainedTokenizer
-
 from enums.language import Language
 
 from services.data_service import DataService
