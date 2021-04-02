@@ -9,10 +9,16 @@
 #SBATCH --gres=gpu:1
 
 module purge
-module load 2019
+module load 2020
+module load Python
 
-module load Miniconda3
-source activate historical-ocr
+echo 'PATH IS'
+printenv PATH
+
+echo 'PATH_modshare IS'
+printenv PATH_modshare
+
+# source activate ocr-uva-2019
 
 CONF="$CONFMODEL"
 INCLUDEPRETRARG=""
@@ -89,10 +95,12 @@ then
     RANDOMINITARG="--initialize-randomly"
 fi
 
-DATASETSARG="icdar-2017 icdar-2019"
+DATASETSARG=""
 if [ ! -z "$DATASETS" ]
 then
-    DATASETSARG="$DATASETS"
+    DATASETSARG="--datasets $DATASETS"
 fi
 
-srun python3 -u run.py --configuration $CONF --challenge ocr-evaluation --epochs 500000 --device cuda --eval-freq $EVALFREQARG --seed $SEEDARG --learning-rate $LEARNINGRATE --skip-validation --metric-types levenshtein-distance jaccard-similarity --language $LANGUAGEARG --batch-size $BATCHSIZEARG --ocr-output-type $OUTPUTTYPEARG --patience $PATIENCEARG $INCLUDEPRETRARG $PRETRMODELARG --pretrained-model-size 768 --pretrained-max-length 512 $PRETRWEIGHTSARG --enable-external-logging --padding-idx $PADDINGIDXARG $RANDOMINITARG --datasets $DATASETSARG
+echo 'EXECUTING... srun python -u run.py --configuration ' $CONF ' --challenge ocr-evaluation --epochs 500000 --device cuda --eval-freq ' $EVALFREQARG ' --seed ' $SEEDARG ' --learning-rate ' $LEARNINGRATE ' --skip-validation --metric-types levenshtein-distance jaccard-similarity --language ' $LANGUAGEARG ' --batch-size ' $BATCHSIZEARG ' --ocr-output-type ' $OUTPUTTYPEARG ' --patience ' $PATIENCEARG ' ' $INCLUDEPRETRARG ' ' $PRETRMODELARG ' --pretrained-model-size 768 --pretrained-max-length 512 ' $PRETRWEIGHTSARG ' --enable-external-logging --padding-idx ' $PADDINGIDXARG ' ' $RANDOMINITARG $DATASETSARG
+
+srun python -u run.py --configuration $CONF --challenge ocr-evaluation --epochs 500000 --device cuda --eval-freq $EVALFREQARG --seed $SEEDARG --learning-rate $LEARNINGRATE --skip-validation --metric-types levenshtein-distance jaccard-similarity --language $LANGUAGEARG --batch-size $BATCHSIZEARG --ocr-output-type $OUTPUTTYPEARG --patience $PATIENCEARG $INCLUDEPRETRARG $PRETRMODELARG --pretrained-model-size 768 --pretrained-max-length 512 $PRETRWEIGHTSARG --enable-external-logging --padding-idx $PADDINGIDXARG $RANDOMINITARG $DATASETSARG
