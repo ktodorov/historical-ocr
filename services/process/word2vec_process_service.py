@@ -63,6 +63,10 @@ class Word2VecProcessService(ICDARProcessService):
             return 300
         elif self._arguments_service.language == Language.Dutch:
             return 320
+        elif self._arguments_service.language == Language.French:
+            return 300
+        elif self._arguments_service.language == Language.German:
+            return 300
 
         error_message = 'Unsupported embeddings language'
         self._log_service.log_error(error_message)
@@ -96,7 +100,7 @@ class Word2VecProcessService(ICDARProcessService):
         word2vec_model_name, word2vec_binary = self._get_word2vec_model_info()
         word2vec_model_path = os.path.join(data_path, word2vec_model_name)
         self._log_service.log_debug(f'Loading word2vec model from \'{word2vec_model_path}\'')
-        word2vec_weights = gensim.models.KeyedVectors.load_word2vec_format(
+        word2vec_weights: gensim.models.KeyedVectors  = gensim.models.KeyedVectors.load_word2vec_format(
             word2vec_model_path, binary=word2vec_binary)
 
         initialized_tokens: Dict[str, list] = None
@@ -117,8 +121,8 @@ class Word2VecProcessService(ICDARProcessService):
             vocabulary_items = tqdm(self._vocabulary_service.get_vocabulary_tokens(
             ), desc="Generating pre-trained matrix", total=self._vocabulary_service.vocabulary_size())
             for (index, token) in vocabulary_items:
-                if token in word2vec_weights.vocab:
-                    pretrained_weight_matrix[index] = word2vec_weights.wv[token]
+                if token in word2vec_weights.key_to_index.keys():
+                    pretrained_weight_matrix[index] = word2vec_weights[token]
                 elif initialized_tokens is not None and token in initialized_tokens.keys():
                     pretrained_weight_matrix[index] = initialized_tokens[token]
                 else:
@@ -139,6 +143,10 @@ class Word2VecProcessService(ICDARProcessService):
             return 'GoogleNews-vectors-negative300.bin', True
         elif self._arguments_service.language == Language.Dutch:
             return 'combined-320.txt', False
+        elif self._arguments_service.language == Language.French:
+            return 'frwiki_20180420_300d.txt', False
+        elif self._arguments_service.language == Language.German:
+            return 'dewiki_20180420_300d.txt', False
 
         error_message = 'Unsupported word2vec language'
         self._log_service.log_error(error_message)
