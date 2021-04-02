@@ -41,7 +41,7 @@ class EvaluationProcessService(ProcessServiceBase):
 
         datasets_string = '-'.join(self._arguments_service.datasets)
         common_tokens_information: Dict[str, List[List[int]]] = self._cache_service.get_item_from_cache(
-            CacheOptions(f'common-tokens-information{datasets_string}{limit_suffix}'),
+            CacheOptions(f'common-t-info-{datasets_string}{limit_suffix}'),
             callback_function=self.get_common_words)
 
         self._log_service.log_info(
@@ -70,7 +70,7 @@ class EvaluationProcessService(ProcessServiceBase):
     def get_common_words(self) -> Dict[str, List[List[int]]]:
         common_tokens = self._cache_service.get_item_from_cache(
             CacheOptions(
-                'common-tokens',
+                f'common-tokens-{self._get_dataset_string()}',
                 configuration_specific=False))
 
         result: Dict[str, List[List[int]]] = {x: [] for x in common_tokens}
@@ -82,7 +82,7 @@ class EvaluationProcessService(ProcessServiceBase):
 
             common_token_pairs: List[Tuple[str, List[int]]] = self._cache_service.get_item_from_cache(
                 CacheOptions(
-                    f'common-token-pairs-{ocr_output_type.value}{limit_suffix}'))
+                    f'common-t-pairs-{self._get_dataset_string()}-{ocr_output_type.value}{limit_suffix}'))
 
             if common_token_pairs is None:
                 error_message = f'Token pairs not found for OCR output type \'{ocr_output_type.value}\''
@@ -107,7 +107,7 @@ class EvaluationProcessService(ProcessServiceBase):
             self,
             current_result: Dict[str, List[List[int]]]) -> Dict[str, List[List[int]]]:
         common_tokens_config_cache_options = CacheOptions(
-            'common-tokens-all-config',
+            f'common-tokens-{self._get_dataset_string()}-all-config',
             configuration_specific=False)
 
         common_tokens_all_configs = self._cache_service.get_item_from_cache(
@@ -128,3 +128,7 @@ class EvaluationProcessService(ProcessServiceBase):
         result = {k: v for k, v in current_result.items()
                   if k in words_intersection}
         return result
+
+
+    def _get_dataset_string(self):
+        return '-'.join(sorted(self._arguments_service.datasets))

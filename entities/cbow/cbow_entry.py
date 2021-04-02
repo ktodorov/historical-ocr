@@ -2,6 +2,9 @@ from typing import List
 
 class CBOWEntry:
     def __init__(self, document_idx: int, target_token: int, context_tokens: List[int]):
+        if len(context_tokens) == 0:
+            raise Exception('Context tokens not supplied')
+
         self._document_idx = document_idx
         self._target_token = target_token
         self._context_tokens = context_tokens

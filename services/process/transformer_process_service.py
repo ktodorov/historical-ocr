@@ -73,7 +73,7 @@ class TransformerProcessService(ProcessServiceBase):
 
     def _save_common_tokens(self):
         self._log_service.log_debug('Saving common tokens')
-        token_pairs_cache_key = f'common-token-pairs-{self._arguments_service.ocr_output_type.value}'
+        token_pairs_cache_key = f'common-t-pairs-{self._get_datasets_string()}-{self._arguments_service.ocr_output_type.value}'
         if self._cache_service.item_exists(CacheOptions(token_pairs_cache_key)):
             return
 

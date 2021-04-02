@@ -5,17 +5,20 @@ from entities.cbow.cbow_entry import CBOWEntry
 class CBOWCorpus:
     def __init__(self, text_lines: List[List[int]], window_size: int = 2):
         self._window_size = window_size
-        self._entries = self._generate_skip_gram_entries(text_lines)
-        self._total_documents = len(text_lines)
+        self._entries = self._generate_cbow_entries(text_lines)
+        self._total_documents = len(set([x.document_index for x in self._entries]))
 
     def cut_data(self, corpus_size: int):
         self._entries = self._entries[:corpus_size]
         self._total_documents = len(set([x.document_index for x in self._entries]))
 
-    def _generate_skip_gram_entries(self, text_lines: List[List[int]]) -> List[CBOWEntry]:
+    def _generate_cbow_entries(self, text_lines: List[List[int]]) -> List[CBOWEntry]:
         result = []
 
         for i, text_line in enumerate(text_lines):
+            if len(text_line) <= 1:
+                continue
+
             for target_idx in range(len(text_line)):
                 window_start = max(0, target_idx-self._window_size)
                 window_end = min(len(text_line), target_idx+self._window_size+1)
@@ -33,7 +36,7 @@ class CBOWCorpus:
     def get_indices_per_document(self) -> Dict[int, List[int]]:
         result = {
             i: []
-            for i in range(self._total_documents)
+            for i in set([x.document_index for x in self._entries])
         }
 
         for i, entry in enumerate(self._entries):

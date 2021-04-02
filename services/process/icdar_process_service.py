@@ -98,7 +98,7 @@ class ICDARProcessService(ProcessServiceBase):
 
         common_tokens = self._cache_service.get_item_from_cache(
             CacheOptions(
-                'common-tokens',
+                f'common-tokens-{self._get_dataset_string()}',
                 configuration_specific=False),
             callback_function=lambda: self._combine_common_words(tokenized_ocr_data, tokenized_gs_data))
 

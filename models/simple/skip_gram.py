@@ -36,7 +36,8 @@ class SkipGram(ModelBase):
         self._log_service = log_service
 
         if ocr_output_type is not None:
-            vocab_key = f'vocab-{ocr_output_type.value}'
+            dataset_string = '-'.join(sorted(self._arguments_service.datasets))
+            vocab_key = f'vocab-{dataset_string}-{ocr_output_type.value}'
             self._vocabulary_service.load_cached_vocabulary(vocab_key)
 
         self._vocabulary_size = self._vocabulary_service.vocabulary_size()
