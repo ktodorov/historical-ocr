@@ -74,6 +74,10 @@ class CBOW(ModelBase):
             return 300
         elif language == Language.Dutch:
             return 320
+        elif language == Language.French:
+            return 300
+        elif language == Language.German:
+            return 300
 
         raise NotImplementedError()
 

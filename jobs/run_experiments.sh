@@ -3,16 +3,17 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
 #SBATCH --ntasks-per-node=1
-#SBATCH --time=12:00:00
+#SBATCH --time=48:00:00
 #SBATCH --mem=60000M
 #SBATCH -p gpu_shared
 #SBATCH --gres=gpu:1
 
 module purge
-module load 2019
+module load 2020
+module load Python
 
-module load Miniconda3
-source activate historical-ocr
+# module load Miniconda3
+# source activate historical-ocr
 
 CONF="$CONFMODEL"
 INCLUDEPRETRARG=""
@@ -57,4 +58,10 @@ then
     PADDINGIDXARG="$PADDINGIDX"
 fi
 
-srun python3 -u run.py --run-experiments --configuration $CONF --challenge ocr-evaluation --device cuda --seed $SEEDARG --language $LANGUAGEARG --batch-size $BATCHSIZEARG $INCLUDEPRETRARG $PRETRMODELARG --pretrained-model-size 768 --pretrained-max-length 512 $PRETRWEIGHTSARG --padding-idx $PADDINGIDXARG $SEPARATEVOCABSARG $MINIMALOCCURRENCELIMITARG --joint-model --neighbourhood-set-size 1000 --experiment-types neighbourhood-overlap cosine-similarity cosine-distance
+DATASETSARG=""
+if [ ! -z "$DATASETS" ]
+then
+    DATASETSARG="--datasets $DATASETS"
+fi
+
+srun python3 -u run.py --run-experiments --configuration $CONF --challenge ocr-evaluation --device cuda --seed $SEEDARG --language $LANGUAGEARG --batch-size $BATCHSIZEARG $INCLUDEPRETRARG $PRETRMODELARG --pretrained-model-size 768 --pretrained-max-length 512 $PRETRWEIGHTSARG --padding-idx $PADDINGIDXARG $SEPARATEVOCABSARG $MINIMALOCCURRENCELIMITARG --joint-model --neighbourhood-set-size 1000 --experiment-types neighbourhood-overlap cosine-similarity cosine-distance $DATASETSARG --enable-external-logging 
