@@ -117,11 +117,6 @@ class TransformerProcessService(ProcessServiceBase):
         return entries
 
     def _load_file_data(self):
-        # cache_keys = [
-        #     'trove',
-        #     f'icdar-2017-{self._preprocess_max_string_length}',
-        #     f'icdar-2019-{self._preprocess_max_string_length}']
-
         number_of_files = len(self._arguments_service.datasets)
 
         ocr_file_data = []
@@ -131,7 +126,7 @@ class TransformerProcessService(ProcessServiceBase):
             print(f'{i}/{number_of_files}             \r', end='')
             result = self._ocr_download_service.get_downloaded_dataset(dataset, self._preprocess_max_string_length)
             if result is None:
-                self._log_service.log_debug(
+                self._log_service.log_warning(
                     f'Did not find \'{dataset}\' dataset to load')
                 continue
             else:

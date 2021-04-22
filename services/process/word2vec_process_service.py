@@ -54,10 +54,6 @@ class Word2VecProcessService(ICDARProcessService):
         text_corpus = self._load_text_corpus(ocr_output_type, limit_size)
         return text_corpus
 
-    @overrides
-    def _generate_corpora_entries(self, data_ids):
-        return CBOWCorpus(data_ids, window_size=2)
-
     def get_embedding_size(self) -> int:
         if self._arguments_service.language == Language.English:
             return 300
@@ -168,3 +164,7 @@ class Word2VecProcessService(ICDARProcessService):
         self._log_service.log_summary(key=f'\'{ocr_output_type.value}\' entries amount', value=corpus.length)
 
         return corpus
+
+    @overrides
+    def _generate_corpora_entries(self, data_ids):
+        return CBOWCorpus(data_ids, window_size=2)

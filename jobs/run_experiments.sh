@@ -58,10 +58,16 @@ then
     PADDINGIDXARG="$PADDINGIDX"
 fi
 
+RANDOMINITARG=""
+if [ ! -z "$RANDOMINIT" ]
+then
+    RANDOMINITARG="--initialize-randomly"
+fi
+
 DATASETSARG=""
 if [ ! -z "$DATASETS" ]
 then
     DATASETSARG="--datasets $DATASETS"
 fi
 
-srun python3 -u run.py --run-experiments --configuration $CONF --challenge ocr-evaluation --device cuda --seed $SEEDARG --language $LANGUAGEARG --batch-size $BATCHSIZEARG $INCLUDEPRETRARG $PRETRMODELARG --pretrained-model-size 768 --pretrained-max-length 512 $PRETRWEIGHTSARG --padding-idx $PADDINGIDXARG $SEPARATEVOCABSARG $MINIMALOCCURRENCELIMITARG --joint-model --neighbourhood-set-size 1000 --experiment-types neighbourhood-overlap cosine-similarity cosine-distance $DATASETSARG --enable-external-logging 
+srun python3 -u run.py --run-experiments --configuration $CONF --challenge ocr-evaluation --device cuda --seed $SEEDARG --language $LANGUAGEARG --batch-size $BATCHSIZEARG $INCLUDEPRETRARG $PRETRMODELARG --pretrained-model-size 768 --pretrained-max-length 512 $PRETRWEIGHTSARG --padding-idx $PADDINGIDXARG $SEPARATEVOCABSARG $MINIMALOCCURRENCELIMITARG --joint-model --neighbourhood-set-size 1000 --experiment-types neighbourhood-overlap cosine-similarity cosine-distance $DATASETSARG --enable-external-logging $RANDOMINITARG
