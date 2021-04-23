@@ -1,3 +1,4 @@
+from entities.cache.cache_options import CacheOptions
 import enum
 from services.tokenize.base_tokenize_service import BaseTokenizeService
 from services.cache_service import CacheService
@@ -72,8 +73,17 @@ class EvaluationModel(ModelBase):
         )
 
         if self._arguments_service.configuration in [Configuration.SkipGram, Configuration.CBOW, Configuration.BERT]:
+            pretrained_matrix = None
+            if self._arguments_service.configuration in [Configuration.SkipGram, Configuration.CBOW]:
+                pretrained_matrix = cache_service.get_item_from_cache(
+                    CacheOptions(
+                        f'word-matrix-{self._arguments_service.get_dataset_string()}-{OCROutputType.GroundTruth.value}',
+                        seed_specific=True))
+
+                pretrained_matrix = pretrained_matrix.to(self._arguments_service.device)
+
             self._inner_models.append(
-                self._create_model(self._arguments_service.configuration, OCROutputType.GroundTruth, process_service=self._process_service))
+                self._create_model(self._arguments_service.configuration, OCROutputType.GroundTruth, pretrained_matrix=pretrained_matrix))
 
     @overrides
     def forward(self, tokens: torch.Tensor):
@@ -95,7 +105,7 @@ class EvaluationModel(ModelBase):
         self,
         configuration: Configuration,
         ocr_output_type: OCROutputType,
-        process_service: ProcessServiceBase):
+        pretrained_matrix = None):
         result = None
         if configuration == Configuration.BERT:
             result = BERT(
@@ -109,7 +119,7 @@ class EvaluationModel(ModelBase):
                 vocabulary_service=deepcopy(self._vocabulary_service),
                 data_service=self._data_service,
                 log_service=self._log_service,
-                process_service=process_service,
+                pretrained_matrix=pretrained_matrix,
                 ocr_output_type=ocr_output_type)
         elif configuration == Configuration.SkipGram:
             result = SkipGram(
@@ -117,7 +127,7 @@ class EvaluationModel(ModelBase):
                 vocabulary_service=deepcopy(self._vocabulary_service),
                 data_service=self._data_service,
                 log_service=self._log_service,
-                process_service=process_service,
+                pretrained_matrix=pretrained_matrix,
                 ocr_output_type=ocr_output_type)
         elif configuration == Configuration.PPMI:
             result = PPMI(

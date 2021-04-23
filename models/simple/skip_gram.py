@@ -27,7 +27,8 @@ class SkipGram(ModelBase):
             data_service: DataService,
             log_service: LogService,
             process_service: Word2VecProcessService = None,
-            ocr_output_type: OCROutputType = None):
+            ocr_output_type: OCROutputType = None,
+            pretrained_matrix = None):
         super().__init__(data_service, arguments_service, log_service)
 
         self._arguments_service = arguments_service
@@ -42,9 +43,19 @@ class SkipGram(ModelBase):
 
         self._vocabulary_size = self._vocabulary_service.vocabulary_size()
 
-        if process_service is not None:
+        if pretrained_matrix is not None:
+            self._log_service.log_debug('Pretrained matrix provided. Initializing embeddings from it')
+            self._embeddings_input = nn.Embedding.from_pretrained(
+                embeddings=pretrained_matrix,
+                freeze=True,
+                padding_idx=self._vocabulary_service.pad_token)
+
+            self._embeddings_context = nn.Embedding.from_pretrained(
+                embeddings=pretrained_matrix,
+                freeze=True,
+                padding_idx=self._vocabulary_service.pad_token)
+        elif process_service is not None:
             self._log_service.log_debug('Process service is provided. Initializing embeddings from a pretrained matrix')
-            embedding_size = process_service.get_embedding_size()
             token_matrix = process_service.get_pretrained_matrix()
             embedding_size = token_matrix.shape[-1]
             self._embeddings_input = nn.Embedding.from_pretrained(

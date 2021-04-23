@@ -26,7 +26,8 @@ class CBOW(ModelBase):
             data_service: DataService,
             log_service: LogService,
             process_service: Word2VecProcessService = None,
-            ocr_output_type: OCROutputType = None):
+            ocr_output_type: OCROutputType = None,
+            pretrained_matrix = None):
         super().__init__(data_service, arguments_service, log_service)
 
         self._arguments_service = arguments_service
@@ -38,9 +39,15 @@ class CBOW(ModelBase):
             vocab_key = f'vocab-{dataset_string}-{ocr_output_type.value}'
             self._vocabulary_service.load_cached_vocabulary(vocab_key)
 
-        if process_service is not None:
+        if pretrained_matrix is not None:
+            self._log_service.log_debug('Pretrained matrix provided. Initializing embeddings from it')
+            embedding_size = pretrained_matrix.shape[-1]
+            self._embeddings = nn.Embedding.from_pretrained(
+                embeddings=pretrained_matrix,
+                freeze=True,
+                padding_idx=self._vocabulary_service.pad_token)
+        elif process_service is not None:
             self._log_service.log_debug('Process service is provided. Initializing embeddings from a pretrained matrix')
-            embedding_size = process_service.get_embedding_size()
             token_matrix = process_service.get_pretrained_matrix()
             embedding_size = token_matrix.shape[-1]
             self._embeddings = nn.Embedding.from_pretrained(

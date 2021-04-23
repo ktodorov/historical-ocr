@@ -52,7 +52,7 @@ class VocabularyService:
                 (self._token2idx, self._id2token) = cached_vocabulary
                 return self.vocabulary_is_initialized()
 
-        self._log_service.log_debug('Cached vocabulary was not found')
+        self._log_service.log_warning('Cached vocabulary was not found')
         return False
 
     def initialize_vocabulary_data(self, vocabulary_data):
