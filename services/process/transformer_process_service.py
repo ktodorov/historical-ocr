@@ -55,38 +55,12 @@ class TransformerProcessService(ProcessServiceBase):
         encoded_gs_sequences = self._tokenize_service.encode_sequences(
             gs_file_data)
 
-        self._save_common_tokens()
-
         ocr_entries = [TransformerEntry(i, ids, special_tokens_mask)
                        for i, (ids, _, _, special_tokens_mask) in enumerate(encoded_ocr_sequences)]
         gs_entries = [TransformerEntry(i, ids, special_tokens_mask)
                       for i, (ids, _, _, special_tokens_mask) in enumerate(encoded_gs_sequences)]
 
         return ocr_entries, gs_entries
-
-    def _save_common_tokens(self):
-        self._log_service.log_debug('Saving common tokens')
-        token_pairs_cache_key = f'common-t-pairs-{self._get_datasets_string()}-{self._arguments_service.ocr_output_type.value}'
-        if self._cache_service.item_exists(CacheOptions(token_pairs_cache_key)):
-            return
-
-        common_tokens = self._cache_service.get_item_from_cache(
-            CacheOptions(
-                f'common-tokens-{self._get_datasets_string()}',
-                configuration_specific=False))
-
-        token_id_pairs = []
-        for common_token in common_tokens:
-            token_ids, _, _, _ = self._tokenize_service.encode_sequence(
-                common_token, add_special_tokens=False)
-            token_id_pairs.append((common_token, token_ids))
-
-        self._cache_service.cache_item(
-            token_id_pairs,
-            CacheOptions(token_pairs_cache_key))
-
-        self._log_service.log_debug(
-            f'Saved {len(token_id_pairs)} common token pairs successfully')
 
     def _load_transformer_entries(
             self,
@@ -117,7 +91,8 @@ class TransformerProcessService(ProcessServiceBase):
 
         for i, dataset in enumerate(self._arguments_service.datasets):
             print(f'{i}/{number_of_files}             \r', end='')
-            result = self._ocr_download_service.get_downloaded_dataset(dataset, self._preprocess_max_string_length)
+            result = self._ocr_download_service.get_downloaded_dataset(
+                dataset, self._preprocess_max_string_length)
             if result is None:
                 self._log_service.log_warning(
                     f'Did not find \'{dataset}\' dataset to load')
@@ -133,7 +108,7 @@ class TransformerProcessService(ProcessServiceBase):
     def _get_datasets_string(self):
         datasets_string = '-'.join(sorted(self._arguments_service.datasets))
         return datasets_string
-    
+
     def _read_data(self):
 
         (ocr_file_data, gs_file_data) = self._cache_service.get_item_from_cache(
