@@ -45,6 +45,9 @@ class OCRQualityNonContextArgumentsService(OCRQualityArgumentsService):
         parser.add_argument('--initialize-randomly', action='store_true',
                             help='If this is set to True, then the initial embeddings will be initialized randomly.')
 
+        parser.add_argument('--window-size', type=int, default=5,
+                            help='Window size to be used for models which rely on one such as CBOW and Skip-gram')
+
     @property
     def minimal_occurrence_limit(self) -> int:
         return self._get_argument('minimal_occurrence_limit')
@@ -52,3 +55,7 @@ class OCRQualityNonContextArgumentsService(OCRQualityArgumentsService):
     @property
     def initialize_randomly(self) -> bool:
         return self._get_argument('initialize_randomly')
+
+    @property
+    def window_size(self) -> int:
+        return self._get_argument('window_size')

@@ -6,7 +6,6 @@ from datasets.dataset_base import DatasetBase
 from datasets.joint_dataset import JointDataset
 from datasets.transformer_lm_dataset import TransformerLMDataset
 from datasets.word2vec_dataset import Word2VecDataset
-from datasets.skip_gram_dataset import SkipGramDataset
 from datasets.evaluation_dataset import EvaluationDataset
 from datasets.ppmi_dataset import PPMIDataset
 
@@ -51,15 +50,9 @@ class DatasetService:
 
         if not joint_model:
             if challenge == Challenge.OCREvaluation:
-                if configuration == Configuration.CBOW:
+                if configuration == Configuration.CBOW or configuration == Configuration.SkipGram:
                     self._log_service.log_debug('Initializing Word2Vec dataset')
                     result = Word2VecDataset(
-                        arguments_service=self._arguments_service,
-                        process_service=self._process_service,
-                        log_service=self._log_service)
-                elif configuration == Configuration.SkipGram:
-                    self._log_service.log_debug('Initializing SkipGram dataset')
-                    result = SkipGramDataset(
                         arguments_service=self._arguments_service,
                         process_service=self._process_service,
                         log_service=self._log_service)

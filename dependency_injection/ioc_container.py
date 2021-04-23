@@ -1,11 +1,5 @@
 from services.fit_transformation_service import FitTransformationService
 from services.tagging_service import TaggingService
-from datasets.evaluation_dataset import EvaluationDataset
-from datasets.ppmi_dataset import PPMIDataset
-from datasets.transformer_lm_dataset import TransformerLMDataset
-from datasets.skip_gram_dataset import SkipGramDataset
-from datasets.word2vec_dataset import Word2VecDataset
-from datasets.dataset_base import DatasetBase
 from services.process.ppmi_process_service import PPMIProcessService
 from losses.simple_loss import SimpleLoss
 from services.experiments.process.word_neighbourhood_service import WordNeighbourhoodService
@@ -46,7 +40,6 @@ from services.download.ocr_download_service import OCRDownloadService
 from services.process.process_service_base import ProcessServiceBase
 from services.process.transformer_process_service import TransformerProcessService
 from services.process.word2vec_process_service import Word2VecProcessService
-from services.process.skip_gram_process_service import SkipGramProcessService
 from services.process.evaluation_process_service import EvaluationProcessService
 
 from services.data_service import DataService
@@ -199,17 +192,8 @@ class IocContainer(containers.DeclarativeContainer):
             vocabulary_service=vocabulary_service,
             tokenize_service=tokenize_service,
             tagging_service=tagging_service),
-        cbow=providers.Singleton(
+        word2vec=providers.Singleton(
             Word2VecProcessService,
-            arguments_service=arguments_service,
-            ocr_download_service=ocr_download_service,
-            cache_service=cache_service,
-            log_service=log_service,
-            vocabulary_service=vocabulary_service,
-            file_service=file_service,
-            tokenize_service=tokenize_service),
-        skip_gram=providers.Singleton(
-            SkipGramProcessService,
             arguments_service=arguments_service,
             ocr_download_service=ocr_download_service,
             cache_service=cache_service,
@@ -330,16 +314,6 @@ class IocContainer(containers.DeclarativeContainer):
             model=model))
 
     evaluation_service = None
-    # evaluation_service = register_evaluation_service(
-    #     arguments_service=arguments_service,
-    #     file_service=file_service,
-    #     plot_service=plot_service,
-    #     metrics_service=metrics_service,
-    #     process_service=process_service,
-    #     vocabulary_service=vocabulary_service,
-    #     data_service=data_service,
-    #     joint_model=joint_model,
-    #     configuration=configuration)
 
     fit_transformation_service = providers.Factory(
         FitTransformationService)

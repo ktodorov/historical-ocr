@@ -14,7 +14,7 @@ from typing import Dict, List, Tuple
 from enums.ocr_output_type import OCROutputType
 from enums.language import Language
 
-from entities.cbow.cbow_corpus import CBOWCorpus
+from entities.word2vec.word2vec_corpus import Word2VecCorpus
 
 from services.process.icdar_process_service import ICDARProcessService
 
@@ -49,7 +49,7 @@ class Word2VecProcessService(ICDARProcessService):
         self._vocabulary_service = vocabulary_service
         self._file_service = file_service
 
-    def get_text_corpus(self, ocr_output_type: OCROutputType) -> CBOWCorpus:
+    def get_text_corpus(self, ocr_output_type: OCROutputType) -> Word2VecCorpus:
         limit_size = self._arguments_service.train_dataset_limit_size
         text_corpus = self._load_text_corpus(ocr_output_type, limit_size)
         return text_corpus
@@ -151,9 +151,18 @@ class Word2VecProcessService(ICDARProcessService):
     def _load_text_corpus(
             self,
             ocr_output_type: OCROutputType,
-            reduction: int) -> CBOWCorpus:
+            reduction: int) -> Word2VecCorpus:
         corpus = self._cache_service.get_item_from_cache(
-            CacheOptions(f'word2vec-data-{self._get_dataset_string()}-{ocr_output_type.value}-ws-2'),
+            CacheOptions(
+                f'word2vec-data',
+                key_suffixes=[
+                    '-',
+                    self._get_dataset_string(),
+                    '-',
+                    str(ocr_output_type.value),
+                    '-ws-',
+                    str(self._arguments_service.window_size)
+                ]),
             callback_function=self._generate_ocr_corpora)
 
         total_amount = corpus.length
@@ -167,4 +176,4 @@ class Word2VecProcessService(ICDARProcessService):
 
     @overrides
     def _generate_corpora_entries(self, data_ids):
-        return CBOWCorpus(data_ids, window_size=2)
+        return Word2VecCorpus(data_ids, window_size=self._arguments_service.window_size)

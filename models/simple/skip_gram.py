@@ -28,7 +28,7 @@ class SkipGram(ModelBase):
             log_service: LogService,
             process_service: Word2VecProcessService = None,
             ocr_output_type: OCROutputType = None,
-            pretrained_matrix = None):
+            pretrained_matrix=None):
         super().__init__(data_service, arguments_service, log_service)
 
         self._arguments_service = arguments_service
@@ -44,7 +44,8 @@ class SkipGram(ModelBase):
         self._vocabulary_size = self._vocabulary_service.vocabulary_size()
 
         if pretrained_matrix is not None:
-            self._log_service.log_debug('Pretrained matrix provided. Initializing embeddings from it')
+            self._log_service.log_debug(
+                'Pretrained matrix provided. Initializing embeddings from it')
             self._embeddings_input = nn.Embedding.from_pretrained(
                 embeddings=pretrained_matrix,
                 freeze=True,
@@ -55,7 +56,8 @@ class SkipGram(ModelBase):
                 freeze=True,
                 padding_idx=self._vocabulary_service.pad_token)
         elif process_service is not None:
-            self._log_service.log_debug('Process service is provided. Initializing embeddings from a pretrained matrix')
+            self._log_service.log_debug(
+                'Process service is provided. Initializing embeddings from a pretrained matrix')
             token_matrix = process_service.get_pretrained_matrix()
             embedding_size = token_matrix.shape[-1]
             self._embeddings_input = nn.Embedding.from_pretrained(
@@ -68,7 +70,8 @@ class SkipGram(ModelBase):
                 freeze=False,
                 padding_idx=self._vocabulary_service.pad_token)
         else:
-            self._log_service.log_debug('Process service is not provided. Initializing embeddings randomly')
+            self._log_service.log_debug(
+                'Process service is not provided. Initializing embeddings randomly')
             embedding_size = self._get_embedding_size(
                 arguments_service.language)
             self._embeddings_input = nn.Embedding(
@@ -87,44 +90,53 @@ class SkipGram(ModelBase):
     @overrides
     def forward(self, input_batch, **kwargs):
         context_words, input_words = input_batch
+        context_size = context_words.size()[1]
+        batch_size = input_words.size()[0]
 
         # computing out loss
-        emb_input = self._embeddings_input.forward(
-            input_words)     # bs, emb_dim
-        emb_context = self._embeddings_context.forward(
-            context_words)  # bs, emb_dim
-        emb_product = torch.mul(emb_input, emb_context)     # bs, emb_dim
-        emb_product = torch.sum(emb_product, dim=1)          # bs
-        out_loss = F.logsigmoid(emb_product)                      # bs
+        emb_input = self._embeddings_input.forward(input_words).unsqueeze(2)
+        emb_context = self._embeddings_context.forward(context_words)
 
-        if self._negative_samples <= 0:
-            return -(out_loss).mean()
-
-        # computing negative loss
-        if self._noise_dist is None:
-            noise_dist = torch.ones(self._vocabulary_size)
-        else:
-            noise_dist = self._noise_dist
-
-        num_neg_samples_for_this_batch = context_words.shape[0] * \
-            self._negative_samples
-        # coz bs*num_neg_samples > vocab_size
-        negative_example = torch.multinomial(
-            noise_dist, num_neg_samples_for_this_batch, replacement=True)
-
-        negative_example = negative_example.view(context_words.shape[0], self._negative_samples).to(
-            self._arguments_service.device)  # bs, num_neg_samples
-
-        emb_negative = self._embeddings_context.forward(
-            negative_example)  # bs, neg_samples, emb_dim
-
-        emb_product_neg_samples = torch.bmm(
-            emb_negative.neg(), emb_input.unsqueeze(2))  # bs, neg_samples, 1
-
-        noise_loss = F.logsigmoid(
-            emb_product_neg_samples).squeeze(2).sum(1)  # bs
-
+        nwords = torch.FloatTensor(batch_size, context_size * self._negative_samples).uniform_(
+            0, self._vocabulary_size - 1).long().to(self._arguments_service.device)
+        emb_negative = self._embeddings_context.forward(nwords).neg()
+        out_loss = torch.bmm(
+            emb_context, emb_input).squeeze().sigmoid().log().mean(1)
+        noise_loss = torch.nn.functional.logsigmoid(torch.bmm(emb_negative, emb_input).squeeze(
+        )).view(-1, context_size, self._negative_samples).sum(2).mean(1)
         total_loss = -(out_loss + noise_loss).mean()
+
+        # emb_product = torch.sum(emb_product, dim=1)          # bs
+        # out_loss = F.logsigmoid(emb_product)                      # bs
+
+        # if self._negative_samples <= 0:
+        #     return -(out_loss).mean()
+
+        # # computing negative loss
+        # if self._noise_dist is None:
+        #     noise_dist = torch.ones(self._vocabulary_size)
+        # else:
+        #     noise_dist = self._noise_dist
+
+        # num_neg_samples_for_this_batch = context_words.shape[0] * \
+        #     self._negative_samples
+        # # coz bs*num_neg_samples > vocab_size
+        # negative_example = torch.multinomial(
+        #     noise_dist, num_neg_samples_for_this_batch, replacement=True)
+
+        # negative_example = negative_example.view(context_words.shape[0], self._negative_samples).to(
+        #     self._arguments_service.device)  # bs, num_neg_samples
+
+        # emb_negative = self._embeddings_context.forward(
+        #     negative_example)  # bs, neg_samples, emb_dim
+
+        # emb_product_neg_samples = torch.bmm(
+        #     emb_negative.neg(), emb_input.unsqueeze(2))  # bs, neg_samples, 1
+
+        # noise_loss = F.logsigmoid(
+        #     emb_product_neg_samples).squeeze(2).sum(1)  # bs
+
+        # total_loss = -(out_loss + noise_loss).mean()
 
         return total_loss
 
@@ -142,13 +154,15 @@ class SkipGram(ModelBase):
 
     @overrides
     def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> List[WordEvaluation]:
-        vocab_ids = torch.Tensor([self._vocabulary_service.string_to_id(token) for token in tokens]).long().to(self._arguments_service.device)
+        vocab_ids = torch.Tensor([self._vocabulary_service.string_to_id(
+            token) for token in tokens]).long().to(self._arguments_service.device)
 
         embeddings = self._embeddings_input.forward(vocab_ids)
         embeddings_list = embeddings.squeeze().tolist()
 
         if skip_unknown:
             unk_vocab_id = self._vocabulary_service.unk_token
-            embeddings_list = [x if vocab_ids[i] != unk_vocab_id else None for i, x in enumerate(embeddings_list)]
+            embeddings_list = [
+                x if vocab_ids[i] != unk_vocab_id else None for i, x in enumerate(embeddings_list)]
 
         return embeddings_list

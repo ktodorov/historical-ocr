@@ -1,9 +1,5 @@
-from models.simple.ppmi import PPMI
-from models.simple.skip_gram import SkipGram
-from enums.run_type import RunType
 from enums.configuration import Configuration
 from enums.challenge import Challenge
-from enums.pretrained_model import PretrainedModel
 
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 from services.arguments.pretrained_arguments_service import PretrainedArgumentsService
@@ -102,10 +98,8 @@ def get_process_service(arguments_service: ArgumentsServiceBase):
     if challenge == Challenge.OCREvaluation:
         if run_experiments:
             result = 'evaluation'
-        elif configuration == Configuration.CBOW:
-            result = 'cbow'
-        elif configuration == Configuration.SkipGram:
-            result = 'skip_gram'
+        elif configuration == Configuration.CBOW or configuration == Configuration.SkipGram:
+            result = 'word2vec'
         elif configuration == Configuration.PPMI:
             result = 'ppmi'
         else:

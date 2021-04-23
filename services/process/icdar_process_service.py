@@ -12,8 +12,6 @@ from typing import List, Tuple
 from enums.ocr_output_type import OCROutputType
 from enums.language import Language
 
-from entities.cbow.cbow_corpus import CBOWCorpus
-
 from services.process.process_service_base import ProcessServiceBase
 
 from services.download.ocr_download_service import OCRDownloadService
@@ -78,11 +76,6 @@ class ICDARProcessService(ProcessServiceBase):
         ocr_output_type = self._arguments_service.ocr_output_type
         data_ids = [self._vocabulary_service.string_to_ids(
             x) for x in (tokenized_ocr_data if ocr_output_type == OCROutputType.Raw else tokenized_gs_data)]
-
-        self._cache_service.cache_item(
-            data_ids,
-            CacheOptions(
-                f'token-ids-{self._get_dataset_string()}-{self._arguments_service.ocr_output_type.value}'))
 
         result = self._generate_corpora_entries(data_ids)
         return result
