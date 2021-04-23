@@ -1,3 +1,4 @@
+from enums.configuration import Configuration
 from entities.cache.cache_options import CacheOptions
 import os
 from services.log_service import LogService
@@ -20,7 +21,8 @@ class VocabularyService:
             data_service: DataService,
             file_service: FileService,
             cache_service: CacheService,
-            log_service: LogService):
+            log_service: LogService,
+            overwrite_configuration: Configuration = None):
 
         self._data_service = data_service
         self._file_service = file_service
@@ -28,6 +30,7 @@ class VocabularyService:
         self._log_service = log_service
 
         self._vocabulary_cache_key = 'vocab'
+        self._overwrite_configuration = overwrite_configuration
 
         self._id2token: Dict[int, str] = {}
         self._token2idx: Dict[str, int] = {}
@@ -35,9 +38,15 @@ class VocabularyService:
         self.load_cached_vocabulary(self._vocabulary_cache_key)
 
     def load_cached_vocabulary(self, cache_key: str) -> bool:
-        cached_vocabulary_exists = self._cache_service.item_exists(CacheOptions(cache_key))
+        cache_options = CacheOptions(
+            cache_key,
+            configuration=self._overwrite_configuration)
+
+        cached_vocabulary_exists = self._cache_service.item_exists(
+            cache_options)
         if cached_vocabulary_exists:
-            cached_vocabulary = self._cache_service.get_item_from_cache(CacheOptions(cache_key))
+            cached_vocabulary = self._cache_service.get_item_from_cache(
+                cache_options)
             if cached_vocabulary is not None:
                 self._log_service.log_debug('Cached vocabulary found')
                 (self._token2idx, self._id2token) = cached_vocabulary
@@ -144,7 +153,8 @@ class VocabularyService:
             set([token for sentence in tokenized_corpus for token in sentence]))
 
         if min_occurrence_limit is not None:
-            unique_tokens = self._filter_tokens_by_occurrence(tokenized_corpus, unique_tokens, min_occurrence_limit)
+            unique_tokens = self._filter_tokens_by_occurrence(
+                tokenized_corpus, unique_tokens, min_occurrence_limit)
 
         unique_tokens = list(sorted(unique_tokens))
         vocabulary = [
@@ -166,7 +176,8 @@ class VocabularyService:
     def _filter_tokens_by_occurrence(self, full_corpus: List[List[str]], unique_tokens: List[str], min_occurrence_limit: int) -> List[str]:
         all_tokens = [inner for outer in full_corpus for inner in outer]
         tokens_counter = Counter(all_tokens)
-        limit_tokens = [token for token in unique_tokens if tokens_counter[token] > min_occurrence_limit]
+        limit_tokens = [
+            token for token in unique_tokens if tokens_counter[token] > min_occurrence_limit]
         return limit_tokens
 
     def _cache_vocabulary(self, vocab_key: str):
@@ -175,13 +186,13 @@ class VocabularyService:
                 self._token2idx,
                 self._id2token
             ],
-            CacheOptions(vocab_key),
+            CacheOptions(vocab_key, configuration=self._overwrite_configuration),
             overwrite=False)
 
     def vocabulary_is_initialized(self) -> bool:
         return self._id2token is not None and len(self._id2token) > 0 and self._token2idx is not None and len(self._token2idx) > 0
 
-    def token_exists(self, token:str) -> bool:
+    def token_exists(self, token: str) -> bool:
         result = (token in self._token2idx.keys())
         return result
 

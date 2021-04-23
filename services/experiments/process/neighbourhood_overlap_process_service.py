@@ -20,7 +20,7 @@ class NeighbourhoodOverlapProcessService:
         self._arguments_service = arguments_service
         self._cache_service = cache_service
 
-    def get_calculated_overlaps(self, neighbourhood_set_size: int) -> Dict[Tuple[Configuration, bool], Dict[int, dict]]:
+    def get_all_overlaps(self, neighbourhood_set_size: int) -> Dict[Tuple[Configuration, bool], Dict[int, dict]]:
         configurations = [
             Configuration.CBOW,
             Configuration.PPMI,
@@ -48,6 +48,55 @@ class NeighbourhoodOverlapProcessService:
                             seed=seed))
 
                     result[(configuration, is_random_initialized)][seed] = config_overlaps
+
+        return result
+
+    def get_main_overlaps(self, neighbourhood_set_size: int) -> Dict[Tuple[Configuration], Dict[int, dict]]:
+        configurations = [
+            Configuration.CBOW,
+            Configuration.PPMI,
+            Configuration.SkipGram,
+            Configuration.BERT,
+        ]
+
+        seeds = [7, 13, 42]
+
+        result = {}
+
+        for configuration in configurations:
+            result[configuration] = {}
+
+            for seed in seeds:
+                config_overlaps = self._cache_service.get_item_from_cache(
+                    CacheOptions(
+                        'neighbourhood-overlaps-vs-base',
+                        key_suffixes=[
+                            f'-{neighbourhood_set_size}'
+                        ],
+                        configuration=configuration,
+                        seed=seed))
+
+                result[configuration][seed] = config_overlaps
+
+        return result
+
+    def get_base_overlaps(self, neighbourhood_set_size: int) -> Dict[int, dict]:
+        seeds = [7, 13, 42]
+        configuration = Configuration.SkipGram
+        result = {}
+
+        for seed in seeds:
+            config_overlaps = self._cache_service.get_item_from_cache(
+                CacheOptions(
+                    'neighbourhood-overlaps',
+                    key_suffixes=[
+                        '-rnd',
+                        f'-{neighbourhood_set_size}'
+                    ],
+                    configuration=configuration,
+                    seed=seed))
+
+            result[seed] = config_overlaps
 
         return result
 

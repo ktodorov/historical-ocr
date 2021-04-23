@@ -1,3 +1,4 @@
+from enums.overlap_type import OverlapType
 from services.experiments.process.neighbourhood_similarity_process_service import NeighbourhoodSimilarityProcessService
 from enums.font_weight import FontWeight
 from entities.plot.label_options import LabelOptions
@@ -102,21 +103,25 @@ class WordNeighbourhoodService:
             word_evaluation: WordEvaluation,
             vocabulary_evaluations: List[WordEvaluation],
             neighbourhood_set_size: int,
-            models_count: int = 2,
+            overlap_type: OverlapType,
             include_embeddings: bool = False) -> WordNeighbourhoodStats:
         self._log_service.log_debug(
             f'Extracting neighbourhoods for word \'{word_evaluation.word}\'')
         result = WordNeighbourhoodStats(
             word_evaluation.word, neighbourhoods=[])
-        for i in range(models_count):
-            model_evaluations = [
-                vocabulary_evaluation
-                for vocabulary_evaluation in vocabulary_evaluations
-                if vocabulary_evaluation.token_is_known(idx=i)]
 
+        model_indices = []
+        if overlap_type == OverlapType.GTvsRaw:
+            model_indices = [0, 1]
+        elif overlap_type == OverlapType.GTvsBase:
+            model_indices = [0, 2]
+        elif overlap_type == OverlapType.GTvsOriginal:
+            model_indices = [0, 3]
+
+        for i in model_indices:
             word_neighbourhood = self._get_word_neighbourhood(
                 word_evaluation,
-                model_evaluations,
+                vocabulary_evaluations,
                 embeddings_idx=i,
                 neighbourhood_set_size=neighbourhood_set_size,
                 output_full_evaluations=include_embeddings)
@@ -203,9 +208,11 @@ class WordNeighbourhoodService:
             embeddings_idx: int,
             neighbourhood_set_size: int,
             output_full_evaluations: bool = False) -> List[WordEvaluation]:
+        # We check if we have already calculated this word neighbourhood for the selected embeddings id
         if (not output_full_evaluations and word_evaluation.word in self._word_similarity_indices.keys() and embeddings_idx in self._word_similarity_indices[word_evaluation.word].keys()):
             indices = self._word_similarity_indices[word_evaluation.word][embeddings_idx]
         else:
+            # If no calculation is available, we calculate and cache
             target_embeddings = np.array(
                 [word_evaluation.get_embeddings(embeddings_idx)])
             model_embeddings = np.array([model_evaluation.get_embeddings(
@@ -221,7 +228,8 @@ class WordNeighbourhoodService:
                     self._word_similarity_indices[word_evaluation.word] = {}
 
                 if embeddings_idx not in self._word_similarity_indices[word_evaluation.word].keys():
-                    self._cache_word_similarity_indices = True # We mark the indices to be cached because we add a new entry
+                    # We mark the indices to be cached because we add a new entry
+                    self._cache_word_similarity_indices = True
                     self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
 
         if neighbourhood_set_size > len(indices):
@@ -242,7 +250,8 @@ class WordNeighbourhoodService:
             self,
             word_evaluations,
             cosine_distances: Dict[str, float]):
-        target_tokens = self._neighbourhood_similarity_process_service.get_target_tokens(cosine_distances)
+        target_tokens = self._neighbourhood_similarity_process_service.get_target_tokens(
+            cosine_distances)
         for target_token in target_tokens:
             i = next(i for i, word_evaluation in enumerate(
                 word_evaluations) if word_evaluation.word == target_token)
@@ -256,6 +265,7 @@ class WordNeighbourhoodService:
                 word_evaluation,
                 remaining_words,
                 neighbourhood_set_size=50,
+                overlap_type=OverlapType.GTvsRaw,
                 include_embeddings=True)
 
             self.plot_word_neighbourhoods(
@@ -265,26 +275,40 @@ class WordNeighbourhoodService:
     def generate_neighbourhood_similarities(
             self,
             word_evaluations: List[WordEvaluation],
-            neighbourhood_set_size: int) -> Dict[str, int]:
+            neighbourhood_set_size: int,
+            overlap_type: OverlapType) -> Dict[str, int]:
         self._log_service.log_debug(
-            'Generating neighbourhood similarity results')
+            f'Generating neighbourhood similarity results for overlap type \'{overlap_type.value}\'')
 
         result = {}
 
-        common_words_indices = [i for i, word_evaluation in enumerate(word_evaluations) if (
-            word_evaluation.contains_all_embeddings() and word_evaluation.word not in result.keys())]
+        # get all indices of words that support the current overlap type
+        common_words_indices = [
+            i
+            for i, word_evaluation in enumerate(word_evaluations)
+            if word_evaluation.contains_all_embeddings(overlap_type)]
 
-        for i in tqdm(iterable=common_words_indices, desc=f'Calculating neighbourhood overlaps', total=len(common_words_indices)):
+        self._log_service.log_summary(f'Total \'{overlap_type.value}\' neighbourhood overlaps', len(common_words_indices))
+        for i in tqdm(iterable=common_words_indices, desc=f'Calculating neighbourhood overlaps [\'{overlap_type.value}\']', total=len(common_words_indices)):
+            # get the target word evaluation
             word_evaluation = word_evaluations[i]
-            remaining_words = word_evaluations[:i] + word_evaluations[i+1:]
+
+            # get the remaining valid word evaluations
+            remaining_words = [word_evaluations[idx] for idx in common_words_indices if idx != i]
+
+            # calculate the word neighbourhood stats for this word
             word_neighbourhood_stats = self.get_word_neighbourhoods(
                 word_evaluation,
                 remaining_words,
-                neighbourhood_set_size=neighbourhood_set_size)
+                neighbourhood_set_size=neighbourhood_set_size,
+                overlap_type=overlap_type)
 
+            # we only need the overlaps amount
             result[word_evaluation.word] = word_neighbourhood_stats.overlaps_amount
 
+            # occasionally cache the calculations performed so far in case the process is interrupted
             if i % 500 == 0:
+                self._log_service.log_summary(f'Processed \'{overlap_type.value}\' neighbourhood overlaps', i)
                 self._cache_calculations()
 
         return result

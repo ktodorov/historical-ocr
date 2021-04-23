@@ -1,7 +1,8 @@
+from enums.overlap_type import OverlapType
 from typing import List
 
 class WordEvaluation:
-    def __init__(self, word: str, embeddings_list: List[List[int]] = None):
+    def __init__(self, word: str, embeddings_list: List[List[List[float]]] = None):
         self._word = word
         self._embeddings = None
 
@@ -42,8 +43,17 @@ class WordEvaluation:
     def token_is_known(self, idx: int) -> bool:
         return self._known_tokens[idx]
 
-    def contains_all_embeddings(self) -> bool:
-        return all(x is not None for x in self._embeddings)
+    def contains_all_embeddings(self, overlap_type: OverlapType) -> bool:
+        result = self._embeddings[0] is not None
+
+        if overlap_type == OverlapType.GTvsRaw:
+            return (result and self._embeddings[1] is not None)
+        elif overlap_type == OverlapType.GTvsBase:
+            return (result and self._embeddings[2] is not None)
+        elif overlap_type == OverlapType.GTvsOriginal:
+            return (result and self._embeddings[3] is not None)
+
+        raise NotImplementedError(f'Overlap type {overlap_type.value} is not implemented')
 
     def __str__(self):
         return self._word

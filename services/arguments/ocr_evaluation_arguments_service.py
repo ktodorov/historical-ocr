@@ -1,3 +1,4 @@
+from typing import Dict
 from overrides import overrides
 import argparse
 
@@ -11,14 +12,16 @@ class OCREvaluationArgumentsService(PretrainedArgumentsService):
         super().__init__()
 
     @overrides
-    def get_configuration_name(self) -> str:
-        result = super().get_configuration_name()
+    def get_configuration_name(self, overwrite_args: Dict[str, object] = None) -> str:
+        result = super().get_configuration_name(overwrite_args)
 
-        if self.initialize_randomly:
+        rnd_value = self._get_value_or_default(overwrite_args, 'initialize_randomly', self.initialize_randomly)
+        if rnd_value:
             result += f'-rnd'
 
-        if self.minimal_occurrence_limit is not None:
-            result += f'-min{self.minimal_occurrence_limit}'
+        min_occurrence_value = self._get_value_or_default(overwrite_args, 'minimal_occurrence_limit', self.minimal_occurrence_limit)
+        if min_occurrence_value is not None:
+            result += f'-min{min_occurrence_value}'
 
         return result
 

@@ -1,3 +1,7 @@
+import enum
+from services.tokenize.base_tokenize_service import BaseTokenizeService
+from services.cache_service import CacheService
+from services.file_service import FileService
 from services.log_service import LogService
 from services.process.process_service_base import ProcessServiceBase
 from models.simple.ppmi import PPMI
@@ -27,14 +31,17 @@ from services.data_service import DataService
 from services.vocabulary_service import VocabularyService
 
 
-class JointModel(ModelBase):
+class EvaluationModel(ModelBase):
     def __init__(
             self,
             arguments_service: OCREvaluationArgumentsService,
             data_service: DataService,
             vocabulary_service: VocabularyService,
             process_service: ProcessServiceBase,
-            log_service: LogService):
+            log_service: LogService,
+            file_service: FileService,
+            cache_service: CacheService,
+            tokenize_service: BaseTokenizeService):
         super().__init__(data_service, arguments_service, log_service)
 
         self._arguments_service = arguments_service
@@ -42,41 +49,67 @@ class JointModel(ModelBase):
         self._vocabulary_service = vocabulary_service
         self._process_service = process_service
         self._log_service = log_service
+        self._tokenize_service = tokenize_service
 
         self._ocr_output_types = [OCROutputType.Raw, OCROutputType.GroundTruth]
 
         self._inner_models: List[ModelBase] = torch.nn.ModuleList([
             self._create_model(self._arguments_service.configuration, ocr_output_type) for ocr_output_type in self._ocr_output_types])
 
+        self._inner_models.append(
+            # BASE
+            SkipGram(
+                arguments_service=self._arguments_service,
+                vocabulary_service=VocabularyService(
+                    self._data_service,
+                    file_service,
+                    cache_service,
+                    log_service,
+                    overwrite_configuration=Configuration.SkipGram),
+                data_service=self._data_service,
+                log_service=self._log_service,
+                ocr_output_type=OCROutputType.GroundTruth)
+        )
+
+        if self._arguments_service.configuration in [Configuration.SkipGram, Configuration.CBOW, Configuration.BERT]:
+            self._inner_models.append(
+                self._create_model(self._arguments_service.configuration, OCROutputType.GroundTruth, process_service=self._process_service))
+
     @overrides
     def forward(self, tokens: torch.Tensor):
         self._log_service.log_warning('Joint model currently does not have a forward pass implemented properly. Please use `get_embeddings` instead')
-        return self.get_embeddings(tokens)
+        raise NotImplementedError()
 
     @overrides
-    def get_embeddings(self, tokens: List[str], vocab_ids: List[torch.Tensor], skip_unknown: bool = False) -> torch.Tensor:
+    def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> torch.Tensor:
         word_evaluation_sets = []
-        for i, model in enumerate(self._inner_models):
-            current_vocab_ids = vocab_ids[i] if vocab_ids is not None else None
-            word_evaluations = model.get_embeddings(tokens, current_vocab_ids, skip_unknown=skip_unknown)
-            word_evaluation_sets.append(word_evaluations)
+        for model in self._inner_models:
+            # current_vocab_ids = vocab_ids[i] if vocab_ids is not None else None
+            embeddings_list = model.get_embeddings(tokens, skip_unknown=skip_unknown)
+            word_evaluation_sets.append(embeddings_list)
 
-        result = self._combine_word_evaluations(word_evaluation_sets)
+        result = self._combine_word_evaluations(tokens, word_evaluation_sets)
         return result
 
-    def _create_model(self, configuration: Configuration, ocr_output_type: OCROutputType):
+    def _create_model(
+        self,
+        configuration: Configuration,
+        ocr_output_type: OCROutputType,
+        process_service: ProcessServiceBase):
         result = None
         if configuration == Configuration.BERT:
             result = BERT(
                 arguments_service=self._arguments_service,
                 data_service=self._data_service,
-                log_service=self._log_service)
+                log_service=self._log_service,
+                tokenize_service=self._tokenize_service)
         elif configuration == Configuration.CBOW:
             result = CBOW(
                 arguments_service=self._arguments_service,
                 vocabulary_service=deepcopy(self._vocabulary_service),
                 data_service=self._data_service,
                 log_service=self._log_service,
+                process_service=process_service,
                 ocr_output_type=ocr_output_type)
         elif configuration == Configuration.SkipGram:
             result = SkipGram(
@@ -84,6 +117,7 @@ class JointModel(ModelBase):
                 vocabulary_service=deepcopy(self._vocabulary_service),
                 data_service=self._data_service,
                 log_service=self._log_service,
+                process_service=process_service,
                 ocr_output_type=ocr_output_type)
         elif configuration == Configuration.PPMI:
             result = PPMI(
@@ -111,7 +145,7 @@ class JointModel(ModelBase):
             checkpoint_name: str = None) -> ModelCheckpoint:
         self._log_service.log_debug('Loading joint models..')
 
-        for (ocr_output_type, model) in zip(self._ocr_output_types, self._inner_models):
+        for (ocr_output_type, model) in zip(self._ocr_output_types, self._inner_models[:2]):
             ocr_output_type_str = 'grt' if ocr_output_type == OCROutputType.GroundTruth else ocr_output_type.value
             model.load(
                 path=path,
@@ -121,25 +155,46 @@ class JointModel(ModelBase):
                 use_checkpoint_name=use_checkpoint_name,
                 checkpoint_name=checkpoint_name)
 
+        skip_gram_model = self._inner_models[2]
+        skip_gram_model.load(
+            path=path,
+            name_prefix=name_prefix,
+            name_suffix=f'-{ocr_output_type_str}',
+            load_model_dict=load_model_dict,
+            use_checkpoint_name=use_checkpoint_name,
+            checkpoint_name=checkpoint_name,
+            overwrite_args={
+                'initialize_randomly': True
+            })
+
         self._log_service.log_debug('Loading joint models succeeded')
         return None
 
 
-    def _combine_word_evaluations(self, word_evaluations_sets: List[List[WordEvaluation]]) -> List[WordEvaluation]:
-        unique_tokens = set([word_evaluation.word for word_evaluations in word_evaluations_sets for word_evaluation in word_evaluations])
+    def _combine_word_evaluations(self, tokens: List[str], embeddings_list: List[List[List[float]]]) -> List[WordEvaluation]:
+        # unique_tokens = set([word_evaluation.word for word_evaluations in word_evaluations_sets for word_evaluation in word_evaluations])
 
-        we_dict = {}
-        for unique_token in unique_tokens:
-            new_word_evaluation = WordEvaluation(unique_token)
+        result = []
 
-            for i, word_evaluations in enumerate(word_evaluations_sets):
-                for word_evaluation in word_evaluations:
-                    if word_evaluation.word != unique_token:
-                        continue
+        for i, token in enumerate(tokens):
+            we = WordEvaluation(token, embeddings_list=[
+                x[i] for x in embeddings_list
+            ])
 
-                    new_word_evaluation.add_embeddings(word_evaluation.get_embeddings(0), idx=i)
+            result.append(we)
 
-            we_dict[unique_token] = new_word_evaluation
+        # we_dict = {}
+        # for unique_token in unique_tokens:
+        #     new_word_evaluation = WordEvaluation(unique_token)
 
-        result = list(we_dict.values())
+        #     for i, word_evaluations in enumerate(word_evaluations_sets):
+        #         for word_evaluation in word_evaluations:
+        #             if word_evaluation.word != unique_token:
+        #                 continue
+
+        #             new_word_evaluation.add_embeddings(word_evaluation.get_embeddings(0), idx=i)
+
+        #     we_dict[unique_token] = new_word_evaluation
+
+        # result = list(we_dict.values())
         return result

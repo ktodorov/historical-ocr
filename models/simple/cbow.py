@@ -82,16 +82,10 @@ class CBOW(ModelBase):
         raise NotImplementedError()
 
     @overrides
-    def get_embeddings(self, tokens: List[str], vocab_ids: torch.Tensor, skip_unknown: bool = False) -> List[WordEvaluation]:
-        if vocab_ids is None:
-            vocab_ids = torch.Tensor([self._vocabulary_service.string_to_id(token) for token in tokens]).long().to(self._arguments_service.device)
+    def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> List[WordEvaluation]:
+        vocab_ids = torch.Tensor([self._vocabulary_service.string_to_id(token) for token in tokens]).long().to(self._arguments_service.device)
 
         embeddings = self._embeddings.forward(vocab_ids)
         embeddings_list = embeddings.squeeze().tolist()
 
-        result = [
-            WordEvaluation(token, embeddings_list=[
-                           embeddings_list[i] if not skip_unknown or self._vocabulary_service.token_exists(token) else None])
-            for i, token in enumerate(tokens)]
-
-        return result
+        return embeddings_list

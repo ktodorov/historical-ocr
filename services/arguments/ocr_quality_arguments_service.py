@@ -1,3 +1,4 @@
+from typing import Dict
 from overrides import overrides
 import argparse
 
@@ -11,14 +12,15 @@ class OCRQualityArgumentsService(PretrainedArgumentsService):
         super().__init__()
 
     @overrides
-    def get_configuration_name(self) -> str:
-        result = super().get_configuration_name()
+    def get_configuration_name(self, overwrite_args: Dict[str, object] = None) -> str:
+        result = super().get_configuration_name(overwrite_args)
 
+        ocr_output_value = self._get_value_or_default(overwrite_args, 'ocr_output_type', self.ocr_output_type)
         output_type_suffix = ''
-        if self.ocr_output_type == OCROutputType.GroundTruth:
+        if ocr_output_value == OCROutputType.GroundTruth:
             output_type_suffix = f'-grt'
         else:
-            output_type_suffix = f'-{self.ocr_output_type.value}'
+            output_type_suffix = f'-{ocr_output_value.value}'
 
         result = result.replace(output_type_suffix, '')
         result += output_type_suffix

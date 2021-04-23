@@ -23,12 +23,17 @@ class ArgumentsServiceBase:
     def get_arguments_dict(self) -> Dict[str, object]:
         return self._arguments
 
-    def get_configuration_name(self) -> str:
-        result = f'{str(self.language)[:2]}-{str(self.configuration)}'
-        if self.checkpoint_name is not None:
-            result += f'-{str(self.checkpoint_name)}'
+    def get_configuration_name(self, overwrite_args: Dict[str, object] = None) -> str:
+        language_value = self._get_value_or_default(overwrite_args, 'language', str(self.language)[:2])
+        config_value = self._get_value_or_default(overwrite_args, 'configuration', str(self.configuration))
+        checkpoint_value = self._get_value_or_default(overwrite_args, 'checkpoint_name', self.checkpoint_name)
+        seed_value = self._get_value_or_default(overwrite_args, 'seed', self.seed)
 
-        result += f'-s{self.seed}'
+        result = f'{language_value}-{config_value}'
+        if checkpoint_value is not None:
+            result += f'-{str(checkpoint_value)}'
+
+        result += f'-s{seed_value}'
 
         return result
 
@@ -51,7 +56,7 @@ class ArgumentsServiceBase:
                             type=int, help='evaluate every x batches')
         parser.add_argument('--batch-size', default=8,
                             type=int, help='size of batches')
-        parser.add_argument('--max-training-minutes', default=24 * 60, type=int,
+        parser.add_argument('--max-training-minutes', default=72 * 60, type=int,
                             help='max mins of training before save-and-kill')
         parser.add_argument("--device", type=str, default='cuda',
                             help="Device to be used. Pick from cpu/cuda. If default none is used automatic check will be done")
@@ -339,3 +344,12 @@ class ArgumentsServiceBase:
     @property
     def datasets(self) -> List[str]:
         return self._get_argument('datasets')
+
+    def get_dataset_string(self) -> str:
+        return '-'.join(sorted(self.datasets))
+
+    def _get_value_or_default(self, value_dict: Dict[str, object], value_key: str, default_value: object):
+        if value_dict is None or value_key not in value_dict.keys():
+            return default_value
+
+        return value_dict[value_key]

@@ -91,6 +91,13 @@ class ICDARProcessService(ProcessServiceBase):
         return None
 
     def _save_common_tokens(self, tokenized_ocr_data: List[List[str]], tokenized_gs_data: List[List[str]]):
+        """Saves the intersection of the tokens from both output types, as well as the ids of these tokens for the current output type
+
+        :param tokenized_ocr_data: The tokenized data for OCR output type
+        :type tokenized_ocr_data: List[List[str]]
+        :param tokenized_gs_data: The tokenized data for GT output type
+        :type tokenized_gs_data: List[List[str]]
+        """
         self._log_service.log_debug('Saving common tokens')
         token_pairs_cache_key = f'common-t-pairs-{self._get_dataset_string()}-{self._arguments_service.ocr_output_type.value}-lim-{self._arguments_service.minimal_occurrence_limit}'
         if self._cache_service.item_exists(CacheOptions(token_pairs_cache_key)):

@@ -85,7 +85,7 @@ def get_model_type(arguments_service: ArgumentsServiceBase):
     model = None
 
     if run_experiments:
-        model = 'joint'
+        model = 'eval'
     else:
         model = str(configuration.value).replace('-', '_')
 

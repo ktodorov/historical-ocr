@@ -87,11 +87,8 @@ class PPMI(ModelBase):
         return matrix
 
     @overrides
-    def get_embeddings(self, tokens: List[str], vocab_ids: torch.Tensor, skip_unknown: bool = False) -> List[WordEvaluation]:
-        if vocab_ids is None:
-            vocab_ids = np.array([np.array([self._vocabulary_service.string_to_id(token)]) for token in tokens])
-        else:
-            vocab_ids = vocab_ids.cpu().numpy()
+    def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> List[WordEvaluation]:
+        vocab_ids = np.array([np.array([self._vocabulary_service.string_to_id(token)]) for token in tokens])
 
         embeddings = self._ppmi_matrix[vocab_ids, self._common_word_ids].toarray()
 
@@ -99,12 +96,7 @@ class PPMI(ModelBase):
         assert len(embeddings) == len(vocab_ids)
         assert len(embeddings[0]) == len(self._common_word_ids)
 
-        result = [
-            WordEvaluation(token, embeddings_list=[
-                           embeddings[i] if not skip_unknown or self._vocabulary_service.token_exists(token) else None])
-            for i, token in enumerate(tokens)]
-
-        return result
+        return embeddings
 
     @overrides
     def save(

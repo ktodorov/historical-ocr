@@ -101,7 +101,8 @@ class ModelBase(nn.Module):
             name_suffix: str = None,
             load_model_dict: bool = True,
             use_checkpoint_name: bool = True,
-            checkpoint_name: str = None) -> ModelCheckpoint:
+            checkpoint_name: str = None,
+            overwrite_args: Dict[str, object] = None) -> ModelCheckpoint:
         self._log_service.log_debug(f'Loading model [path: {path} | name_prefix: {name_prefix} | name_suffix: {name_suffix}]')
         assert self._data_service is not None
         assert self._arguments_service is not None
@@ -112,7 +113,7 @@ class ModelBase(nn.Module):
             else:
                 checkpoint_name = self._arguments_service.resume_checkpoint_name
                 if checkpoint_name is None:
-                    checkpoint_name = self._get_model_name(name_prefix, name_suffix)
+                    checkpoint_name = self._get_model_name(name_prefix, name_suffix, overwrite_args)
 
         if not self._data_service.python_obj_exists(path, checkpoint_name):
             error_message = f'Model checkpoint "{checkpoint_name}" not found at "{path}"'
@@ -147,8 +148,8 @@ class ModelBase(nn.Module):
 
         return model_checkpoint
 
-    def _get_model_name(self, name_prefix: str = None, name_suffix: str = None) -> str:
-        result = self._arguments_service.get_configuration_name()
+    def _get_model_name(self, name_prefix: str = None, name_suffix: str = None, overwrite_args: Dict[str, object] = None) -> str:
+        result = self._arguments_service.get_configuration_name(overwrite_args)
         if name_prefix is not None:
             result = f'{name_prefix}_{result}'
 

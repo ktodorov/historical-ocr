@@ -10,7 +10,7 @@ from services.process.ppmi_process_service import PPMIProcessService
 from losses.simple_loss import SimpleLoss
 from services.experiments.process.word_neighbourhood_service import WordNeighbourhoodService
 from services.experiments.process.metrics_process_service import MetricsProcessService
-from models.joint_model import JointModel
+from models.evaluation_model import EvaluationModel
 
 import dependency_injector.containers as containers
 import dependency_injector.providers as providers
@@ -252,18 +252,22 @@ class IocContainer(containers.DeclarativeContainer):
 
     model: providers.Provider[ModelBase] = providers.Selector(
         model_selector,
-        joint=providers.Singleton(
-            JointModel,
+        eval=providers.Singleton(
+            EvaluationModel,
             arguments_service=arguments_service,
             data_service=data_service,
             vocabulary_service=vocabulary_service,
             process_service=process_service,
-            log_service=log_service),
+            log_service=log_service,
+            file_service=file_service,
+            cache_service=cache_service,
+            tokenize_service=tokenize_service),
         bert=providers.Singleton(
             BERT,
             arguments_service=arguments_service,
             data_service=data_service,
-            log_service=log_service),
+            log_service=log_service,
+            tokenize_service=tokenize_service),
         xlnet=providers.Singleton(
             XLNet,
             arguments_service=arguments_service,

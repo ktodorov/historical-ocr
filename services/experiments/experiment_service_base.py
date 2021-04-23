@@ -10,7 +10,7 @@ from enums.experiment_type import ExperimentType
 
 from entities.batch_representation import BatchRepresentation
 
-from models.model_base import ModelBase
+from models.evaluation_model import EvaluationModel
 
 from services.arguments.pretrained_arguments_service import PretrainedArgumentsService
 from services.dataloader_service import DataLoaderService
@@ -22,7 +22,7 @@ class ExperimentServiceBase:
             arguments_service: PretrainedArgumentsService,
             dataloader_service: DataLoaderService,
             file_service: FileService,
-            model: ModelBase):
+            model: EvaluationModel):
 
         self._model = model.to(arguments_service.device)
         self._dataloader_service = dataloader_service

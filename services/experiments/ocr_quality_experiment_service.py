@@ -1,3 +1,4 @@
+from enums.overlap_type import OverlapType
 import numpy as np
 
 from scipy.spatial import procrustes
@@ -74,39 +75,48 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         separate_suffix = '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else ''
         word_evaluations: List[WordEvaluation] = self._cache_service.get_item_from_cache(
             CacheOptions(
-                f'word-evaluations{random_suffix}{separate_suffix}',
+                f'word-evaluations',
+                key_suffixes=[
+                    random_suffix,
+                    separate_suffix
+                ],
                 seed_specific=True),
             callback_function=self._generate_embeddings)
 
         self._log_service.log_info('Loaded word evaluations')
 
-        # if ExperimentType.CosineSimilarity in experiment_types:
-        #     result[ExperimentType.CosineSimilarity] = self._cache_service.get_item_from_cache(
-        #         item_key=f'cosine-similarities{random_suffix}',
-        #         callback_function=lambda: self._metrics_process_service.calculate_cosine_similarities(word_evaluations))
-        #     self._log_service.log_info('Loaded cosine similarities')
-
         if ExperimentType.CosineDistance in experiment_types:
             result[ExperimentType.CosineDistance] = self._cache_service.get_item_from_cache(
                 CacheOptions(
-                    f'cosine-distances{random_suffix}',
+                    f'cosine-distances',
+                    key_suffixes=[
+                        random_suffix,
+                    ],
                     seed_specific=True),
                 callback_function=lambda: self._metrics_process_service.calculate_cosine_distances(word_evaluations))
 
             self._log_service.log_info('Loaded cosine distances')
 
         if ExperimentType.NeighbourhoodOverlap in experiment_types:
-            result[ExperimentType.NeighbourhoodOverlap] = self._cache_service.get_item_from_cache(
-                CacheOptions(
-                    'neighbourhood-overlaps',
-                    key_suffixes=[
-                        random_suffix,
-                        f'-{self._arguments_service.neighbourhood_set_size}'
-                    ],
-                    seed_specific=True),
-                callback_function=lambda: self._word_neighbourhood_service.generate_neighbourhood_similarities(
-                    word_evaluations,
-                    neighbourhood_set_size=self._arguments_service.neighbourhood_set_size))
+            result[ExperimentType.NeighbourhoodOverlap] = {}
+            for overlap_type in OverlapType:
+                if overlap_type == OverlapType.GTvsBase and self._arguments_service.initialize_randomly:
+                    continue
+
+                result[ExperimentType.NeighbourhoodOverlap][overlap_type] = self._cache_service.get_item_from_cache(
+                    CacheOptions(
+                        'neighbourhood-overlaps',
+                        key_suffixes=[
+                            '-',
+                            overlap_type.value,
+                            random_suffix,
+                            f'-{self._arguments_service.neighbourhood_set_size}'
+                        ],
+                        seed_specific=True),
+                    callback_function=lambda: self._word_neighbourhood_service.generate_neighbourhood_similarities(
+                        word_evaluations,
+                        neighbourhood_set_size=self._arguments_service.neighbourhood_set_size,
+                        overlap_type=overlap_type))
 
             self._log_service.log_info('Loaded neighbourhood overlaps')
 
@@ -135,9 +145,9 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         self._log_service.log_debug('Processing common vocabulary tokens')
         dataloader_length = len(self._dataloader)
-        for i, batch in tqdm(iterable=enumerate(self._dataloader), desc=f'Processing common vocabulary tokens', total=dataloader_length):
-            tokens, vocab_ids = batch
-            outputs = self._model.get_embeddings(tokens, vocab_ids)
+        for i, tokens in tqdm(iterable=enumerate(self._dataloader), desc=f'Processing common vocabulary tokens', total=dataloader_length):
+            # tokens = batch
+            outputs = self._model.get_embeddings(tokens)
             result.extend(outputs)
 
         if self._arguments_service.initialize_randomly:
@@ -147,7 +157,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             for ocr_output_type in [OCROutputType.Raw, OCROutputType.GroundTruth]:
                 self._log_service.log_debug(
                     f'Processing unique vocabulary tokens for {ocr_output_type.value} type')
-                vocab_key = f'vocab-{ocr_output_type.value}'
+                vocab_key = f'vocab-{self._arguments_service.get_dataset_string()}-{ocr_output_type.value}'
                 self._vocabulary_service.load_cached_vocabulary(vocab_key)
                 unprocessed_tokens = []
                 for _, token in self._vocabulary_service.get_vocabulary_tokens(exclude_special_tokens=True):
@@ -161,7 +171,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                     for i in range(0, len(unprocessed_tokens), batch_size):
                         tokens = unprocessed_tokens[i:i+batch_size]
                         word_evaluations = self._model.get_embeddings(
-                            tokens, vocab_ids=None, skip_unknown=True)
+                            tokens, skip_unknown=True)
                         result.extend(word_evaluations)
                         processed_tokens.extend(tokens)
                         progress_bar.update(len(tokens))
@@ -172,7 +182,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._save_individual_experiments(result)
         self._log_service.log_info('Generating plots')
         self._generate_common_plots()
-        self._generate_set_sized_based_plot()
+        # self._generate_set_sized_based_plot()
 
     def _save_individual_experiments(self, result: Dict[ExperimentType, Dict[str, float]]):
         experiments_folder = self._file_service.get_experiments_path()
@@ -210,10 +220,12 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             create_if_missing=True)
 
         ax = self._plot_service.create_plot()
-        overlaps_by_config_and_seed = self._neighbourhood_overlap_process_service.get_calculated_overlaps(
+        # overlaps_by_config_and_seed = self._neighbourhood_overlap_process_service.get_calculated_overlaps(
+        #     self._arguments_service.neighbourhood_set_size)
+        overlaps_by_config_and_seed = self._neighbourhood_overlap_process_service.get_main_overlaps(
             self._arguments_service.neighbourhood_set_size)
 
-        for (configuration, is_random_initialized), overlaps_by_seed in overlaps_by_config_and_seed.items():
+        for configuration, overlaps_by_seed in overlaps_by_config_and_seed.items():
             if all(x is None for x in list(overlaps_by_seed.values())):
                 continue
 
@@ -301,12 +313,14 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 percentages[(configuration, is_random_initialized)
                             ][set_size] = percentage_value
 
-        keys_to_delete = [key for key, values in percentages.items() if all(x == 0 for x in values)]
+        keys_to_delete = [
+            key for key, values in percentages.items() if all(x == 0 for x in values)]
         for key in keys_to_delete:
             del percentages[key]
 
         set_sizes = [x for x in range(100, 1050, 50)]
-        y_values = [[ 0 for _ in range(len(set_sizes)) ] for _ in range(len(percentages.keys()))]
+        y_values = [[0 for _ in range(len(set_sizes))]
+                    for _ in range(len(percentages.keys()))]
         for i, ((configuration, is_random_initialized), percentages_by_set_size) in enumerate(percentages.items()):
             for k, set_size in enumerate(set_sizes):
                 if set_size in percentages_by_set_size.keys():
