@@ -4,11 +4,7 @@ from typing import List
 class WordEvaluation:
     def __init__(self, word: str, embeddings_list: List[List[List[float]]] = None):
         self._word = word
-        self._embeddings = None
-
-        if embeddings_list is not None:
-            self._embeddings = embeddings_list
-            self._known_tokens = [x is not None for x in embeddings_list]
+        self._embeddings = embeddings_list
 
     def add_embeddings(self, embeddings: List[int], idx: int):
         if self._embeddings is None:
@@ -20,8 +16,6 @@ class WordEvaluation:
 
         if embeddings is not None:
             self._embeddings[idx] = embeddings
-
-        self._known_tokens = [x is not None for x in self._embeddings]
 
     def get_embeddings(self, idx: int) -> list:
         if idx > len(self._embeddings):
@@ -39,9 +33,6 @@ class WordEvaluation:
     @property
     def word(self) -> str:
         return self._word
-
-    def token_is_known(self, idx: int) -> bool:
-        return self._known_tokens[idx]
 
     def contains_all_embeddings(self, overlap_type: OverlapType) -> bool:
         result = self._embeddings[0] is not None

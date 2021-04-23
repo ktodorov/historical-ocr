@@ -35,7 +35,7 @@ class CBOW(ModelBase):
         self._log_service = log_service
 
         if ocr_output_type is not None:
-            dataset_string = '-'.join(sorted(self._arguments_service.datasets))
+            dataset_string = self._arguments_service.get_dataset_string()
             vocab_key = f'vocab-{dataset_string}-{ocr_output_type.value}'
             self._vocabulary_service.load_cached_vocabulary(vocab_key)
 
@@ -94,5 +94,9 @@ class CBOW(ModelBase):
 
         embeddings = self._embeddings.forward(vocab_ids)
         embeddings_list = embeddings.squeeze().tolist()
+
+        if skip_unknown:
+            unk_vocab_id = self._vocabulary_service.unk_token
+            embeddings_list = [x if vocab_ids[i] != unk_vocab_id else None for i, x in enumerate(embeddings_list)]
 
         return embeddings_list

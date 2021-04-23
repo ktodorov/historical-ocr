@@ -147,4 +147,8 @@ class SkipGram(ModelBase):
         embeddings = self._embeddings_input.forward(vocab_ids)
         embeddings_list = embeddings.squeeze().tolist()
 
+        if skip_unknown:
+            unk_vocab_id = self._vocabulary_service.unk_token
+            embeddings_list = [x if vocab_ids[i] != unk_vocab_id else None for i, x in enumerate(embeddings_list)]
+
         return embeddings_list

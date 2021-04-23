@@ -360,7 +360,8 @@ class IocContainer(containers.DeclarativeContainer):
         log_service=log_service,
         fit_transformation_service=fit_transformation_service,
         cache_service=cache_service,
-        neighbourhood_similarity_process_service=neighbourhood_similarity_process_service)
+        neighbourhood_similarity_process_service=neighbourhood_similarity_process_service,
+        process_service=process_service)
 
     neighbourhood_overlap_process_service = providers.Factory(
         NeighbourhoodOverlapProcessService,

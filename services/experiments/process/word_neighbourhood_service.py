@@ -1,3 +1,5 @@
+from enums.configuration import Configuration
+from enums.word_evaluation_type import WordEvaluationType
 from enums.overlap_type import OverlapType
 from services.experiments.process.neighbourhood_similarity_process_service import NeighbourhoodSimilarityProcessService
 from enums.font_weight import FontWeight
@@ -25,7 +27,7 @@ from services.file_service import FileService
 from services.metrics_service import MetricsService
 from services.plot_service import PlotService
 from services.fit_transformation_service import FitTransformationService
-
+from services.process.evaluation_process_service import EvaluationProcessService
 
 class WordNeighbourhoodService:
     def __init__(
@@ -37,7 +39,8 @@ class WordNeighbourhoodService:
             log_service: LogService,
             fit_transformation_service: FitTransformationService,
             cache_service: CacheService,
-            neighbourhood_similarity_process_service: NeighbourhoodSimilarityProcessService):
+            neighbourhood_similarity_process_service: NeighbourhoodSimilarityProcessService,
+            process_service: EvaluationProcessService):
 
         self._arguments_service = arguments_service
         self._metrics_service = metrics_service
@@ -48,23 +51,9 @@ class WordNeighbourhoodService:
         self._cache_service = cache_service
         self._neighbourhood_similarity_process_service = neighbourhood_similarity_process_service
 
-        self._word_similarities_cache_options = CacheOptions(
-            'word-similarities',
-            seed_specific=True,
-            key_suffixes=[
-                '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else '',
-                '-rnd' if self._arguments_service.initialize_randomly else '',
-                '-min',
-                str(self._arguments_service.minimal_occurrence_limit)
-            ])
-
-        self._word_similarity_indices: Dict[str, Dict[int, list]] = self._cache_service.get_item_from_cache(
-            self._word_similarities_cache_options)
-
-        self._cache_word_similarity_indices = False
-        if self._word_similarity_indices is None:
-            self._cache_word_similarity_indices = True
-            self._word_similarity_indices = {}
+        # load previously cached word similarity calculations
+        common_tokens = process_service.get_common_words()
+        self._word_similarity_indices, self._cache_needs = self._load_cached_calculations(common_tokens)
 
     def plot_word_neighbourhoods(
             self,
@@ -201,6 +190,15 @@ class WordNeighbourhoodService:
             save_path=neighbourhoods_folder,
             filename=f'{target_word_evaluation}-neighborhood-change')
 
+    def _token_already_calculated(self, token: str, embeddings_idx: int) -> bool:
+        if (token not in self._word_similarity_indices.keys() or
+            embeddings_idx not in self._word_similarity_indices[token].keys() or
+            self._word_similarity_indices[token][embeddings_idx] is None):
+            return False
+
+        return True
+
+
     def _get_word_neighbourhood(
             self,
             word_evaluation: WordEvaluation,
@@ -209,7 +207,7 @@ class WordNeighbourhoodService:
             neighbourhood_set_size: int,
             output_full_evaluations: bool = False) -> List[WordEvaluation]:
         # We check if we have already calculated this word neighbourhood for the selected embeddings id
-        if (not output_full_evaluations and word_evaluation.word in self._word_similarity_indices.keys() and embeddings_idx in self._word_similarity_indices[word_evaluation.word].keys()):
+        if (not output_full_evaluations and self._token_already_calculated(word_evaluation.word, embeddings_idx)):
             indices = self._word_similarity_indices[word_evaluation.word][embeddings_idx]
         else:
             # If no calculation is available, we calculate and cache
@@ -224,13 +222,9 @@ class WordNeighbourhoodService:
             indices = np.argsort(distances.squeeze())
 
             if not output_full_evaluations:
-                if word_evaluation.word not in self._word_similarity_indices.keys():
-                    self._word_similarity_indices[word_evaluation.word] = {}
-
-                if embeddings_idx not in self._word_similarity_indices[word_evaluation.word].keys():
-                    # We mark the indices to be cached because we add a new entry
-                    self._cache_word_similarity_indices = True
-                    self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
+                # We mark the indices to be cached because we add a new entry
+                self._cache_needs[WordEvaluationType(embeddings_idx)] = True
+                self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
 
         if neighbourhood_set_size > len(indices):
             self._log_service.log_warning(
@@ -309,16 +303,67 @@ class WordNeighbourhoodService:
             # occasionally cache the calculations performed so far in case the process is interrupted
             if i % 500 == 0:
                 self._log_service.log_summary(f'Processed \'{overlap_type.value}\' neighbourhood overlaps', i)
-                self._cache_calculations()
+                self._save_calculations()
 
         return result
 
-    def _cache_calculations(self):
-        if not self._cache_word_similarity_indices:
-            return
+    def _load_cached_calculations(self, common_tokens: List[str]) -> Dict[str, Dict[int, list]]:
+        result = { token: {} for token in common_tokens }
+        cache_needs = {}
 
-        self._cache_service.cache_item(
-            self._word_similarity_indices,
-            self._word_similarities_cache_options)
+        for i, word_evaluation_type in enumerate(WordEvaluationType):
+            cache_needs[word_evaluation_type] = False
+            word_similarities_cache_options = self._create_cache_options(word_evaluation_type)
 
-        self._cache_word_similarity_indices = False
+            current_word_similarity_indices: Dict[str, Dict[int, list]] = self._cache_service.get_item_from_cache(
+                word_similarities_cache_options)
+
+            if current_word_similarity_indices is None:
+                cache_needs[word_evaluation_type] = True
+                continue
+
+            for token, value in current_word_similarity_indices.items():
+                result[token][i] = value
+
+        return result, cache_needs
+
+    def _save_calculations(self):
+        for i, word_evaluation_type in enumerate(WordEvaluationType):
+            if not self._cache_needs[word_evaluation_type]:
+                continue
+
+            cache_options = self._create_cache_options(word_evaluation_type)
+            current_value = { token: embeddings[i] if i in embeddings.keys() else None for token, embeddings in self._word_similarity_indices.items() }
+
+            self._cache_service.cache_item(
+                current_value,
+                cache_options)
+
+            self._cache_needs[word_evaluation_type] = False
+
+    def _create_cache_options(self, word_evaluation_type: WordEvaluationType):
+        random_suffix = ''
+        if word_evaluation_type == WordEvaluationType.Baseline or self._arguments_service.initialize_randomly:
+            random_suffix = '-rnd'
+
+        configuration_value = None
+        if word_evaluation_type == WordEvaluationType.Baseline:
+            configuration_value = Configuration.SkipGram
+
+        word_eval_type_suffix = ''
+        if word_evaluation_type != WordEvaluationType.Baseline:
+            word_eval_type_suffix = f'-{str(word_evaluation_type.value)}'
+
+        result = CacheOptions(
+            'word-similarities',
+            seed_specific=True,
+            key_suffixes=[
+                word_eval_type_suffix,
+                '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else '',
+                random_suffix,
+                '-min',
+                str(self._arguments_service.minimal_occurrence_limit)
+            ],
+            configuration=configuration_value)
+
+        return result

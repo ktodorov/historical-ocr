@@ -94,7 +94,6 @@ class EvaluationModel(ModelBase):
     def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> torch.Tensor:
         word_evaluation_sets = []
         for model in self._inner_models:
-            # current_vocab_ids = vocab_ids[i] if vocab_ids is not None else None
             embeddings_list = model.get_embeddings(tokens, skip_unknown=skip_unknown)
             word_evaluation_sets.append(embeddings_list)
 
