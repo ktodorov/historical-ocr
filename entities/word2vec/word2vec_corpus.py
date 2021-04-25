@@ -19,7 +19,7 @@ class Word2VecCorpus:
         result = []
 
         for i, text_line in enumerate(text_lines):
-            if len(text_line) <= 1:
+            if len(text_line) <= 2:
                 continue
 
             for target_idx in range(len(text_line)):
@@ -28,6 +28,9 @@ class Word2VecCorpus:
                                  self._window_size+1)
                 context_tokens = text_line[window_start:target_idx] + \
                     text_line[target_idx+1:window_end]
+
+                assert len(context_tokens) > 1, 'Context tokens are less than the minimum of two'
+
                 result.append(Word2VecEntry(
                     document_idx=i,
                     target_token=text_line[target_idx],
