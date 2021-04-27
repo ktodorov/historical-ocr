@@ -18,12 +18,13 @@ class TransformerBase(ModelBase):
             arguments_service: PretrainedArgumentsService,
             data_service: DataService,
             log_service: LogService,
-            output_hidden_states: bool = False):
+            output_hidden_states: bool = False,
+            overwrite_initialization: bool = False):
         super(TransformerBase, self).__init__(data_service, arguments_service, log_service)
 
         self._output_hidden_states = output_hidden_states
 
-        if arguments_service.resume_training or arguments_service.evaluate or arguments_service.run_experiments:
+        if not overwrite_initialization and (arguments_service.resume_training or arguments_service.evaluate or arguments_service.run_experiments):
             self._log_service.log_debug('Skipping the initialization of the transformer model due to configuration settings')
             self._transformer_model = None
         else:

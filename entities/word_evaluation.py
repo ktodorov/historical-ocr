@@ -34,15 +34,18 @@ class WordEvaluation:
     def word(self) -> str:
         return self._word
 
+    def contains_embeddings(self, embeddings_idx: int) -> bool:
+        return self._embeddings[embeddings_idx] is not None
+
     def contains_all_embeddings(self, overlap_type: OverlapType) -> bool:
         result = self._embeddings[0] is not None
 
         if overlap_type == OverlapType.GTvsRaw:
-            return (result and self._embeddings[1] is not None)
+            return (result and len(self._embeddings) >= 2 and self._embeddings[1] is not None)
         elif overlap_type == OverlapType.GTvsBase:
-            return (result and self._embeddings[2] is not None)
+            return (result and len(self._embeddings) >= 3 and self._embeddings[2] is not None)
         elif overlap_type == OverlapType.GTvsOriginal:
-            return (result and self._embeddings[3] is not None)
+            return (result and len(self._embeddings) >= 4 and self._embeddings[3] is not None)
 
         raise NotImplementedError(f'Overlap type {overlap_type.value} is not implemented')
 

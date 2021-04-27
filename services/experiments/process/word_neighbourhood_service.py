@@ -254,7 +254,8 @@ class WordNeighbourhoodService:
                 continue
 
             word_evaluation = word_evaluations[i]
-            remaining_words = word_evaluations[:i] + word_evaluations[i+1:]
+            # remaining_words = word_evaluations[:i] + word_evaluations[i+1:]
+            remaining_words = [word_evaluation for idx, word_evaluation in enumerate(word_evaluations) if word_evaluation.contains_all_embeddings(OverlapType.GTvsRaw) and idx != i]
             word_neighbourhood_stats = self.get_word_neighbourhoods(
                 word_evaluation,
                 remaining_words,

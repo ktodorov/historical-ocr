@@ -1,3 +1,4 @@
+import numpy as np
 from services.tokenize.base_tokenize_service import BaseTokenizeService
 from services.log_service import LogService
 from typing import List
@@ -19,8 +20,9 @@ class BERT(TransformerBase):
             data_service: DataService,
             log_service: LogService,
             tokenize_service: BaseTokenizeService,
-            output_hidden_states: bool = False):
-        super().__init__(arguments_service, data_service, log_service, output_hidden_states)
+            output_hidden_states: bool = False,
+            overwrite_initialization: bool = False):
+        super().__init__(arguments_service, data_service, log_service, output_hidden_states, overwrite_initialization)
 
         self._tokenize_service = tokenize_service
 
@@ -43,8 +45,21 @@ class BERT(TransformerBase):
     @overrides
     def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> List[WordEvaluation]:
         # encode the tokens
-        vocab_ids_list, _, _, _ = self._tokenize_service.encode_sequences(tokens)
-        vocab_ids = torch.Tensor(vocab_ids_list).to(self._arguments_service.device)
+        encoded_sequences = self._tokenize_service.encode_sequences(tokens)
+        vocab_ids_lists = [vocab_ids_list for vocab_ids_list, _, _, _ in encoded_sequences]
+
+        lengths = [len(sequence) for sequence in vocab_ids_lists]
+        max_length = max(lengths)
+
+        batch_size = len(vocab_ids_lists)
+        padded_vocab_ids = np.zeros((batch_size, max_length), dtype=np.int64)
+        if self._arguments_service.padding_idx != 0:
+            padded_vocab_ids.fill(self._arguments_service.padding_idx)
+
+        for i, l in enumerate(lengths):
+            padded_vocab_ids[i][0:l] = vocab_ids_lists[i][0:l]
+
+        vocab_ids = torch.Tensor(padded_vocab_ids).long().to(self._arguments_service.device)
 
         # process through the pipeline
         mask = (vocab_ids != self._arguments_service.padding_idx)

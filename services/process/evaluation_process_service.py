@@ -76,7 +76,8 @@ class EvaluationProcessService(ProcessServiceBase):
                         self._arguments_service.get_dataset_string(),
                         '-',
                         OCROutputType.Raw.value
-                    ]))
+                    ],
+                    configuration=config))
 
             config_gt_vocabulary = self._cache_service.get_item_from_cache(
                 CacheOptions(
@@ -86,7 +87,8 @@ class EvaluationProcessService(ProcessServiceBase):
                         self._arguments_service.get_dataset_string(),
                         '-',
                         OCROutputType.GroundTruth.value
-                    ]))
+                    ],
+                    configuration=config))
 
             if config_raw_vocabulary is None or config_gt_vocabulary is None:
                 self._log_service.log_warning(

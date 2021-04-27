@@ -83,7 +83,11 @@ class EvaluationModel(ModelBase):
                 pretrained_matrix = pretrained_matrix.to(self._arguments_service.device)
 
             self._inner_models.append(
-                self._create_model(self._arguments_service.configuration, OCROutputType.GroundTruth, pretrained_matrix=pretrained_matrix))
+                self._create_model(
+                    self._arguments_service.configuration,
+                    OCROutputType.GroundTruth,
+                    pretrained_matrix=pretrained_matrix,
+                    overwrite_initialization=True))
 
     @overrides
     def forward(self, tokens: torch.Tensor):
@@ -104,14 +108,16 @@ class EvaluationModel(ModelBase):
         self,
         configuration: Configuration,
         ocr_output_type: OCROutputType,
-        pretrained_matrix = None):
+        pretrained_matrix = None,
+        overwrite_initialization: bool = False):
         result = None
         if configuration == Configuration.BERT:
             result = BERT(
                 arguments_service=self._arguments_service,
                 data_service=self._data_service,
                 log_service=self._log_service,
-                tokenize_service=self._tokenize_service)
+                tokenize_service=self._tokenize_service,
+                overwrite_initialization=overwrite_initialization)
         elif configuration == Configuration.CBOW:
             result = CBOW(
                 arguments_service=self._arguments_service,
@@ -166,14 +172,15 @@ class EvaluationModel(ModelBase):
 
         skip_gram_model = self._inner_models[2]
         skip_gram_model.load(
-            path=path,
+            path=path.replace(self._arguments_service.configuration.value, Configuration.SkipGram.value),
             name_prefix=name_prefix,
             name_suffix=f'-{ocr_output_type_str}',
             load_model_dict=load_model_dict,
             use_checkpoint_name=use_checkpoint_name,
             checkpoint_name=checkpoint_name,
             overwrite_args={
-                'initialize_randomly': True
+                'initialize_randomly': True,
+                'configuration': Configuration.SkipGram.value
             })
 
         self._log_service.log_debug('Loading joint models succeeded')
