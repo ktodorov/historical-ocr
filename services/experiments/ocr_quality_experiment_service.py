@@ -78,7 +78,9 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 f'word-evaluations',
                 key_suffixes=[
                     random_suffix,
-                    separate_suffix
+                    separate_suffix,
+                    '-lr',
+                    self._arguments_service.get_learning_rate_str()
                 ],
                 seed_specific=True),
             callback_function=self._generate_embeddings)
@@ -91,6 +93,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                     f'cosine-distances',
                     key_suffixes=[
                         random_suffix,
+                        '-lr',
+                        self._arguments_service.get_learning_rate_str()
                     ],
                     seed_specific=True),
                 callback_function=lambda: self._metrics_process_service.calculate_cosine_distances(word_evaluations))
@@ -107,6 +111,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                     CacheOptions(
                         'neighbourhood-overlaps',
                         key_suffixes=[
+                            '-lr',
+                            self._arguments_service.get_learning_rate_str(),
                             '-',
                             overlap_type.value,
                             random_suffix,
@@ -187,45 +193,46 @@ class OCRQualityExperimentService(ExperimentServiceBase):
     def _save_individual_experiments(self, result: Dict[ExperimentType, Dict[str, float]]):
         experiments_folder = self._file_service.get_experiments_path()
 
-        for experiment_type, word_value_pairs in result.items():
-            experiment_type_folder = self._file_service.combine_path(
-                experiments_folder,
-                experiment_type.value,
-                create_if_missing=True)
+        for experiment_type, word_value_pairs_by_overlap in result.items():
+            for overlap_type, word_value_pairs in word_value_pairs_by_overlap.items():
+                experiment_type_folder = self._file_service.combine_path(
+                    experiments_folder,
+                    experiment_type.value,
+                    overlap_type.value,
+                    create_if_missing=True)
 
-            self._log_service.log_debug(
-                f'Saving \'{experiment_type.value}\' experiment results at \'{experiment_type_folder}\'')
+                self._log_service.log_debug(
+                    f'Saving \'{experiment_type.value}\' experiment results at \'{experiment_type_folder}\'')
 
-            values = [round(x, 1) for x in word_value_pairs.values()]
-            if values is None or len(values) == 0:
-                continue
+                values = [round(x, 1) for x in word_value_pairs.values()]
+                if values is None or len(values) == 0:
+                    continue
 
-            counter = Counter(values)
-            filename = self._arguments_service.get_configuration_name()
-            self._plot_service.plot_distribution(
-                counts=counter,
-                plot_options=PlotOptions(
-                    figure_options=FigureOptions(
-                        title=experiment_type.value,
-                        save_path=experiment_type_folder,
-                        filename=filename),
-                    color='royalblue',
-                    fill=True))
+                counter = Counter(values)
+                filename = self._arguments_service.get_configuration_name()
+                self._plot_service.plot_distribution(
+                    counts=counter,
+                    plot_options=PlotOptions(
+                        figure_options=FigureOptions(
+                            title=experiment_type.value,
+                            save_path=experiment_type_folder,
+                            filename=filename),
+                        color='royalblue',
+                        fill=True))
 
     def _generate_common_plots(self):
         experiments_folder = self._file_service.get_experiments_path()
         experiment_type_folder = self._file_service.combine_path(
             experiments_folder,
             ExperimentType.NeighbourhoodOverlap.value,
+            self._arguments_service.language.value,
             create_if_missing=True)
 
         ax = self._plot_service.create_plot()
-        # overlaps_by_config_and_seed = self._neighbourhood_overlap_process_service.get_calculated_overlaps(
-        #     self._arguments_service.neighbourhood_set_size)
-        overlaps_by_config_and_seed = self._neighbourhood_overlap_process_service.get_main_overlaps(
+        overlaps_by_type_and_seed = self._neighbourhood_overlap_process_service.get_overlaps(
             self._arguments_service.neighbourhood_set_size)
 
-        for configuration, overlaps_by_seed in overlaps_by_config_and_seed.items():
+        for overlap_type, overlaps_by_seed in overlaps_by_type_and_seed.items():
             if all(x is None for x in list(overlaps_by_seed.values())):
                 continue
 
@@ -241,18 +248,17 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                     counts=overlap_line,
                     plot_options=self._neighbourhood_overlap_process_service.get_distribution_plot_options(
                         ax,
-                        configuration,
-                        is_random_initialized,
+                        overlap_type,
                         value_summary))
 
         self._plot_service.set_plot_properties(
             ax=ax,
             figure_options=FigureOptions(
-                title=f'Neighbourhood overlaps ({self._arguments_service.language.value})'))
+                title=f'Neighbourhood overlaps ({self._arguments_service.language.value} - {self._arguments_service.configuration.value}) | LR: {self._arguments_service.get_learning_rate_str()}'))
 
         self._plot_service.save_plot(
             save_path=experiment_type_folder,
-            filename=f'combined-neighbourhood-overlaps-{self._arguments_service.language.value}-{self._arguments_service.neighbourhood_set_size}')
+            filename=f'combined-neighbourhood-overlaps-{self._arguments_service.configuration.value}-lr{self._arguments_service.get_learning_rate_str()}-{self._arguments_service.neighbourhood_set_size}')
 
     def _align_word_embeddings(self, evaluations: List[WordEvaluation]) -> List[WordEvaluation]:
         if len(evaluations) == 0:

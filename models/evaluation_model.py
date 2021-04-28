@@ -180,7 +180,8 @@ class EvaluationModel(ModelBase):
             checkpoint_name=checkpoint_name,
             overwrite_args={
                 'initialize_randomly': True,
-                'configuration': Configuration.SkipGram.value
+                'configuration': Configuration.SkipGram.value,
+                'learning_rate': 1e-03
             })
 
         self._log_service.log_debug('Loading joint models succeeded')

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from enums.overlap_type import OverlapType
 from enums.plots.line_style import LineStyle
 
 import numpy as np
@@ -51,52 +52,30 @@ class NeighbourhoodOverlapProcessService:
 
         return result
 
-    def get_main_overlaps(self, neighbourhood_set_size: int) -> Dict[Tuple[Configuration], Dict[int, dict]]:
-        configurations = [
-            Configuration.CBOW,
-            Configuration.PPMI,
-            Configuration.SkipGram,
-            Configuration.BERT,
-        ]
-
+    def get_overlaps(self, neighbourhood_set_size: int) -> Dict[OverlapType, Dict[int, dict]]:
         seeds = [7, 13, 42]
 
         result = {}
 
-        for configuration in configurations:
-            result[configuration] = {}
+        for overlap_type in OverlapType:
+            result[overlap_type] = {}
 
             for seed in seeds:
-                config_overlaps = self._cache_service.get_item_from_cache(
+                overlaps = self._cache_service.get_item_from_cache(
                     CacheOptions(
-                        'neighbourhood-overlaps-vs-base',
+                        'neighbourhood-overlaps',
                         key_suffixes=[
-                            f'-{neighbourhood_set_size}'
+                            '-lr',
+                            self._arguments_service.get_learning_rate_str(),
+                            '-',
+                            str(overlap_type.value),
+                            '-',
+                            str(neighbourhood_set_size)
                         ],
-                        configuration=configuration,
-                        seed=seed))
+                        seed=seed,
+                        seed_specific=True))
 
-                result[configuration][seed] = config_overlaps
-
-        return result
-
-    def get_base_overlaps(self, neighbourhood_set_size: int) -> Dict[int, dict]:
-        seeds = [7, 13, 42]
-        configuration = Configuration.SkipGram
-        result = {}
-
-        for seed in seeds:
-            config_overlaps = self._cache_service.get_item_from_cache(
-                CacheOptions(
-                    'neighbourhood-overlaps',
-                    key_suffixes=[
-                        '-rnd',
-                        f'-{neighbourhood_set_size}'
-                    ],
-                    configuration=configuration,
-                    seed=seed))
-
-            result[seed] = config_overlaps
+                result[overlap_type][seed] = overlaps
 
         return result
 
@@ -151,8 +130,7 @@ class NeighbourhoodOverlapProcessService:
     def get_distribution_plot_options(
         self,
         ax: Axes,
-        configuration: Configuration,
-        is_random_initialized: bool,
+        overlap_type: OverlapType,
         value_summary: ValueSummary) -> PlotOptions:
         alpha_values = {
             ValueSummary.Maximum: .3,
@@ -173,49 +151,20 @@ class NeighbourhoodOverlapProcessService:
         }
 
         colors = {
-            False: {
-                Configuration.CBOW: {
-                    ValueSummary.Maximum: 'darkgoldenrod',
-                    ValueSummary.Average: 'darkgoldenrod',
-                    ValueSummary.Minimum: 'white',
-                },
-                Configuration.PPMI: {
-                    ValueSummary.Maximum: 'green',
-                    ValueSummary.Average: 'green',
-                    ValueSummary.Minimum: 'white',
-                },
-                Configuration.SkipGram: {
-                    ValueSummary.Maximum: 'darkblue',
-                    ValueSummary.Average: 'darkblue',
-                    ValueSummary.Minimum: 'white',
-                },
-                Configuration.BERT: {
-                    ValueSummary.Maximum: 'crimson',
-                    ValueSummary.Average: 'crimson',
-                    ValueSummary.Minimum: 'white',
-                }
+            OverlapType.GTvsBase: {
+                ValueSummary.Maximum: 'darkgoldenrod',
+                ValueSummary.Average: 'darkgoldenrod',
+                ValueSummary.Minimum: 'white',
             },
-            True: {
-                Configuration.CBOW: {
-                    ValueSummary.Maximum: 'orange',
-                    ValueSummary.Average: 'orange',
-                    ValueSummary.Minimum: 'white',
-                },
-                Configuration.PPMI: {
-                    ValueSummary.Maximum: 'seagreen',
-                    ValueSummary.Average: 'seagreen',
-                    ValueSummary.Minimum: 'white',
-                },
-                Configuration.SkipGram: {
-                    ValueSummary.Maximum: 'royalblue',
-                    ValueSummary.Average: 'royalblue',
-                    ValueSummary.Minimum: 'white',
-                },
-                Configuration.BERT: {
-                    ValueSummary.Maximum: 'palevioletred',
-                    ValueSummary.Average: 'palevioletred',
-                    ValueSummary.Minimum: 'white',
-                },
+            OverlapType.GTvsOriginal: {
+                ValueSummary.Maximum: 'green',
+                ValueSummary.Average: 'green',
+                ValueSummary.Minimum: 'white',
+            },
+            OverlapType.GTvsRaw: {
+                ValueSummary.Maximum: 'darkblue',
+                ValueSummary.Average: 'darkblue',
+                ValueSummary.Minimum: 'white',
             }
         }
 
@@ -225,12 +174,12 @@ class NeighbourhoodOverlapProcessService:
             ValueSummary.Minimum: LineStyle.Solid,
         }
 
-        random_label_suffix = ' [random]' if is_random_initialized else ''
+        # random_label_suffix = ' [random]' if is_random_initialized else ''
         result = PlotOptions(
-            color=colors[is_random_initialized][configuration][value_summary],
+            color=colors[overlap_type][value_summary],
             linestyle=line_styles[value_summary],
             fill=fill[value_summary],
-            label=f'{configuration.value} [{value_summary.value}]{random_label_suffix}',
+            label=f'{overlap_type.value} [{value_summary.value}]',
             alpha=alpha_values[value_summary],
             line_width=linewidths[value_summary],
             ax=ax)

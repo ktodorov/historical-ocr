@@ -355,6 +355,9 @@ class WordNeighbourhoodService:
         if word_evaluation_type != WordEvaluationType.Baseline:
             word_eval_type_suffix = f'-{str(word_evaluation_type.value)}'
 
+        if word_evaluation_type != WordEvaluationType.CurrentOriginal:
+            word_eval_type_suffix = f'{word_eval_type_suffix}-lr{self._arguments_service.learning_rate}'
+
         result = CacheOptions(
             'word-similarities',
             seed_specific=True,

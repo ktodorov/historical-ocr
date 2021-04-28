@@ -28,12 +28,14 @@ class ArgumentsServiceBase:
         config_value = self._get_value_or_default(overwrite_args, 'configuration', str(self.configuration))
         checkpoint_value = self._get_value_or_default(overwrite_args, 'checkpoint_name', self.checkpoint_name)
         seed_value = self._get_value_or_default(overwrite_args, 'seed', self.seed)
+        lr_value = self._get_value_or_default(overwrite_args, 'learning_rate', self.learning_rate)
 
         result = f'{language_value}-{config_value}'
         if checkpoint_value is not None:
             result += f'-{str(checkpoint_value)}'
 
         result += f'-s{seed_value}'
+        result += f'-lr{lr_value}'
 
         return result
 
@@ -72,7 +74,7 @@ class ArgumentsServiceBase:
                             help="which language to train on")
         parser.add_argument("--shuffle", action='store_false',
                             help="shuffle datasets while training")
-        parser.add_argument("--learning-rate", type=float, default=1e-5,
+        parser.add_argument("--learning-rate", type=float, default=0.00001,
                             help="learning rate for training models")
         parser.add_argument("--weight-decay", type=float, default=1e-8,
                             help="weight decay for optimizer. Default is `1e-8`")
@@ -212,6 +214,13 @@ class ArgumentsServiceBase:
     @property
     def learning_rate(self) -> float:
         return self._get_argument('learning_rate')
+
+    def get_learning_rate_str(self) -> str:
+        learning_rate_str = '{:f}'.format(self.learning_rate)
+        while learning_rate_str.endswith('0'):
+            learning_rate_str = learning_rate_str[:-1]
+
+        return learning_rate_str
 
     @property
     def momentum(self) -> float:

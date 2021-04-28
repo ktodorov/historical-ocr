@@ -168,7 +168,13 @@ class CacheService:
                     create_if_missing=True)
         else:
             if cache_options.seed_specific:
-                result_path = self._seed_cache_folder
+                if cache_options.seed is not None:
+                    result_path = self._file_service.combine_path(
+                        self._internal_cache_folder,
+                        str(cache_options.seed),
+                        create_if_missing=True)
+                else:
+                    result_path = self._seed_cache_folder
             else:
                 result_path = self._internal_cache_folder
 
