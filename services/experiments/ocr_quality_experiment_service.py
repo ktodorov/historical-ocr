@@ -191,34 +191,49 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         # self._generate_set_sized_based_plot()
 
     def _save_individual_experiments(self, result: Dict[ExperimentType, Dict[str, float]]):
-        experiments_folder = self._file_service.get_experiments_path()
 
         for experiment_type, word_value_pairs_by_overlap in result.items():
-            for overlap_type, word_value_pairs in word_value_pairs_by_overlap.items():
-                experiment_type_folder = self._file_service.combine_path(
-                    experiments_folder,
-                    experiment_type.value,
-                    overlap_type.value,
-                    create_if_missing=True)
+            if experiment_type == ExperimentType.NeighbourhoodOverlap:
+                for overlap_type, word_value_pairs in word_value_pairs_by_overlap.items():
+                    self._save_individual_experiment(experiment_type, overlap_type, word_value_pairs)
+            else:
+                self._save_individual_experiment(experiment_type, None, word_value_pairs_by_overlap)
 
-                self._log_service.log_debug(
-                    f'Saving \'{experiment_type.value}\' experiment results at \'{experiment_type_folder}\'')
+    def _save_individual_experiment(
+        self,
+        experiment_type: ExperimentType,
+        overlap_type: OverlapType,
+        word_value_pairs):
+        experiments_folder = self._file_service.get_experiments_path()
+        experiment_type_folder = self._file_service.combine_path(
+            experiments_folder,
+            experiment_type.value,
+            create_if_missing=True)
 
-                values = [round(x, 1) for x in word_value_pairs.values()]
-                if values is None or len(values) == 0:
-                    continue
+        if overlap_type is not None:
+            experiment_type_folder = self._file_service.combine_path(
+                experiment_type_folder,
+                overlap_type.value,
+                create_if_missing=True)
 
-                counter = Counter(values)
-                filename = self._arguments_service.get_configuration_name()
-                self._plot_service.plot_distribution(
-                    counts=counter,
-                    plot_options=PlotOptions(
-                        figure_options=FigureOptions(
-                            title=experiment_type.value,
-                            save_path=experiment_type_folder,
-                            filename=filename),
-                        color='royalblue',
-                        fill=True))
+        self._log_service.log_debug(
+            f'Saving \'{experiment_type.value}\' experiment results at \'{experiment_type_folder}\'')
+
+        values = [round(x, 1) for x in word_value_pairs.values()]
+        if values is None or len(values) == 0:
+            return
+
+        counter = Counter(values)
+        filename = self._arguments_service.get_configuration_name()
+        self._plot_service.plot_distribution(
+            counts=counter,
+            plot_options=PlotOptions(
+                figure_options=FigureOptions(
+                    title=experiment_type.value,
+                    save_path=experiment_type_folder,
+                    filename=filename),
+                color='royalblue',
+                fill=True))
 
     def _generate_common_plots(self):
         experiments_folder = self._file_service.get_experiments_path()
