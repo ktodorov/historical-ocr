@@ -28,7 +28,7 @@ class ArgumentsServiceBase:
         config_value = self._get_value_or_default(overwrite_args, 'configuration', str(self.configuration))
         checkpoint_value = self._get_value_or_default(overwrite_args, 'checkpoint_name', self.checkpoint_name)
         seed_value = self._get_value_or_default(overwrite_args, 'seed', self.seed)
-        lr_value = self._get_value_or_default(overwrite_args, 'learning_rate', self.learning_rate)
+        lr_value = self._get_value_or_default(overwrite_args, 'learning_rate', self.get_learning_rate_str())
 
         result = f'{language_value}-{config_value}'
         if checkpoint_value is not None:

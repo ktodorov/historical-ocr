@@ -40,7 +40,8 @@ class PPMI(ModelBase):
         self._log_service = log_service
 
         if ocr_output_type is not None:
-            vocab_key = f'vocab-{ocr_output_type.value}'
+            dataset_string = self._arguments_service.get_dataset_string()
+            vocab_key = f'vocab-{dataset_string}-{ocr_output_type.value}'
             self._vocabulary_service.load_cached_vocabulary(vocab_key)
 
         self._process_service = process_service
@@ -150,8 +151,7 @@ class PPMI(ModelBase):
             self._log_service.log_debug(f'Skipping loading common token ids')
             return None
 
-        common_words_dict = self._process_service.get_common_words()
-        common_words = list(common_words_dict.keys())
+        common_words = self._process_service.get_common_words()
         common_word_ids = [self._vocabulary_service.string_to_id(
             common_word) for common_word in common_words]
 

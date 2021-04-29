@@ -181,7 +181,8 @@ class EvaluationModel(ModelBase):
             overwrite_args={
                 'initialize_randomly': True,
                 'configuration': Configuration.SkipGram.value,
-                'learning_rate': 1e-03
+                'learning_rate': 1e-3,
+                'minimal_occurrence_limit': 5
             })
 
         self._log_service.log_debug('Loading joint models succeeded')

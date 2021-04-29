@@ -223,8 +223,9 @@ class WordNeighbourhoodService:
 
             if not output_full_evaluations:
                 # We mark the indices to be cached because we add a new entry
-                self._cache_needs[WordEvaluationType(embeddings_idx)] = True
-                self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
+                if word_evaluation.word in self._word_similarity_indices.keys():
+                    self._cache_needs[WordEvaluationType(embeddings_idx)] = True
+                    self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
 
         if neighbourhood_set_size > len(indices):
             self._log_service.log_warning(
