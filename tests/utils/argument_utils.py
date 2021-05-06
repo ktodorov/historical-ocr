@@ -58,4 +58,5 @@ default_values = {
     'fine_tune_learning_rate': None,
     'minimal_occurrence_limit': 5,
     'initialize_randomly': False,
+    'datasets': ['icdar-2017', 'icdar-2019'],
 }
