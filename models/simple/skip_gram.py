@@ -1,3 +1,4 @@
+from copy import deepcopy
 from services.log_service import LogService
 from entities.word_evaluation import WordEvaluation
 from typing import List
@@ -47,12 +48,12 @@ class SkipGram(ModelBase):
             self._log_service.log_debug(
                 'Pretrained matrix provided. Initializing embeddings from it')
             self._embeddings_input = nn.Embedding.from_pretrained(
-                embeddings=pretrained_matrix,
+                embeddings=deepcopy(pretrained_matrix),
                 freeze=True,
                 padding_idx=self._vocabulary_service.pad_token)
 
             self._embeddings_context = nn.Embedding.from_pretrained(
-                embeddings=pretrained_matrix,
+                embeddings=deepcopy(pretrained_matrix),
                 freeze=True,
                 padding_idx=self._vocabulary_service.pad_token)
         elif process_service is not None:
@@ -61,12 +62,12 @@ class SkipGram(ModelBase):
             token_matrix = process_service.get_pretrained_matrix()
             embedding_size = token_matrix.shape[-1]
             self._embeddings_input = nn.Embedding.from_pretrained(
-                embeddings=token_matrix,
+                embeddings=deepcopy(token_matrix),
                 freeze=False,
                 padding_idx=self._vocabulary_service.pad_token)
 
             self._embeddings_context = nn.Embedding.from_pretrained(
-                embeddings=token_matrix,
+                embeddings=deepcopy(token_matrix),
                 freeze=False,
                 padding_idx=self._vocabulary_service.pad_token)
         else:
