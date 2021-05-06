@@ -25,7 +25,7 @@ class MetricsProcessService:
     def calculate_cosine_distances(self, word_evaluations: List[WordEvaluation]) -> Dict[str, float]:
         result = {}
         for word_evaluation in word_evaluations:
-            if not word_evaluation.contains_all_embeddings(OverlapType.GTvsRaw):
+            if not word_evaluation.contains_all_embeddings(OverlapType.GTvsOCR):
                 continue
 
             cosine_distance = self._metrics_service.calculate_cosine_distance(

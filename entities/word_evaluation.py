@@ -40,7 +40,7 @@ class WordEvaluation:
     def contains_all_embeddings(self, overlap_type: OverlapType) -> bool:
         result = self._embeddings[0] is not None
 
-        if overlap_type == OverlapType.GTvsRaw:
+        if overlap_type == OverlapType.GTvsOCR:
             return (result and len(self._embeddings) >= 2 and self._embeddings[1] is not None)
         elif overlap_type == OverlapType.GTvsBase:
             return (result and len(self._embeddings) >= 3 and self._embeddings[2] is not None)

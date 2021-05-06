@@ -35,7 +35,9 @@ class ArgumentsServiceBase:
             result += f'-{str(checkpoint_value)}'
 
         result += f'-s{seed_value}'
-        result += f'-lr{lr_value}'
+
+        if config_value != Configuration.PPMI.value:
+            result += f'-lr{lr_value}'
 
         return result
 

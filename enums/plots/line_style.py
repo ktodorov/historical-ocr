@@ -2,5 +2,5 @@ from enum import Enum
 
 
 class LineStyle(Enum):
-    Solid = 'solid',
+    Solid = 'solid'
     Dashed = 'dashed'

@@ -100,7 +100,7 @@ class WordNeighbourhoodService:
             word_evaluation.word, neighbourhoods=[])
 
         model_indices = []
-        if overlap_type == OverlapType.GTvsRaw:
+        if overlap_type == OverlapType.GTvsOCR:
             model_indices = [0, 1]
         elif overlap_type == OverlapType.GTvsBase:
             model_indices = [0, 2]
@@ -133,6 +133,7 @@ class WordNeighbourhoodService:
 
         plot_options = PlotOptions(
             ax=ax,
+            legend_options=LegendOptions(show_legend=False),
             figure_options=FigureOptions(
                 show_plot=False))
 
@@ -247,7 +248,7 @@ class WordNeighbourhoodService:
             cosine_distances: Dict[str, float]):
         target_tokens = self._neighbourhood_similarity_process_service.get_target_tokens(
             cosine_distances)
-        for target_token in target_tokens:
+        for target_token in tqdm(target_tokens, desc="Processing target tokens", total=len(target_tokens)):
             i = next(i for i, word_evaluation in enumerate(
                 word_evaluations) if word_evaluation.word == target_token)
 
@@ -255,13 +256,12 @@ class WordNeighbourhoodService:
                 continue
 
             word_evaluation = word_evaluations[i]
-            # remaining_words = word_evaluations[:i] + word_evaluations[i+1:]
-            remaining_words = [word_evaluation for idx, word_evaluation in enumerate(word_evaluations) if word_evaluation.contains_all_embeddings(OverlapType.GTvsRaw) and idx != i]
+            remaining_words = [word_evaluation for idx, word_evaluation in enumerate(word_evaluations) if word_evaluation.contains_all_embeddings(OverlapType.GTvsOCR) and idx != i]
             word_neighbourhood_stats = self.get_word_neighbourhoods(
                 word_evaluation,
                 remaining_words,
                 neighbourhood_set_size=50,
-                overlap_type=OverlapType.GTvsRaw,
+                overlap_type=OverlapType.GTvsOCR,
                 include_embeddings=True)
 
             self.plot_word_neighbourhoods(

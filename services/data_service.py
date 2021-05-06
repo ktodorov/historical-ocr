@@ -1,3 +1,4 @@
+from matplotlib.figure import Figure
 from services.log_service import LogService
 import _pickle as pickle
 import os
@@ -192,7 +193,7 @@ class DataService:
         """
         return pickle.loads(obj)
 
-    def save_figure(self, path: str, name: str, extension: str = 'png'):
+    def save_figure(self, path: str, name: str, extension: str = 'png', fig: Figure = None):
         """saves figure to the file system
 
         :param path: path to the folder where the figure should be saved
@@ -206,7 +207,10 @@ class DataService:
         """
         filepath = os.path.join(path, f'{name}.{extension}')
         self._log_service.log_debug(f'Saving plot figure to filesystem [filepath: \'{filepath}\']')
-        plt.savefig(filepath, bbox_inches='tight')
+        if fig is not None:
+            fig.savefig(filepath, bbox_inches='tight')
+        else:
+            plt.savefig(filepath, bbox_inches='tight')
 
     def set_date_stamp(self, addition="") -> List[str]:
         """generates printable date stamp

@@ -1,3 +1,4 @@
+from enums.language import Language
 from entities.cache.cache_options import CacheOptions
 import enum
 from services.tokenize.base_tokenize_service import BaseTokenizeService
@@ -171,6 +172,13 @@ class EvaluationModel(ModelBase):
                 checkpoint_name=checkpoint_name)
 
         skip_gram_model = self._inner_models[2]
+        skip_gram_overwrite_args = {
+            'initialize_randomly': True,
+            'configuration': Configuration.SkipGram.value,
+            'learning_rate': 1e-1 if self._arguments_service.language == Language.English else 1e-2,
+            'minimal_occurrence_limit': 5
+        }
+
         skip_gram_model.load(
             path=path.replace(self._arguments_service.configuration.value, Configuration.SkipGram.value),
             name_prefix=name_prefix,
@@ -178,12 +186,7 @@ class EvaluationModel(ModelBase):
             load_model_dict=load_model_dict,
             use_checkpoint_name=use_checkpoint_name,
             checkpoint_name=checkpoint_name,
-            overwrite_args={
-                'initialize_randomly': True,
-                'configuration': Configuration.SkipGram.value,
-                'learning_rate': 1e-3,
-                'minimal_occurrence_limit': 5
-            })
+            overwrite_args=skip_gram_overwrite_args)
 
         self._log_service.log_debug('Loading joint models succeeded')
         return None

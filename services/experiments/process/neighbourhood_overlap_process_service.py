@@ -1,4 +1,5 @@
 from collections import defaultdict
+from entities.plot.label_options import LabelOptions
 from enums.overlap_type import OverlapType
 from enums.plots.line_style import LineStyle
 
@@ -52,30 +53,40 @@ class NeighbourhoodOverlapProcessService:
 
         return result
 
-    def get_overlaps(self, neighbourhood_set_size: int) -> Dict[OverlapType, Dict[int, dict]]:
+    def get_overlaps(self, neighbourhood_set_size: int) -> Dict[Configuration, Dict[str, Dict[OverlapType, Dict[int, dict]]]]:
         seeds = [7, 13, 42]
+        lrs = ['0.01', '0.001', '0.0001', '0.00001']
+        configs = [Configuration.BERT, Configuration.SkipGram, Configuration.CBOW, Configuration.PPMI]
 
         result = {}
 
-        for overlap_type in OverlapType:
-            result[overlap_type] = {}
+        for config in configs:
+            result[config] = {}
+            for lr in lrs:
+                result[config][lr] = {}
+                for overlap_type in OverlapType:
+                    result[config][lr][overlap_type] = {}
 
-            for seed in seeds:
-                overlaps = self._cache_service.get_item_from_cache(
-                    CacheOptions(
-                        'neighbourhood-overlaps',
-                        key_suffixes=[
-                            '-lr',
-                            self._arguments_service.get_learning_rate_str(),
-                            '-',
-                            str(overlap_type.value),
-                            '-',
-                            str(neighbourhood_set_size)
-                        ],
-                        seed=seed,
-                        seed_specific=True))
+                    for seed in seeds:
+                        overlaps = self._cache_service.get_item_from_cache(
+                            CacheOptions(
+                                'neighbourhood-overlaps',
+                                key_suffixes=[
+                                    '-lr' if config != Configuration.PPMI else '',
+                                    lr if config != Configuration.PPMI else '',
+                                    '-',
+                                    str(overlap_type.value),
+                                    '-',
+                                    str(neighbourhood_set_size)
+                                ],
+                                configuration=config,
+                                seed=seed,
+                                seed_specific=True))
 
-                result[overlap_type][seed] = overlaps
+                        result[config][lr][overlap_type][seed] = overlaps
+
+                if config == Configuration.PPMI:
+                    break
 
         return result
 
@@ -130,7 +141,9 @@ class NeighbourhoodOverlapProcessService:
     def get_distribution_plot_options(
         self,
         ax: Axes,
+        configuration: Configuration,
         overlap_type: OverlapType,
+        learning_rate_str: str,
         value_summary: ValueSummary) -> PlotOptions:
         alpha_values = {
             ValueSummary.Maximum: .3,
@@ -151,37 +164,114 @@ class NeighbourhoodOverlapProcessService:
         }
 
         colors = {
-            OverlapType.GTvsBase: {
-                ValueSummary.Maximum: 'darkgoldenrod',
-                ValueSummary.Average: 'darkgoldenrod',
-                ValueSummary.Minimum: 'white',
+            Configuration.BERT: {
+                OverlapType.GTvsBase: {
+                    ValueSummary.Maximum: 'goldenrod',
+                    ValueSummary.Average: 'goldenrod',
+                    ValueSummary.Minimum: 'white',
+                },
+                OverlapType.GTvsOriginal: {
+                    ValueSummary.Maximum: 'cadetblue',
+                    ValueSummary.Average: 'cadetblue',
+                    ValueSummary.Minimum: 'white',
+                },
+                OverlapType.GTvsOCR: {
+                    ValueSummary.Maximum: 'darkred',
+                    ValueSummary.Average: 'darkred',
+                    ValueSummary.Minimum: 'white',
+                }
             },
-            OverlapType.GTvsOriginal: {
-                ValueSummary.Maximum: 'green',
-                ValueSummary.Average: 'green',
-                ValueSummary.Minimum: 'white',
+            Configuration.SkipGram: {
+                OverlapType.GTvsBase: {
+                    ValueSummary.Maximum: 'goldenrod',
+                    ValueSummary.Average: 'goldenrod',
+                    ValueSummary.Minimum: 'white',
+                },
+                OverlapType.GTvsOriginal: {
+                    ValueSummary.Maximum: 'cadetblue',
+                    ValueSummary.Average: 'cadetblue',
+                    ValueSummary.Minimum: 'white',
+                },
+                OverlapType.GTvsOCR: {
+                    ValueSummary.Maximum: 'darkred',
+                    ValueSummary.Average: 'darkred',
+                    ValueSummary.Minimum: 'white',
+                },
             },
-            OverlapType.GTvsRaw: {
-                ValueSummary.Maximum: 'darkblue',
-                ValueSummary.Average: 'darkblue',
-                ValueSummary.Minimum: 'white',
+            Configuration.CBOW: {
+                OverlapType.GTvsBase: {
+                    ValueSummary.Maximum: 'goldenrod',
+                    ValueSummary.Average: 'goldenrod',
+                    ValueSummary.Minimum: 'white',
+                },
+                OverlapType.GTvsOriginal: {
+                    ValueSummary.Maximum: 'cadetblue',
+                    ValueSummary.Average: 'cadetblue',
+                    ValueSummary.Minimum: 'white',
+                },
+                OverlapType.GTvsOCR: {
+                    ValueSummary.Maximum: 'darkred',
+                    ValueSummary.Average: 'darkred',
+                    ValueSummary.Minimum: 'white',
+                },
+            },
+            Configuration.PPMI: {
+                OverlapType.GTvsBase: {
+                    ValueSummary.Maximum: 'goldenrod',
+                    ValueSummary.Average: 'goldenrod',
+                    ValueSummary.Minimum: 'white',
+                },
+                OverlapType.GTvsOriginal: {
+                    ValueSummary.Maximum: 'cadetblue',
+                    ValueSummary.Average: 'cadetblue',
+                    ValueSummary.Minimum: 'white',
+                },
+                OverlapType.GTvsOCR: {
+                    ValueSummary.Maximum: 'darkred',
+                    ValueSummary.Average: 'darkred',
+                    ValueSummary.Minimum: 'white',
+                },
             }
         }
 
-        line_styles = {
-            ValueSummary.Maximum: LineStyle.Solid,
-            ValueSummary.Average: LineStyle.Dashed,
-            ValueSummary.Minimum: LineStyle.Solid,
+        # line_styles = {
+        #     ValueSummary.Maximum: LineStyle.Solid,
+        #     ValueSummary.Average: LineStyle.Dashed,
+        #     ValueSummary.Minimum: LineStyle.Solid,
+        # }
+
+        lr_types = {
+            f'{Configuration.BERT.value}-0.0001': 'aggressive',
+            f'{Configuration.BERT.value}-0.00001': 'slow',
+            f'{Configuration.CBOW.value}-0.001': 'aggressive',
+            f'{Configuration.CBOW.value}-0.0001': 'slow',
+            f'{Configuration.SkipGram.value}-0.001': 'aggressive',
+            f'{Configuration.SkipGram.value}-0.0001': 'slow',
+            f'{Configuration.PPMI.value}': 'aggressive'
         }
 
-        # random_label_suffix = ' [random]' if is_random_initialized else ''
+        line_styles_per_lr_type = {
+            'aggressive': LineStyle.Solid,
+            'slow': LineStyle.Dashed
+        }
+
+        line_style_key = f'{configuration.value}'
+        label_lr_suffix = ''
+        lr_type = 'aggressive'
+        if configuration != Configuration.PPMI:
+            line_style_key = f'{line_style_key}-{learning_rate_str}'
+            lr_type = lr_types[line_style_key]
+            label_lr_suffix = f', {lr_type}'
+
+
         result = PlotOptions(
-            color=colors[overlap_type][value_summary],
-            linestyle=line_styles[value_summary],
+            color=colors[configuration][overlap_type][value_summary],
+            linestyle=line_styles_per_lr_type[lr_type],
             fill=fill[value_summary],
-            label=f'{overlap_type.value} [{value_summary.value}]',
+            label=f'{overlap_type.value}{label_lr_suffix}',
             alpha=alpha_values[value_summary],
             line_width=linewidths[value_summary],
+            # xlim=(None, 100),
             ax=ax)
 
         return result

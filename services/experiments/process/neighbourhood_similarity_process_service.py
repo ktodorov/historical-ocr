@@ -22,7 +22,7 @@ class NeighbourhoodSimilarityProcessService:
     def get_target_tokens(
             self,
             cosine_distances: Dict[str, float],
-            pos_tags: List[PartOfSpeech] = [PartOfSpeech.Noun, PartOfSpeech.Verb]) -> List[str]:
+            pos_tags: List[PartOfSpeech] = [PartOfSpeech.Noun, PartOfSpeech.Verb, PartOfSpeech.Adjective]) -> List[str]:
         metric_results = [(word, distance)
                           for word, distance in cosine_distances.items()
                           if self._tagging_service.word_is_specific_tag(word, pos_tags)]

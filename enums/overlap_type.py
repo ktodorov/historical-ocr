@@ -1,6 +1,6 @@
 from enum import Enum
 
 class OverlapType(Enum):
-    GTvsRaw = 'gt-vs-raw'
-    GTvsBase = 'gt-vs-base'
-    GTvsOriginal = 'gt-vs-og'
+    GTvsOCR = 'GT-vs-OCR'
+    GTvsBase = 'GT-vs-BASE'
+    GTvsOriginal = 'GT-vs-OG'

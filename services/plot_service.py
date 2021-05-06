@@ -1,3 +1,5 @@
+from matplotlib.figure import Figure
+from utils.math_utils import get_square, is_square
 from entities.plot.histogram_options import HistogramOptions
 from entities.plot.label_options import LabelOptions
 from entities.plot.figure_options import FigureOptions
@@ -61,6 +63,21 @@ class PlotService:
         ax = fig.add_subplot(1, 1, 1)
         # ax = plt.subplot()
         return ax
+
+    def create_plots(self, plots_count: int, share_coords: bool = False) -> List[Axes]:
+        sns.set_style('ticks')
+
+        rows_count = plots_count
+        columns_count = 1
+        if is_square(plots_count):
+            square_count = get_square(plots_count)
+            rows_count = square_count
+            columns_count = square_count
+
+        fig, all_axs = plt.subplots(rows_count, columns_count, sharex=share_coords, sharey=share_coords)
+        axs = [x for col_axs in all_axs for x in col_axs]
+
+        return fig, axs
 
     def plot_histogram(
             self,
@@ -183,6 +200,7 @@ class PlotService:
             linestyle=plot_options.linestyle.value,
             label=plot_options.label,
             legend=True,
+            clip=(0.0, 100.0),
             # palette="crest",
             # common_norm=True,
             linewidth=plot_options.line_width,
@@ -419,12 +437,22 @@ class PlotService:
         if figure_options.hide_axis:
             ax.axis('off')
 
+        if figure_options.hide_x_labels:
+            ax.axes.xaxis.set_visible(False)
+
+        if figure_options.hide_y_labels:
+            ax.axes.yaxis.set_visible(False)
+
         if legend_options is not None:
             self.show_legend(ax, legend_options)
+
+        if figure_options.super_title is not None and figure_options.figure is not None:
+            figure_options.figure.suptitle(figure_options.super_title)
 
         if figure_options.title is not None:
             ax.set_title(figure_options.title, pad=figure_options.title_padding,
                          fontdict={'fontweight': 'bold'})
+
 
     def show_legend(
             self,
@@ -456,8 +484,8 @@ class PlotService:
         else:
             ax.legend()
 
-    def save_plot(self, save_path: str, filename: str):
-        self._data_service.save_figure(save_path, filename)
+    def save_plot(self, save_path: str, filename: str, figure: Figure = None):
+        self._data_service.save_figure(save_path, filename, fig=figure)
 
     def _create_legend_lines(
             self,

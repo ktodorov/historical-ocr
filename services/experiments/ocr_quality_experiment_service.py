@@ -1,3 +1,6 @@
+from enums.configuration import Configuration
+from enums.value_summary import ValueSummary
+from entities.plot.legend_options import LegendOptions
 from enums.overlap_type import OverlapType
 import numpy as np
 
@@ -73,14 +76,14 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         random_suffix = '-rnd' if self._arguments_service.initialize_randomly else ''
         separate_suffix = '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else ''
+        lr_suffix = f'-lr{self._arguments_service.get_learning_rate_str()}' if self._arguments_service.configuration != Configuration.PPMI else ''
         word_evaluations: List[WordEvaluation] = self._cache_service.get_item_from_cache(
             CacheOptions(
                 f'word-evaluations',
                 key_suffixes=[
                     random_suffix,
                     separate_suffix,
-                    '-lr',
-                    self._arguments_service.get_learning_rate_str()
+                    lr_suffix
                 ],
                 seed_specific=True),
             callback_function=self._generate_embeddings)
@@ -93,8 +96,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                     f'cosine-distances',
                     key_suffixes=[
                         random_suffix,
-                        '-lr',
-                        self._arguments_service.get_learning_rate_str()
+                        lr_suffix
                     ],
                     seed_specific=True),
                 callback_function=lambda: self._metrics_process_service.calculate_cosine_distances(word_evaluations))
@@ -111,8 +113,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                     CacheOptions(
                         'neighbourhood-overlaps',
                         key_suffixes=[
-                            '-lr',
-                            self._arguments_service.get_learning_rate_str(),
+                            lr_suffix,
                             '-',
                             overlap_type.value,
                             random_suffix,
@@ -224,10 +225,11 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             return
 
         counter = Counter(values)
-        filename = self._arguments_service.get_configuration_name()
+        filename = f'{self._arguments_service.get_configuration_name()}-{self._arguments_service.neighbourhood_set_size}'
         self._plot_service.plot_distribution(
             counts=counter,
             plot_options=PlotOptions(
+                legend_options=LegendOptions(show_legend=False),
                 figure_options=FigureOptions(
                     title=experiment_type.value,
                     save_path=experiment_type_folder,
@@ -243,37 +245,67 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             self._arguments_service.language.value,
             create_if_missing=True)
 
-        ax = self._plot_service.create_plot()
-        overlaps_by_type_and_seed = self._neighbourhood_overlap_process_service.get_overlaps(
+        # main_ax = self._plot_service.create_plot()
+        overlaps_by_config = self._neighbourhood_overlap_process_service.get_overlaps(
             self._arguments_service.neighbourhood_set_size)
+        fig, config_axs = self._plot_service.create_plots(len(overlaps_by_config.keys()))
 
-        for overlap_type, overlaps_by_seed in overlaps_by_type_and_seed.items():
-            if all(x is None for x in list(overlaps_by_seed.values())):
-                continue
+        for i, (configuration, overlaps_by_lr) in enumerate(overlaps_by_config.items()):
+            for learning_rate, overlaps_by_type in overlaps_by_lr.items():
+                for overlap_type, overlaps_by_seed in overlaps_by_type.items():
+                    if all(x is None for x in list(overlaps_by_seed.values())):
+                        continue
 
-            combined_overlaps = self._neighbourhood_overlap_process_service.combine_seed_overlaps(
-                overlaps_by_seed,
-                self._arguments_service.neighbourhood_set_size)
+                    combined_overlaps = self._neighbourhood_overlap_process_service.combine_seed_overlaps(
+                        overlaps_by_seed,
+                        self._arguments_service.neighbourhood_set_size)
 
-            value_summaries = self._neighbourhood_overlap_process_service.extract_value_summaries(
-                combined_overlaps)
+                    value_summaries = self._neighbourhood_overlap_process_service.extract_value_summaries(
+                        combined_overlaps)
 
-            for value_summary, overlap_line in value_summaries.items():
-                ax = self._plot_service.plot_distribution(
-                    counts=overlap_line,
-                    plot_options=self._neighbourhood_overlap_process_service.get_distribution_plot_options(
-                        ax,
-                        overlap_type,
-                        value_summary))
+                    for value_summary, overlap_line in value_summaries.items():
+                        # Skip max and min value summaries
+                        if value_summary != ValueSummary.Average:
+                            continue
 
-        self._plot_service.set_plot_properties(
-            ax=ax,
-            figure_options=FigureOptions(
-                title=f'Neighbourhood overlaps ({self._arguments_service.language.value} - {self._arguments_service.configuration.value}) | LR: {self._arguments_service.get_learning_rate_str()}'))
+                        config_axs[i] = self._plot_service.plot_distribution(
+                            counts=overlap_line,
+                            plot_options=self._neighbourhood_overlap_process_service.get_distribution_plot_options(
+                                config_axs[i],
+                                configuration,
+                                overlap_type,
+                                learning_rate,
+                                value_summary))
+
+            #             config_ax = self._plot_service.plot_distribution(
+            #                 counts=overlap_line,
+            #                 plot_options=self._neighbourhood_overlap_process_service.get_distribution_plot_options(
+            #                     config_ax,
+            #                     configuration,
+            #                     overlap_type,
+            #                     learning_rate,
+            #                     value_summary))
+            self._plot_service.set_plot_properties(
+                ax=config_axs[i],
+                figure_options=FigureOptions(
+                    hide_y_labels=True,
+                    figure=fig,
+                    super_title=f'Neighbourhood overlaps ({self._arguments_service.language.value})',
+                    title=str(configuration.value)))
+
+            # self._plot_service.save_plot(
+            #     save_path=experiment_type_folder,
+            #     filename=f'combined-neighbourhood-overlaps-{self._arguments_service.configuration.value}-{self._arguments_service.neighbourhood_set_size}')
+
+        # self._plot_service.set_plot_properties(
+        #     ax=main_ax,
+        #     figure_options=FigureOptions(
+        #         title=f'Neighbourhood overlaps ({self._arguments_service.language.value})'))
 
         self._plot_service.save_plot(
             save_path=experiment_type_folder,
-            filename=f'combined-neighbourhood-overlaps-{self._arguments_service.configuration.value}-lr{self._arguments_service.get_learning_rate_str()}-{self._arguments_service.neighbourhood_set_size}')
+            filename=f'neighbourhood-overlaps-{self._arguments_service.neighbourhood_set_size}',
+            figure=fig)
 
     def _align_word_embeddings(self, evaluations: List[WordEvaluation]) -> List[WordEvaluation]:
         if len(evaluations) == 0:
