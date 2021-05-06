@@ -2,7 +2,7 @@ import os
 from typing import Counter
 import nltk
 
-language = 'nl'
+language = 'eng'
 
 icdar_path = os.path.join('data', 'newseye')
 icdar_2017_path = os.path.join(icdar_path, '2017', 'full')
@@ -24,7 +24,6 @@ if language == 'nl':
         os.path.join(icdar_2019_path, language[:2], 'NL1')
     ]
 
-labels = ['NOUN', 'VERB' ]
 
 words_set = Counter()
 
@@ -38,12 +37,27 @@ for path in paths:
                 words_set[word] += 1
 
 sorted_word_pairs = sorted(words_set.items(), key=lambda x: x[1], reverse=True)
-# sorted_words = [x[0] for x in sorted_word_pairs]
 
-a = ['man', 'jaar', 'tijd', 'mensen', 'dag', 'kinderen', 'hand', 'huis', 'dier', 'afbeelding', 'werk', 'naam', 'groot', 'kleine']
+print('Top 20 words:')
+print(sorted_word_pairs[:20])
+print('-----------------')
 
-print([x for x in sorted_word_pairs if x[0] in a])
+if language == 'eng':
+    labels = ['NOUN', 'ADJ' ]
+    # sorted_words = [x[0] for x in sorted_word_pairs]
+    pos_tags = [(nltk.pos_tag([word], tagset='universal')[0], occurences) for word, occurences in sorted_word_pairs[:250]]
+    remaining_pos_tags = [(x[0], occurences) for x, occurences in pos_tags if x[1] in labels]
+    print('Top 20 filtered POS words:')
+    print(remaining_pos_tags[:20])
+    print('-----------------')
 
-# pos_tags = [nltk.pos_tag([word], tagset='universal')[0] for word in sorted_words[:250]]
-# remaining_pos_tags = [x[0] for x in pos_tags if x[1] in labels]
+words = {
+    'nl': ['man', 'jaar', 'tijd', 'mensen', 'dag', 'kinderen', 'hand', 'huis', 'dier', 'afbeelding', 'werk', 'naam', 'groot', 'kleine'],
+    'eng': ['man', 'new', 'time', 'men', 'day', 'good', 'old', 'house', 'people', 'work', 'name', 'world', 'little']
+}
+
+print('Selected words:')
+print([x for x in sorted_word_pairs if x[0] in words[language]])
+
+
 # print(remaining_pos_tags[50:100])
