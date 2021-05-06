@@ -108,9 +108,11 @@ class Word2VecProcessService(ICDARProcessService):
                     seed_specific=True),
                 callback_function=lambda: {})
 
-        pretrained_weight_matrix = np.random.rand(
-            self._vocabulary_service.vocabulary_size(),
-            word2vec_weights.vector_size)
+        vocab_size = self._vocabulary_service.vocabulary_size()
+        pretrained_weight_matrix = np.random.uniform(
+            low=(-0.5 / word2vec_weights.vector_size),
+            high=(0.5 / word2vec_weights.vector_size),
+            size=(vocab_size, word2vec_weights.vector_size))
 
         if not self._arguments_service.initialize_randomly:
             self._log_service.log_debug(f'Populating pretrained matrix...')
