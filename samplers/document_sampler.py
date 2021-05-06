@@ -17,8 +17,9 @@ class DocumentSampler(Sampler):
         self._shuffle = shuffle
         self._ids_per_doc = dataset.get_indices_per_document()
         self.batch_size = batch_size
+        self.iter_list = self._create_iter_list()
 
-    def __iter__(self):
+    def _create_iter_list(self):
         data_buckets = {
             k: np.asarray(v) for k, v in self._ids_per_doc.items()
         }
@@ -42,7 +43,11 @@ class DocumentSampler(Sampler):
         # shuffle all the batches so they are not ordered by bucket
         # size
 
-        for i in iter_list:
+        self._total_length = len(iter_list)
+        return iter_list
+
+    def __iter__(self):
+        for i in self.iter_list:
             yield i.tolist()  # as it was stored in an array
 
     def __len__(self):
