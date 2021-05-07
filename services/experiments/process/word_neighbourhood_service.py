@@ -100,12 +100,14 @@ class WordNeighbourhoodService:
             word_evaluation.word, neighbourhoods=[])
 
         model_indices = []
-        if overlap_type == OverlapType.GTvsOCR:
+        if overlap_type == OverlapType.BASEvsGT:
+            model_indices = [2, 0]
+        elif overlap_type == OverlapType.BASEvsOCR:
+            model_indices = [2, 1]
+        elif overlap_type == OverlapType.BASEvsOG:
+            model_indices = [2, 3]
+        elif overlap_type == OverlapType.GTvsOCR:
             model_indices = [0, 1]
-        elif overlap_type == OverlapType.GTvsBase:
-            model_indices = [0, 2]
-        elif overlap_type == OverlapType.GTvsOriginal:
-            model_indices = [0, 3]
 
         for i in model_indices:
             word_neighbourhood = self._get_word_neighbourhood(

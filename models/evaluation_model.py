@@ -175,7 +175,7 @@ class EvaluationModel(ModelBase):
         skip_gram_overwrite_args = {
             'initialize_randomly': True,
             'configuration': Configuration.SkipGram.value,
-            'learning_rate': 1e-1 if self._arguments_service.language == Language.English else 1e-2,
+            'learning_rate': 1e-3,# if self._arguments_service.language == Language.English else 1e-2,
             'minimal_occurrence_limit': 5
         }
 

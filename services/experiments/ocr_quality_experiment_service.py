@@ -103,10 +103,10 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
             self._log_service.log_info('Loaded cosine distances')
 
-        if ExperimentType.NeighbourhoodOverlap in experiment_types:
+        if ExperimentType.NeighbourhoodOverlap in experiment_types and not self._arguments_service.initialize_randomly:
             result[ExperimentType.NeighbourhoodOverlap] = {}
             for overlap_type in OverlapType:
-                if overlap_type == OverlapType.GTvsBase and self._arguments_service.initialize_randomly:
+                if self._arguments_service.initialize_randomly:
                     continue
 
                 result[ExperimentType.NeighbourhoodOverlap][overlap_type] = self._cache_service.get_item_from_cache(
@@ -277,14 +277,6 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                                 learning_rate,
                                 value_summary))
 
-            #             config_ax = self._plot_service.plot_distribution(
-            #                 counts=overlap_line,
-            #                 plot_options=self._neighbourhood_overlap_process_service.get_distribution_plot_options(
-            #                     config_ax,
-            #                     configuration,
-            #                     overlap_type,
-            #                     learning_rate,
-            #                     value_summary))
             self._plot_service.set_plot_properties(
                 ax=config_axs[i],
                 figure_options=FigureOptions(
@@ -292,15 +284,6 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                     figure=fig,
                     super_title=f'Neighbourhood overlaps ({self._arguments_service.language.value})',
                     title=str(configuration.value)))
-
-            # self._plot_service.save_plot(
-            #     save_path=experiment_type_folder,
-            #     filename=f'combined-neighbourhood-overlaps-{self._arguments_service.configuration.value}-{self._arguments_service.neighbourhood_set_size}')
-
-        # self._plot_service.set_plot_properties(
-        #     ax=main_ax,
-        #     figure_options=FigureOptions(
-        #         title=f'Neighbourhood overlaps ({self._arguments_service.language.value})'))
 
         self._plot_service.save_plot(
             save_path=experiment_type_folder,

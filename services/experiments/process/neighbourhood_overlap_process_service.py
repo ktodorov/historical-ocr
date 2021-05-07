@@ -65,6 +65,9 @@ class NeighbourhoodOverlapProcessService:
             for lr in lrs:
                 result[config][lr] = {}
                 for overlap_type in OverlapType:
+                    if overlap_type == OverlapType.GTvsOCR:
+                        continue
+
                     result[config][lr][overlap_type] = {}
 
                     for seed in seeds:
@@ -164,81 +167,22 @@ class NeighbourhoodOverlapProcessService:
         }
 
         colors = {
-            Configuration.BERT: {
-                OverlapType.GTvsBase: {
-                    ValueSummary.Maximum: 'goldenrod',
-                    ValueSummary.Average: 'goldenrod',
-                    ValueSummary.Minimum: 'white',
-                },
-                OverlapType.GTvsOriginal: {
-                    ValueSummary.Maximum: 'cadetblue',
-                    ValueSummary.Average: 'cadetblue',
-                    ValueSummary.Minimum: 'white',
-                },
-                OverlapType.GTvsOCR: {
-                    ValueSummary.Maximum: 'darkred',
-                    ValueSummary.Average: 'darkred',
-                    ValueSummary.Minimum: 'white',
-                }
+            OverlapType.BASEvsGT: {
+                ValueSummary.Maximum: 'goldenrod',
+                ValueSummary.Average: 'goldenrod',
+                ValueSummary.Minimum: 'white',
             },
-            Configuration.SkipGram: {
-                OverlapType.GTvsBase: {
-                    ValueSummary.Maximum: 'goldenrod',
-                    ValueSummary.Average: 'goldenrod',
-                    ValueSummary.Minimum: 'white',
-                },
-                OverlapType.GTvsOriginal: {
-                    ValueSummary.Maximum: 'cadetblue',
-                    ValueSummary.Average: 'cadetblue',
-                    ValueSummary.Minimum: 'white',
-                },
-                OverlapType.GTvsOCR: {
-                    ValueSummary.Maximum: 'darkred',
-                    ValueSummary.Average: 'darkred',
-                    ValueSummary.Minimum: 'white',
-                },
+            OverlapType.BASEvsOG: {
+                ValueSummary.Maximum: 'cadetblue',
+                ValueSummary.Average: 'cadetblue',
+                ValueSummary.Minimum: 'white',
             },
-            Configuration.CBOW: {
-                OverlapType.GTvsBase: {
-                    ValueSummary.Maximum: 'goldenrod',
-                    ValueSummary.Average: 'goldenrod',
-                    ValueSummary.Minimum: 'white',
-                },
-                OverlapType.GTvsOriginal: {
-                    ValueSummary.Maximum: 'cadetblue',
-                    ValueSummary.Average: 'cadetblue',
-                    ValueSummary.Minimum: 'white',
-                },
-                OverlapType.GTvsOCR: {
-                    ValueSummary.Maximum: 'darkred',
-                    ValueSummary.Average: 'darkred',
-                    ValueSummary.Minimum: 'white',
-                },
-            },
-            Configuration.PPMI: {
-                OverlapType.GTvsBase: {
-                    ValueSummary.Maximum: 'goldenrod',
-                    ValueSummary.Average: 'goldenrod',
-                    ValueSummary.Minimum: 'white',
-                },
-                OverlapType.GTvsOriginal: {
-                    ValueSummary.Maximum: 'cadetblue',
-                    ValueSummary.Average: 'cadetblue',
-                    ValueSummary.Minimum: 'white',
-                },
-                OverlapType.GTvsOCR: {
-                    ValueSummary.Maximum: 'darkred',
-                    ValueSummary.Average: 'darkred',
-                    ValueSummary.Minimum: 'white',
-                },
+            OverlapType.BASEvsOCR: {
+                ValueSummary.Maximum: 'darkred',
+                ValueSummary.Average: 'darkred',
+                ValueSummary.Minimum: 'white',
             }
         }
-
-        # line_styles = {
-        #     ValueSummary.Maximum: LineStyle.Solid,
-        #     ValueSummary.Average: LineStyle.Dashed,
-        #     ValueSummary.Minimum: LineStyle.Solid,
-        # }
 
         lr_types = {
             f'{Configuration.BERT.value}-0.0001': 'aggressive',
@@ -265,13 +209,12 @@ class NeighbourhoodOverlapProcessService:
 
 
         result = PlotOptions(
-            color=colors[configuration][overlap_type][value_summary],
+            color=colors[overlap_type][value_summary],
             linestyle=line_styles_per_lr_type[lr_type],
             fill=fill[value_summary],
             label=f'{overlap_type.value}{label_lr_suffix}',
             alpha=alpha_values[value_summary],
             line_width=linewidths[value_summary],
-            # xlim=(None, 100),
             ax=ax)
 
         return result
