@@ -1,3 +1,4 @@
+from entities.plot.legend_title_options import LegendTitleOptions
 from enums.configuration import Configuration
 from enums.value_summary import ValueSummary
 from entities.plot.legend_options import LegendOptions
@@ -196,15 +197,17 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         for experiment_type, word_value_pairs_by_overlap in result.items():
             if experiment_type == ExperimentType.NeighbourhoodOverlap:
                 for overlap_type, word_value_pairs in word_value_pairs_by_overlap.items():
-                    self._save_individual_experiment(experiment_type, overlap_type, word_value_pairs)
+                    self._save_individual_experiment(
+                        experiment_type, overlap_type, word_value_pairs)
             else:
-                self._save_individual_experiment(experiment_type, None, word_value_pairs_by_overlap)
+                self._save_individual_experiment(
+                    experiment_type, None, word_value_pairs_by_overlap)
 
     def _save_individual_experiment(
-        self,
-        experiment_type: ExperimentType,
-        overlap_type: OverlapType,
-        word_value_pairs):
+            self,
+            experiment_type: ExperimentType,
+            overlap_type: OverlapType,
+            word_value_pairs):
         experiments_folder = self._file_service.get_experiments_path()
         experiment_type_folder = self._file_service.combine_path(
             experiments_folder,
@@ -248,14 +251,24 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         # main_ax = self._plot_service.create_plot()
         overlaps_by_config = self._neighbourhood_overlap_process_service.get_overlaps(
             self._arguments_service.neighbourhood_set_size)
-        fig, config_axs = self._plot_service.create_plots(len(overlaps_by_config.keys()))
+        fig, config_axs = self._plot_service.create_plots(
+            len(overlaps_by_config.keys()))
 
-        for i, (configuration, overlaps_by_lr) in enumerate(overlaps_by_config.items()):
-            for learning_rate, overlaps_by_type in overlaps_by_lr.items():
-                for overlap_type, overlaps_by_seed in overlaps_by_type.items():
+        for i, (configuration, overlaps_by_type) in enumerate(overlaps_by_config.items()):
+            sub_titles = {}
+            types_plotted = []
+            plot_count = 0
+            for overlap_type, overlaps_by_lr in overlaps_by_type.items():
+                for learning_rate, overlaps_by_seed in overlaps_by_lr.items():
                     if all(x is None for x in list(overlaps_by_seed.values())):
                         continue
 
+                    if overlap_type not in types_plotted:
+                        sub_titles[plot_count] = OverlapType.get_friendly_name(overlap_type)
+                        types_plotted.append(overlap_type)
+                        plot_count += 1
+
+                    plot_count += 1
                     combined_overlaps = self._neighbourhood_overlap_process_service.combine_seed_overlaps(
                         overlaps_by_seed,
                         self._arguments_service.neighbourhood_set_size)
@@ -283,7 +296,11 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                     hide_y_labels=True,
                     figure=fig,
                     super_title=f'Neighbourhood overlaps ({self._arguments_service.language.value})',
-                    title=str(configuration.value)))
+                    title=str(configuration.value)),
+                legend_options=LegendOptions(
+                    show_legend=len(sub_titles) > 0,
+                    legend_title_options=LegendTitleOptions(
+                        sub_titles=sub_titles)))
 
         self._plot_service.save_plot(
             save_path=experiment_type_folder,

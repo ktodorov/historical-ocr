@@ -1,4 +1,5 @@
 from collections import defaultdict
+from entities.plot.legend_options import LegendOptions
 from entities.plot.label_options import LabelOptions
 from enums.overlap_type import OverlapType
 from enums.plots.line_style import LineStyle
@@ -62,13 +63,13 @@ class NeighbourhoodOverlapProcessService:
 
         for config in configs:
             result[config] = {}
-            for lr in lrs:
-                result[config][lr] = {}
-                for overlap_type in OverlapType:
-                    if overlap_type == OverlapType.GTvsOCR:
-                        continue
+            for overlap_type in OverlapType:
+                if overlap_type == OverlapType.GTvsOCR:
+                    continue
 
-                    result[config][lr][overlap_type] = {}
+                result[config][overlap_type] = {}
+                for lr in lrs:
+                    result[config][overlap_type][lr] = {}
 
                     for seed in seeds:
                         overlaps = self._cache_service.get_item_from_cache(
@@ -86,7 +87,7 @@ class NeighbourhoodOverlapProcessService:
                                 seed=seed,
                                 seed_specific=True))
 
-                        result[config][lr][overlap_type][seed] = overlaps
+                        result[config][overlap_type][lr][seed] = overlaps
 
                 if config == Configuration.PPMI:
                     break
@@ -200,21 +201,22 @@ class NeighbourhoodOverlapProcessService:
         }
 
         line_style_key = f'{configuration.value}'
-        label_lr_suffix = ''
+        lr_label = 'default'
         lr_type = 'aggressive'
         if configuration != Configuration.PPMI:
             line_style_key = f'{line_style_key}-{learning_rate_str}'
             lr_type = lr_types[line_style_key]
-            label_lr_suffix = f', {lr_type}'
+            lr_label = lr_type
 
 
         result = PlotOptions(
             color=colors[overlap_type][value_summary],
             linestyle=line_styles_per_lr_type[lr_type],
             fill=fill[value_summary],
-            label=f'{overlap_type.value}{label_lr_suffix}',
+            label=lr_label,
             alpha=alpha_values[value_summary],
             line_width=linewidths[value_summary],
-            ax=ax)
+            ax=ax,
+            legend_options=LegendOptions(show_legend=False))
 
         return result

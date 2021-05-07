@@ -199,7 +199,7 @@ class PlotService:
             # cut=0,
             linestyle=plot_options.linestyle.value,
             label=plot_options.label,
-            legend=True,
+            legend=plot_options.legend_options.show_legend,
             clip=(0.0, 100.0),
             # palette="crest",
             # common_norm=True,
@@ -481,6 +481,15 @@ class PlotService:
             else:
                 ax.legend(legend_lines, bbox_to_anchor=bbox_to_anchor,
                           loc=legend_location)
+        elif legend_options.legend_title_options is not None:
+            sub_title_pairs = legend_options.legend_title_options.get_sub_titles()
+            if sub_title_pairs is not None:
+                handles, labels = ax.get_legend_handles_labels()
+                for position_id, text in sub_title_pairs:
+                    handles.insert(position_id, text)
+                    labels.insert(position_id, '')
+
+                ax.legend(handles, labels, handler_map={str: legend_options.legend_title_options},handlelength=10)
         else:
             ax.legend()
 

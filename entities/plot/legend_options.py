@@ -1,3 +1,4 @@
+from entities.plot.legend_title_options import LegendTitleOptions
 from enums.plot_legend_position import PlotLegendPosition
 from typing import List
 
@@ -8,11 +9,13 @@ class LegendOptions:
             show_legend: bool,
             legend_colors: List[str] = None,
             legend_labels: List[str] = None,
-            legend_position: PlotLegendPosition = PlotLegendPosition.Automatic):
+            legend_position: PlotLegendPosition = PlotLegendPosition.Automatic,
+            legend_title_options: LegendTitleOptions = None):
         self._show_legend = show_legend
         self._legend_colors: List[str] = legend_colors
         self._legend_labels: List[str] = legend_labels
         self._legend_position = legend_position
+        self._legend_title_options = legend_title_options
 
     @property
     def show_legend(self) -> bool:
@@ -29,3 +32,7 @@ class LegendOptions:
     @property
     def legend_position(self) -> PlotLegendPosition:
         return self._legend_position
+
+    @property
+    def legend_title_options(self) -> LegendTitleOptions:
+        return self._legend_title_options
