@@ -90,17 +90,18 @@ class SkipGram(ModelBase):
 
     @overrides
     def forward(self, input_batch, **kwargs):
-        context_words, input_words = input_batch
+        context_words, target_words = input_batch
         context_size = context_words.size()[1]
-        batch_size = input_words.size()[0]
+        batch_size = target_words.size()[0]
 
         # computing out loss
-        emb_input = self._embeddings_input.forward(input_words).unsqueeze(2)
         emb_context = self._embeddings_context.forward(context_words)
+        emb_input = self._embeddings_input.forward(target_words).unsqueeze(2)
 
         nwords = torch.FloatTensor(batch_size, context_size * self._negative_samples).uniform_(
             0, self._vocabulary_size - 1).long().to(self._arguments_service.device)
-        emb_negative = self._embeddings_context.forward(nwords).neg()
+        emb_negative = self._embeddings_input.forward(nwords).neg()
+
         out_loss = torch.bmm(
             emb_context, emb_input).squeeze().sigmoid().log().mean(1)
         noise_loss = torch.nn.functional.logsigmoid(torch.bmm(emb_negative, emb_input).squeeze(
