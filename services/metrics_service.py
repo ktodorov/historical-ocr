@@ -2,7 +2,7 @@ import jellyfish
 import numpy as np
 from sklearn.metrics import f1_score, precision_score, recall_score, precision_recall_fscore_support
 import scipy.spatial.distance as scipy_distances
-from sklearn.metrics.pairwise import cosine_distances
+from sklearn.metrics.pairwise import cosine_distances, cosine_similarity
 
 from typing import Tuple
 
@@ -102,5 +102,5 @@ class MetricsService:
         - 0 indicating orthogonality
         """
 
-        cosine_distance = cosine_distances(matrix1, matrix2)
+        cosine_distance = cosine_similarity(matrix1, matrix2)
         return cosine_distance

@@ -222,7 +222,7 @@ class WordNeighbourhoodService:
             distances = self._metrics_service.calculate_cosine_similarities(
                 target_embeddings, model_embeddings)
 
-            indices = np.argsort(distances.squeeze())
+            indices = np.argsort(distances.squeeze())[::-1]
 
             if not output_full_evaluations:
                 # We mark the indices to be cached because we add a new entry
