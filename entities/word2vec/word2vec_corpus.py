@@ -23,6 +23,9 @@ class Word2VecCorpus:
                 continue
 
             for target_idx in range(len(text_line)):
+                if text_line[target_idx] == 3:
+                    continue
+
                 window_start = max(0, target_idx-self._window_size)
                 window_end = min(len(text_line), target_idx +
                                  self._window_size+1)
