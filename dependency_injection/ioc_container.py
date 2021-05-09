@@ -28,6 +28,7 @@ from models.simple.ppmi import PPMI
 
 from optimizers.optimizer_base import OptimizerBase
 from optimizers.sgd_optimizer import SGDOptimizer
+from optimizers.adam_optimizer import AdamOptimizer
 from optimizers.adamw_transformer_optimizer import AdamWTransformerOptimizer
 
 from services.arguments.ocr_quality_arguments_service import OCRQualityArgumentsService
@@ -306,6 +307,10 @@ class IocContainer(containers.DeclarativeContainer):
             model=model),
         sgd=providers.Singleton(
             SGDOptimizer,
+            arguments_service=arguments_service,
+            model=model),
+        adam=providers.Singleton(
+            AdamOptimizer,
             arguments_service=arguments_service,
             model=model),
         transformer=providers.Singleton(
