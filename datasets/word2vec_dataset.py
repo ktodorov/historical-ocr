@@ -22,6 +22,7 @@ class Word2VecDataset(DocumentDatasetBase):
 
         self._arguments_service = arguments_service
         self._log_service = log_service
+        self._process_service = process_service
 
         self._text_corpus = process_service.get_text_corpus(ocr_output_type=self._arguments_service.ocr_output_type)
         self._log_service.log_debug(f'Loaded {self._text_corpus.length} entries in word2vec dataset')
@@ -31,7 +32,15 @@ class Word2VecDataset(DocumentDatasetBase):
         return self._text_corpus.length
 
     @overrides
-    def __getitem__(self, ids):
+    def __getitem__(self, id):
+        return id
+
+    @overrides
+    def use_collate_function(self) -> bool:
+        return True
+
+    @overrides
+    def collate_function(self, ids):
         skip_gram_entries = self._text_corpus.get_entries(ids)
         batch_size = len(ids)
 

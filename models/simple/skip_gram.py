@@ -1,4 +1,4 @@
-from copy import deepcopy
+from models.embedding.skip_gram_embedding_layer import SkipGramEmbeddingLayer
 from services.log_service import LogService
 from entities.word_evaluation import WordEvaluation
 from typing import List
@@ -8,8 +8,6 @@ import os
 from overrides import overrides
 
 import torch
-from torch import nn
-import torch.nn.functional as F
 from torch.nn.functional import embedding
 
 from models.model_base import ModelBase
@@ -37,97 +35,57 @@ class SkipGram(ModelBase):
         self._vocabulary_service = vocabulary_service
         self._log_service = log_service
 
+        randomly_initialized = False
+        freeze_embeddings = True
+        if pretrained_matrix is None and process_service is not None:
+            pretrained_matrix, randomly_initialized = process_service.get_pretrained_matrix()
+            freeze_embeddings = False
+
         if ocr_output_type is not None:
             dataset_string = self._arguments_service.get_dataset_string()
             vocab_key = f'vocab-{dataset_string}-{ocr_output_type.value}'
             self._vocabulary_service.load_cached_vocabulary(vocab_key)
 
         self._vocabulary_size = self._vocabulary_service.vocabulary_size()
-
-        if pretrained_matrix is not None:
-            self._log_service.log_debug(
-                'Pretrained matrix provided. Initializing embeddings from it')
-            self._embeddings_input = nn.Embedding.from_pretrained(
-                embeddings=deepcopy(pretrained_matrix),
-                freeze=True,
-                padding_idx=self._vocabulary_service.pad_token)
-
-            self._embeddings_context = nn.Embedding.from_pretrained(
-                embeddings=deepcopy(pretrained_matrix),
-                freeze=True,
-                padding_idx=self._vocabulary_service.pad_token)
-        elif process_service is not None:
-            self._log_service.log_debug(
-                'Process service is provided. Initializing embeddings from a pretrained matrix')
-            token_matrix = process_service.get_pretrained_matrix()
-            embedding_size = token_matrix.shape[-1]
-            self._embeddings_input = nn.Embedding.from_pretrained(
-                embeddings=deepcopy(token_matrix),
-                freeze=False,
-                padding_idx=self._vocabulary_service.pad_token)
-
-            self._embeddings_context = nn.Embedding.from_pretrained(
-                embeddings=deepcopy(token_matrix),
-                freeze=False,
-                padding_idx=self._vocabulary_service.pad_token)
-        else:
-            self._log_service.log_debug(
-                'Process service is not provided. Initializing embeddings randomly')
-            embedding_size = self._get_embedding_size(
-                arguments_service.language)
-            self._embeddings_input = nn.Embedding(
-                num_embeddings=self._vocabulary_size,
-                embedding_dim=embedding_size,
-                padding_idx=self._vocabulary_service.pad_token)
-
-            self._embeddings_context = nn.Embedding(
-                num_embeddings=self._vocabulary_size,
-                embedding_dim=embedding_size,
-                padding_idx=self._vocabulary_service.pad_token)
+        self._embedding_layer = SkipGramEmbeddingLayer(
+            log_service,
+            self._arguments_service.language,
+            self._vocabulary_size,
+            pretrained_matrix,
+            randomly_initialized,
+            freeze_embeddings,
+            pad_token=self._vocabulary_service.pad_token)
 
         self._negative_samples = 10
-        self._noise_dist = None
 
     @overrides
     def forward(self, input_batch, **kwargs):
         context_words, target_words = input_batch
-        context_size = context_words.size()[1]
         batch_size = target_words.size()[0]
 
-        # computing out loss
-        emb_context = self._embeddings_context.forward(context_words)
-        emb_input = self._embeddings_input.forward(target_words).unsqueeze(2)
+        emb_context = self._embedding_layer.forward_context(context_words)
+        emb_target = self._embedding_layer.forward_target(target_words)
 
-        nwords = torch.FloatTensor(batch_size, context_size * self._negative_samples).uniform_(
-            0, self._vocabulary_size - 1).long().to(self._arguments_service.device)
-        emb_negative = self._embeddings_input.forward(nwords).neg()
+        neg_samples = self._get_negative_samples(batch_size)
+        emb_negative = self._embedding_layer.forward_negative(neg_samples)
 
-        out_loss = torch.bmm(
-            emb_context, emb_input).squeeze().sigmoid().log().mean(1)
-        noise_loss = torch.nn.functional.logsigmoid(torch.bmm(emb_negative, emb_input).squeeze(
-        )).view(-1, context_size, self._negative_samples).sum(2).mean(1)
-        total_loss = -(out_loss + noise_loss).mean()
+        return (emb_target, emb_context, emb_negative)
 
-        return total_loss
-
-    def _get_embedding_size(self, language: Language):
-        if language == Language.English:
-            return 300
-        elif language == Language.Dutch:
-            return 320
-        elif language == Language.French:
-            return 300
-        elif language == Language.German:
-            return 300
-
-        raise NotImplementedError()
+    def _get_negative_samples(self, batch_size: int):
+        noise_dist = torch.ones(self._vocabulary_size)
+        num_neg_samples_for_this_batch = batch_size * self._negative_samples
+        negative_examples = torch.multinomial(
+            noise_dist, num_neg_samples_for_this_batch, replacement=True)
+        negative_examples = negative_examples.view(
+            batch_size, self._negative_samples).to(self._arguments_service.device)
+        return negative_examples
 
     @overrides
     def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> List[WordEvaluation]:
         vocab_ids = torch.Tensor([self._vocabulary_service.string_to_id(
             token) for token in tokens]).long().to(self._arguments_service.device)
 
-        embeddings = self._embeddings_input.forward(vocab_ids)
+        embeddings = self._embedding_layer.forward_target(vocab_ids)
         embeddings_list = embeddings.squeeze().tolist()
 
         if skip_unknown:

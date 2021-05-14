@@ -68,7 +68,7 @@ class Word2VecProcessService(ICDARProcessService):
         self._log_service.log_error(error_message)
         raise Exception(error_message)
 
-    def get_pretrained_matrix(self) -> torch.Tensor:
+    def get_pretrained_matrix(self) -> Tuple[torch.Tensor, bool]:
         if not self._vocabulary_service.vocabulary_is_initialized():
             raise Exception('Vocabulary not initialized')
 
@@ -85,7 +85,7 @@ class Word2VecProcessService(ICDARProcessService):
             callback_function=self._generate_token_matrix)
 
         token_matrix = token_matrix.to(self._arguments_service.device)
-        return token_matrix
+        return token_matrix, self._arguments_service.initialize_randomly
 
     def _generate_token_matrix(self):
         data_path = self._file_service.combine_path(

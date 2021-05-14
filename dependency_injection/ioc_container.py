@@ -1,3 +1,4 @@
+from losses.skip_gram_loss import SkipGramLoss
 from services.fit_transformation_service import FitTransformationService
 from services.tagging_service import TaggingService
 from services.process.ppmi_process_service import PPMIProcessService
@@ -293,6 +294,7 @@ class IocContainer(containers.DeclarativeContainer):
         base=providers.Singleton(LossBase),
         cross_entropy=providers.Singleton(CrossEntropyLoss),
         simple=providers.Singleton(SimpleLoss),
+        skip_gram=providers.Singleton(SkipGramLoss),
         transformer=providers.Singleton(TransformerLossBase))
 
     optimizer_selector = providers.Callable(
