@@ -30,8 +30,10 @@ def get_optimizer(arguments_service: ArgumentsServiceBase):
     challenge = arguments_service.challenge
     configuration = arguments_service.configuration
     if challenge == Challenge.OCREvaluation:
-        if configuration == Configuration.CBOW or configuration == Configuration.SkipGram:
-            result = 'sgd'
+        if configuration == Configuration.CBOW:
+            result = 'adam'
+        elif configuration == Configuration.SkipGram:
+            result = 'sparse_adam'
         elif configuration == Configuration.PPMI:
             result = 'base'
         else:
@@ -49,7 +51,7 @@ def get_loss_function(arguments_service: ArgumentsServiceBase):
         if configuration == Configuration.CBOW:
             return 'cross_entropy'
         elif configuration == Configuration.SkipGram:
-            return 'simple'
+            return 'skip_gram'
         elif configuration == Configuration.PPMI:
             return 'base'
         else:

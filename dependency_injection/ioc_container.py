@@ -1,4 +1,5 @@
 from losses.skip_gram_loss import SkipGramLoss
+from optimizers.sparse_adam_optimizer import SparseAdamOptimizer
 from services.fit_transformation_service import FitTransformationService
 from services.tagging_service import TaggingService
 from services.process.ppmi_process_service import PPMIProcessService
@@ -313,6 +314,10 @@ class IocContainer(containers.DeclarativeContainer):
             model=model),
         adam=providers.Singleton(
             AdamOptimizer,
+            arguments_service=arguments_service,
+            model=model),
+        sparse_adam=providers.Singleton(
+            SparseAdamOptimizer,
             arguments_service=arguments_service,
             model=model),
         transformer=providers.Singleton(
