@@ -101,13 +101,13 @@ class WordNeighbourhoodService:
 
         model_indices = []
         if overlap_type == OverlapType.BASEvsGT:
-            model_indices = [2, 0]
-        elif overlap_type == OverlapType.BASEvsOCR:
             model_indices = [2, 1]
+        elif overlap_type == OverlapType.BASEvsOCR:
+            model_indices = [2, 0]
         elif overlap_type == OverlapType.BASEvsOG:
             model_indices = [2, 3]
         elif overlap_type == OverlapType.GTvsOCR:
-            model_indices = [0, 1]
+            model_indices = [1, 0]
 
         for i in model_indices:
             word_neighbourhood = self._get_word_neighbourhood(
@@ -225,10 +225,12 @@ class WordNeighbourhoodService:
             indices = np.argsort(distances.squeeze())[::-1]
 
             if not output_full_evaluations:
+                self._cache_needs[WordEvaluationType(embeddings_idx)] = True
+                if word_evaluation.word not in self._word_similarity_indices.keys():
+                    self._word_similarity_indices[word_evaluation.word] = {}
+
                 # We mark the indices to be cached because we add a new entry
-                if word_evaluation.word in self._word_similarity_indices.keys():
-                    self._cache_needs[WordEvaluationType(embeddings_idx)] = True
-                    self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
+                self._word_similarity_indices[word_evaluation.word][embeddings_idx] = indices
 
         if neighbourhood_set_size > len(indices):
             self._log_service.log_warning(
@@ -284,7 +286,7 @@ class WordNeighbourhoodService:
         common_words_indices = [
             i
             for i, word_evaluation in enumerate(word_evaluations)
-            if word_evaluation.contains_all_embeddings(overlap_type)]
+            if word_evaluation.contains_all_embeddings()]
 
         self._log_service.log_summary(f'Total \'{overlap_type.value}\' neighbourhood overlaps', len(common_words_indices))
         for i in tqdm(iterable=common_words_indices, desc=f'Calculating neighbourhood overlaps [\'{overlap_type.value}\']', total=len(common_words_indices)):
@@ -309,6 +311,8 @@ class WordNeighbourhoodService:
                 self._log_service.log_summary(f'Processed \'{overlap_type.value}\' neighbourhood overlaps', i)
                 self._save_calculations()
 
+        self._save_calculations()
+
         return result
 
     def _load_cached_calculations(self, common_tokens: List[str]) -> Dict[str, Dict[int, list]]:
@@ -327,6 +331,9 @@ class WordNeighbourhoodService:
                 continue
 
             for token, value in current_word_similarity_indices.items():
+                if token not in result.keys():
+                    result[token] = {}
+
                 result[token][i] = value
 
         return result, cache_needs
