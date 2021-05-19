@@ -89,8 +89,9 @@ class NeighbourhoodOverlapProcessService:
 
                         result[config][overlap_type][lr][seed] = overlaps
 
-                if config == Configuration.PPMI:
-                    break
+                    # If we are processing PPMI, we only have one LR so we break
+                    if config == Configuration.PPMI:
+                        break
 
         return result
 

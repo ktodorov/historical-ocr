@@ -107,7 +107,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         if ExperimentType.NeighbourhoodOverlap in experiment_types and not self._arguments_service.initialize_randomly:
             result[ExperimentType.NeighbourhoodOverlap] = {}
             for overlap_type in OverlapType:
-                if self._arguments_service.initialize_randomly:
+                if self._arguments_service.initialize_randomly or (self._arguments_service.configuration == Configuration.PPMI and overlap_type == OverlapType.BASEvsOG):
                     continue
 
                 result[ExperimentType.NeighbourhoodOverlap][overlap_type] = self._cache_service.get_item_from_cache(

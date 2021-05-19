@@ -97,6 +97,11 @@ class PPMI(ModelBase):
         assert len(embeddings) == len(vocab_ids)
         assert len(embeddings[0]) == len(self._common_word_ids)
 
+        if skip_unknown:
+            unk_vocab_id = self._vocabulary_service.unk_token
+            embeddings = [
+                x if vocab_ids[i][0] != unk_vocab_id else None for i, x in enumerate(embeddings)]
+
         return embeddings
 
     @overrides
