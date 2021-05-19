@@ -218,6 +218,7 @@ class NeighbourhoodOverlapProcessService:
             alpha=alpha_values[value_summary],
             line_width=linewidths[value_summary],
             ax=ax,
+            xlim=(0,100),
             legend_options=LegendOptions(show_legend=False))
 
         return result

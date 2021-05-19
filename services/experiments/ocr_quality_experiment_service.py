@@ -248,11 +248,11 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             self._arguments_service.language.value,
             create_if_missing=True)
 
-        # main_ax = self._plot_service.create_plot()
         overlaps_by_config = self._neighbourhood_overlap_process_service.get_overlaps(
             self._arguments_service.neighbourhood_set_size)
         fig, config_axs = self._plot_service.create_plots(
-            len(overlaps_by_config.keys()))
+            len(overlaps_by_config.keys()),
+            share_x_coords=True)
 
         for i, (configuration, overlaps_by_type) in enumerate(overlaps_by_config.items()):
             sub_titles = {}
@@ -264,7 +264,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                         continue
 
                     if overlap_type not in types_plotted:
-                        sub_titles[plot_count] = OverlapType.get_friendly_name(overlap_type)
+                        sub_titles[plot_count] = OverlapType.get_friendly_name(
+                            overlap_type)
                         types_plotted.append(overlap_type)
                         plot_count += 1
 
@@ -295,8 +296,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 figure_options=FigureOptions(
                     hide_y_labels=True,
                     figure=fig,
-                    super_title=f'Neighbourhood overlaps ({self._arguments_service.language.value})',
-                    title=str(configuration.value)),
+                    super_title=f'Neighbourhood overlaps ({self._arguments_service.language.value.capitalize()})',
+                    title=Configuration.get_friendly_name(configuration)),
                 legend_options=LegendOptions(
                     show_legend=len(sub_titles) > 0,
                     legend_title_options=LegendTitleOptions(

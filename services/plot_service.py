@@ -64,7 +64,7 @@ class PlotService:
         # ax = plt.subplot()
         return ax
 
-    def create_plots(self, plots_count: int, share_coords: bool = False) -> List[Axes]:
+    def create_plots(self, plots_count: int, share_x_coords: bool = False, share_y_coords: bool = False) -> List[Axes]:
         sns.set_style('ticks')
 
         rows_count = plots_count
@@ -74,7 +74,7 @@ class PlotService:
             rows_count = square_count
             columns_count = square_count
 
-        fig, all_axs = plt.subplots(rows_count, columns_count, sharex=share_coords, sharey=share_coords)
+        fig, all_axs = plt.subplots(rows_count, columns_count, sharex=share_x_coords, sharey=share_y_coords)
         axs = [x for col_axs in all_axs for x in col_axs]
 
         return fig, axs

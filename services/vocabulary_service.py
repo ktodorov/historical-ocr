@@ -42,6 +42,8 @@ class VocabularyService:
             cache_key,
             configuration=self._overwrite_configuration)
 
+        self._vocabulary_cache_key = cache_key 
+
         cached_vocabulary_exists = self._cache_service.item_exists(
             cache_options)
         if cached_vocabulary_exists:
