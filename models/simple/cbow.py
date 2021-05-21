@@ -9,6 +9,7 @@ from overrides import overrides
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torch.nn import init
 
 from models.model_base import ModelBase
 
@@ -39,23 +40,25 @@ class CBOW(ModelBase):
             vocab_key = f'vocab-{dataset_string}-{ocr_output_type.value}'
             self._vocabulary_service.load_cached_vocabulary(vocab_key)
 
+        randomly_initialized = False
+        freeze_embeddings = True
+        if pretrained_matrix is None and process_service is not None:
+            pretrained_matrix, randomly_initialized = process_service.get_pretrained_matrix()
+            freeze_embeddings = False
+
         if pretrained_matrix is not None:
-            self._log_service.log_debug('Pretrained matrix provided. Initializing embeddings from it')
+            self._log_service.log_debug('Embedding matrix provided. Initializing embeddings from it')
             embedding_size = pretrained_matrix.shape[-1]
             self._embeddings = nn.Embedding.from_pretrained(
                 embeddings=pretrained_matrix,
-                freeze=True,
+                freeze=freeze_embeddings,
                 padding_idx=self._vocabulary_service.pad_token)
-        elif process_service is not None:
-            self._log_service.log_debug('Process service is provided. Initializing embeddings from a pretrained matrix')
-            token_matrix = process_service.get_pretrained_matrix()
-            embedding_size = token_matrix.shape[-1]
-            self._embeddings = nn.Embedding.from_pretrained(
-                embeddings=token_matrix,
-                freeze=False,
-                padding_idx=self._vocabulary_service.pad_token)
+
+            if randomly_initialized and not freeze_embeddings:
+                initrange = 1.0 / embedding_size
+                init.uniform_(self._embeddings.weight.data, -initrange, initrange)
         else:
-            self._log_service.log_debug('Process service is not provided. Initializing embeddings randomly')
+            self._log_service.log_debug('Embedding matrix is not provided. Initializing embeddings randomly')
             embedding_size = self._get_embedding_size(arguments_service.language)
             self._embeddings = nn.Embedding(
                 num_embeddings=self._vocabulary_service.vocabulary_size(),
