@@ -72,6 +72,13 @@ from services.string_process_service import StringProcessService
 from services.experiments.process.neighbourhood_overlap_process_service import NeighbourhoodOverlapProcessService
 from services.experiments.process.neighbourhood_similarity_process_service import NeighbourhoodSimilarityProcessService
 
+from services.plots.baseline_neighbour_overlap_plot_service import BaselineNeighbourOverlapPlotService
+from services.plots.individual_metrics_plot_service import IndividualMetricsPlotService
+from services.plots.set_sized_based_plot_service import SetSizedBasedPlotService
+
+from services.embeddings.word_alignment_service import WordAlignmentService
+from services.embeddings.word_embeddings_service import WordEmbeddingsService
+
 import logging
 
 
@@ -358,6 +365,39 @@ class IocContainer(containers.DeclarativeContainer):
         MetricsProcessService,
         metrics_service=metrics_service)
 
+    baseline_neighbour_overlap_plot_service = providers.Factory(
+        BaselineNeighbourOverlapPlotService,
+        arguments_service=arguments_service,
+        file_service=file_service,
+        plot_service=plot_service,
+        log_service=log_service,
+        neighbourhood_overlap_process_service=neighbourhood_overlap_process_service)
+
+    individual_metrics_plot_service = providers.Factory(
+        IndividualMetricsPlotService,
+        arguments_service=arguments_service,
+        file_service=file_service,
+        plot_service=plot_service,
+        log_service=log_service)
+
+    set_sized_based_plot_service = providers.Factory(
+        SetSizedBasedPlotService,
+        arguments_service=arguments_service,
+        file_service=file_service,
+        plot_service=plot_service,
+        neighbourhood_overlap_process_service=neighbourhood_overlap_process_service)
+
+    word_alignment_service = providers.Factory(
+        WordAlignmentService,
+        log_service=log_service)
+
+    word_embeddings_service = providers.Factory(
+        WordEmbeddingsService,
+        arguments_service=arguments_service,
+        log_service=log_service,
+        vocabulary_service=vocabulary_service,
+        word_alignment_service=word_alignment_service)
+
     experiment_service_selector = providers.Callable(
         get_experiment_service,
         arguments_service=arguments_service)
@@ -370,14 +410,14 @@ class IocContainer(containers.DeclarativeContainer):
             dataloader_service=dataloader_service,
             file_service=file_service,
             metrics_service=metrics_service,
-            plot_service=plot_service,
             cache_service=cache_service,
-            vocabulary_service=vocabulary_service,
             word_neighbourhood_service=word_neighbourhood_service,
             log_service=log_service,
-            tagging_service=tagging_service,
-            neighbourhood_overlap_process_service=neighbourhood_overlap_process_service,
             metrics_process_service=metrics_process_service,
+            baseline_neighbour_overlap_plot_service=baseline_neighbour_overlap_plot_service,
+            individual_metrics_plot_service=individual_metrics_plot_service,
+            set_sized_based_plot_service=set_sized_based_plot_service,
+            word_embeddings_service=word_embeddings_service,
             model=model),
         none=providers.Object(None))
 

@@ -200,7 +200,6 @@ class PlotService:
             linestyle=plot_options.linestyle.value,
             label=plot_options.label,
             legend=plot_options.legend_options.show_legend,
-            clip=(0.0, 100.0),
             # palette="crest",
             # common_norm=True,
             linewidth=plot_options.line_width,
