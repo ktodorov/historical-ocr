@@ -1,3 +1,4 @@
+from services.plots.ocr_neighbour_overlap_plot_service import OCRNeighbourOverlapPlotService
 from services.embeddings.word_embeddings_service import WordEmbeddingsService
 from enums.configuration import Configuration
 from enums.overlap_type import OverlapType
@@ -41,6 +42,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
             log_service: LogService,
             metrics_process_service: MetricsProcessService,
             baseline_neighbour_overlap_plot_service: BaselineNeighbourOverlapPlotService,
+            ocr_neighbour_overlap_plot_service: OCRNeighbourOverlapPlotService,
             individual_metrics_plot_service: IndividualMetricsPlotService,
             set_sized_based_plot_service: SetSizedBasedPlotService,
             word_embeddings_service: WordEmbeddingsService,
@@ -57,6 +59,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
 
         # plot services
         self._baseline_neighbour_overlap_plot_service = baseline_neighbour_overlap_plot_service
+        self._ocr_neighbour_overlap_plot_service = ocr_neighbour_overlap_plot_service
         self._individual_metrics_plot_service = individual_metrics_plot_service
         self._set_sized_based_plot_service = set_sized_based_plot_service
 
@@ -94,7 +97,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                                      result, lambda: self._load_euclidean_distances(word_evaluations))
 
         # Save final results and generate plots
-        self._save_experiment_results(result)
+        self._save_experiment_results(result, word_evaluations)
 
         self._log_service.log_info(
             'Experiments calculation completed successfully')
@@ -109,7 +112,7 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                     self._lr_suffix
                 ],
                 seed_specific=True),
-            callback_function=self._word_embeddings_service.generate_embeddings)
+            callback_function=lambda: self._word_embeddings_service.generate_embeddings(self._model, self._dataloader))
 
         self._log_service.log_info('Loaded word evaluations')
 
@@ -141,12 +144,10 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         return result
 
     def _load_neighbourhood_overlaps(self, word_evaluations: List[WordEvaluation]):
-        if self._arguments_service.initialize_randomly:
-            return None
-
         result = {}
         for overlap_type in OverlapType:
-            if self._arguments_service.initialize_randomly or (self._arguments_service.configuration == Configuration.PPMI and overlap_type == OverlapType.BASEvsOG):
+            if ((self._arguments_service.initialize_randomly and overlap_type != OverlapType.GTvsOCR) or
+                (self._arguments_service.configuration == Configuration.PPMI and overlap_type == OverlapType.BASEvsOG)):
                 continue
 
             result[overlap_type] = self._cache_service.get_item_from_cache(
@@ -156,13 +157,11 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                         self._lr_suffix,
                         '-',
                         overlap_type.value,
-                        self._random_suffix,
-                        f'-{self._arguments_service.neighbourhood_set_size}'
+                        self._random_suffix
                     ],
                     seed_specific=True),
                 callback_function=lambda: self._word_neighbourhood_service.generate_neighbourhood_similarities(
                     word_evaluations,
-                    neighbourhood_set_size=self._arguments_service.neighbourhood_set_size,
                     overlap_type=overlap_type))
 
         self._log_service.log_info('Loaded neighbourhood overlaps')
@@ -182,17 +181,20 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._log_service.log_info('Loaded euclidean distances')
         return result
 
-    def _save_experiment_results(self, result: Dict[ExperimentType, Dict[str, float]]):
+    def _save_experiment_results(self, result: Dict[ExperimentType, Dict[str, float]], word_evaluations: List[WordEvaluation]):
         self._log_service.log_info('Saving experiment results')
 
         # Plot individual metrics
-        self._individual_metrics_plot_service.plot_individual_metrics(result)
+        # self._individual_metrics_plot_service.plot_individual_metrics(result)
 
         # Baseline vs. others plots
-        self._baseline_neighbour_overlap_plot_service.plot_baseline_overlaps()
+        # self._baseline_neighbour_overlap_plot_service.plot_baseline_overlaps()
 
         # GT vs OCR plots
-        # TODO
+        total_words_count = len(
+            [1 for x in word_evaluations if x.contains_all_embeddings()])
+        self._ocr_neighbour_overlap_plot_service.plot_ocr_ground_truth_overlaps(
+            total_words_count)
 
         # Set size based plots
         # self._set_sized_based_plot_service.plot_set_size_bases()

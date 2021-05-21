@@ -54,44 +54,51 @@ class NeighbourhoodOverlapProcessService:
 
         return result
 
-    def get_overlaps(self, neighbourhood_set_size: int) -> Dict[Configuration, Dict[str, Dict[OverlapType, Dict[int, dict]]]]:
+    def get_overlaps(
+        self,
+        overlap_types: List[OverlapType],
+        include_randomly_initialized: bool = False) -> Dict[Configuration, Dict[str, Dict[OverlapType, Dict[int, dict]]]]:
         seeds = [7, 13, 42]
         lrs = ['0.01', '0.001', '0.0001', '0.00001']
         configs = [Configuration.BERT, Configuration.SkipGram, Configuration.CBOW, Configuration.PPMI]
+        randomly_initializations = [False]
+        if include_randomly_initialized:
+            randomly_initializations.append(True)
 
         result = {}
 
         for config in configs:
             result[config] = {}
             for overlap_type in OverlapType:
-                if overlap_type == OverlapType.GTvsOCR:
+                if overlap_type not in overlap_types:
                     continue
 
                 result[config][overlap_type] = {}
-                for lr in lrs:
-                    result[config][overlap_type][lr] = {}
+                for randomly_initialized in randomly_initializations:
+                    result[config][overlap_type][randomly_initialized] = {}
+                    for lr in lrs:
+                        result[config][overlap_type][randomly_initialized][lr] = {}
 
-                    for seed in seeds:
-                        overlaps = self._cache_service.get_item_from_cache(
-                            CacheOptions(
-                                'neighbourhood-overlaps',
-                                key_suffixes=[
-                                    '-lr' if config != Configuration.PPMI else '',
-                                    lr if config != Configuration.PPMI else '',
-                                    '-',
-                                    str(overlap_type.value),
-                                    '-',
-                                    str(neighbourhood_set_size)
-                                ],
-                                configuration=config,
-                                seed=seed,
-                                seed_specific=True))
+                        for seed in seeds:
+                            overlaps = self._cache_service.get_item_from_cache(
+                                CacheOptions(
+                                    'neighbourhood-overlaps',
+                                    key_suffixes=[
+                                        '-lr' if config != Configuration.PPMI else '',
+                                        lr if config != Configuration.PPMI else '',
+                                        '-',
+                                        str(overlap_type.value),
+                                        '-rnd' if randomly_initialized else ''
+                                    ],
+                                    configuration=config,
+                                    seed=seed,
+                                    seed_specific=True))
 
-                        result[config][overlap_type][lr][seed] = overlaps
+                            result[config][overlap_type][randomly_initialized][lr][seed] = overlaps
 
-                    # If we are processing PPMI, we only have one LR so we break
-                    if config == Configuration.PPMI:
-                        break
+                        # If we are processing PPMI, we only have one LR so we break
+                        if config == Configuration.PPMI:
+                            break
 
         return result
 

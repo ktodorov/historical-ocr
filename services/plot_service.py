@@ -11,7 +11,7 @@ import seaborn as sns
 import numpy as np
 from sklearn.metrics import confusion_matrix
 from services.data_service import DataService
-from typing import List
+from typing import Dict, List
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.pyplot import cm, plot
@@ -186,10 +186,11 @@ class PlotService:
             plot_options: PlotOptions):
         ax = self.create_plot(plot_options)
 
-        counts_list = []
-        for k, v in counts.items():
-            for _ in range(v):
-                counts_list.append(k)
+        counts_list = counts
+        if isinstance(counts, dict):
+            for k, v in counts.items():
+                for _ in range(v):
+                    counts_list.append(k)
 
         ax = sns.kdeplot(
             data=counts_list,
@@ -411,12 +412,16 @@ class PlotService:
         self,
         x_values: List[float],
         y_values: List[List[float]],
-        labels: List[str],
-        plot_options: PlotOptions):
+        plot_options: PlotOptions,
+        labels: List[str] = None):
         ax = self.create_plot(plot_options)
 
-        for value_list, label in zip(y_values, labels):
-            ax.plot(x_values, value_list, label=label)
+        if labels is not None:
+            for value_list, label in zip(y_values, labels):
+                ax.plot(x_values, value_list, label=label)
+        else:
+            label = plot_options.label
+            ax.plot(x_values, y_values, label=label)
 
         self._add_properties(ax, plot_options)
         return ax

@@ -26,11 +26,12 @@ class BaselineNeighbourOverlapPlotService:
         self._neighbourhood_overlap_process_service = neighbourhood_overlap_process_service
 
     def plot_baseline_overlaps(self):
-        self._log_service.log_info('Generating plots')
+        self._log_service.log_info('Generating baseline overlap plots')
 
         output_folder = self._get_output_folder()
         overlaps_by_config = self._neighbourhood_overlap_process_service.get_overlaps(
-            self._arguments_service.neighbourhood_set_size)
+            self._arguments_service.neighbourhood_set_size,
+            overlap_types=[OverlapType.BASEvsGT, OverlapType.BASEvsOCR, OverlapType.BASEvsOG])
         fig, config_axs = self._plot_service.create_plots(
             len(overlaps_by_config.keys()),
             share_x_coords=True)
@@ -77,7 +78,7 @@ class BaselineNeighbourOverlapPlotService:
                 figure_options=FigureOptions(
                     hide_y_labels=True,
                     figure=fig,
-                    super_title=f'Neighbourhood overlaps ({self._arguments_service.language.value.capitalize()})',
+                    super_title=f'Neighbourhood overlaps [Baseline vs. GT] ({self._arguments_service.language.value.capitalize()})',
                     title=Configuration.get_friendly_name(configuration)),
                 legend_options=LegendOptions(
                     show_legend=len(sub_titles) > 0,
@@ -93,7 +94,7 @@ class BaselineNeighbourOverlapPlotService:
         experiments_folder = self._file_service.get_experiments_path()
         result = self._file_service.combine_path(
             experiments_folder,
-            ExperimentType.NeighbourhoodOverlap.value,
+            f'{ExperimentType.NeighbourhoodOverlap.value}-base-vs-gt',
             self._arguments_service.language.value,
             create_if_missing=True)
 
