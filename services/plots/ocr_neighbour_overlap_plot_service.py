@@ -60,9 +60,14 @@ class OCRNeighbourOverlapPlotService:
                             if value_summary != ValueSummary.Average:
                                 continue
 
-                            ax = self._plot_service.plot_lines(
+                            avg_values = [x[0] for x in list(overlap_line.values())]
+                            min_values = [x[1] for x in list(overlap_line.values())]
+                            max_values = [x[2] for x in list(overlap_line.values())]
+                            ax = self._plot_service.plot_line_variance(
                                 x_values=list(overlap_line.keys()),
-                                y_values=list(overlap_line.values()),
+                                max_y_values=max_values,
+                                min_y_values=min_values,
+                                avg_y_values=avg_values,
                                 plot_options=self._get_distribution_plot_options(
                                     ax,
                                     configuration,
@@ -96,12 +101,15 @@ class OCRNeighbourOverlapPlotService:
             ValueSummary.Minimum: {},
         }
 
-        for percentage, current_overlaps in combined_overlaps.items():
-            valid_overlaps = [x for x in current_overlaps if x is not None]
+        avg_overlaps, min_overlaps, max_overlaps = combined_overlaps
+        for percentage in avg_overlaps.keys():
+            valid_avg_overlaps = [x for x in avg_overlaps[percentage] if x is not None]
+            valid_min_overlaps = [x for x in min_overlaps[percentage] if x is not None]
+            valid_max_overlaps = [x for x in max_overlaps[percentage] if x is not None]
 
-            value_summaries[ValueSummary.Minimum][percentage] = min(valid_overlaps)
-            value_summaries[ValueSummary.Maximum][percentage] = max(valid_overlaps)
-            value_summaries[ValueSummary.Average][percentage] = np.mean(valid_overlaps)
+            value_summaries[ValueSummary.Minimum][percentage] = (min(valid_avg_overlaps), min(valid_min_overlaps), min(valid_max_overlaps))
+            value_summaries[ValueSummary.Maximum][percentage] = (max(valid_avg_overlaps), max(valid_min_overlaps), max(valid_max_overlaps))
+            value_summaries[ValueSummary.Average][percentage] = (np.mean(valid_avg_overlaps), np.mean(valid_min_overlaps), np.mean(valid_max_overlaps))
 
         return value_summaries
 
@@ -112,7 +120,9 @@ class OCRNeighbourOverlapPlotService:
         if all(x is None for x in overlaps_by_seed.values()):
             return None
 
-        combined_overlaps = {}
+        avg_overlaps = {}
+        min_overlaps = {}
+        max_overlaps = {}
 
         for overlaps_by_set_percentage in overlaps_by_seed.values():
             if overlaps_by_set_percentage is None:
@@ -121,15 +131,26 @@ class OCRNeighbourOverlapPlotService:
             for percentage, current_overlaps in overlaps_by_set_percentage.items():
                 total_words_for_current_percentage = int(total_words_count * (percentage / 100.0))
 
-                avg_overlaps = np.mean(list(current_overlaps.values()))
-                percentage_overlaps = (avg_overlaps / total_words_for_current_percentage) * 100
+                overlap_values = list(current_overlaps.values())
+                avg_overlap = np.mean(overlap_values)
 
-                if percentage not in combined_overlaps.items():
-                    combined_overlaps[percentage] = []
+                min_overlap = np.mean([x for x in overlap_values if x <= avg_overlap])
+                max_overlap = np.mean([x for x in overlap_values if x >= avg_overlap])
 
-                combined_overlaps[percentage].append(percentage_overlaps)
+                percentage_avg_overlap = (avg_overlap / total_words_for_current_percentage) * 100
+                percentage_min_overlap = (min_overlap / total_words_for_current_percentage) * 100
+                percentage_max_overlap = (max_overlap / total_words_for_current_percentage) * 100
 
-        return combined_overlaps
+                if percentage not in avg_overlaps.items():
+                    avg_overlaps[percentage] = []
+                    min_overlaps[percentage] = []
+                    max_overlaps[percentage] = []
+
+                avg_overlaps[percentage].append(percentage_avg_overlap)
+                min_overlaps[percentage].append(percentage_min_overlap)
+                max_overlaps[percentage].append(percentage_max_overlap)
+
+        return avg_overlaps, min_overlaps, max_overlaps
 
 
     def _get_distribution_plot_options(
@@ -215,7 +236,7 @@ class OCRNeighbourOverlapPlotService:
             line_width=linewidths[value_summary],
             ax=ax,
             ylim=(0, 100),
-            xlim=(0, 25),
+            xlim=(0, 20),
             legend_options=LegendOptions(show_legend=True))
 
         return result

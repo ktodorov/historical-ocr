@@ -213,22 +213,27 @@ class PlotService:
 
     def plot_line_variance(
             self,
-            min_counter: Counter,
-            max_counter: Counter,
-            avg_counter: Counter,
+            x_values: list,
+            avg_y_values: list,
+            min_y_values: list,
+            max_y_values: list,
             plot_options: PlotOptions):
 
         ax = self.create_plot(plot_options)
 
         ax.fill_between(
-            list(min_counter.keys()),
-            list(min_counter.values()),
-            list(max_counter.values()),
+            x_values,
+            min_y_values,
+            max_y_values,
+            color=plot_options.color,
             alpha=0.2)
 
         ax.plot(
-            list(avg_counter.keys()),
-            list(avg_counter.values()))
+            x_values,
+            avg_y_values,
+            label=plot_options.label,
+            linestyle=plot_options.linestyle.value,
+            color=plot_options.color)
 
         self._add_properties(ax, plot_options)
 
@@ -456,6 +461,26 @@ class PlotService:
         if figure_options.title is not None:
             ax.set_title(figure_options.title, pad=figure_options.title_padding,
                          fontdict={'fontweight': 'bold'})
+
+
+    def plot_confidence_lines(
+        self,
+        x_values: List[float],
+        y_values: List[List[float]],
+        plot_options: PlotOptions,
+        labels: List[str] = None):
+        ax = self.create_plot(plot_options)
+
+        # if labels is not None:
+        #     for value_list, label in zip(y_values, labels):
+        #         ax.plot(x_values, value_list, label=label)
+        # else:
+        # label = plot_options.label
+        # ax.plot(x_values, y_values, label=label)
+        sns.lineplot(x_values, y_values)
+
+        self._add_properties(ax, plot_options)
+        return ax
 
 
     def show_legend(
