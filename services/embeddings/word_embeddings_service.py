@@ -57,8 +57,8 @@ class WordEmbeddingsService:
                         processed_tokens.extend(tokens)
                         progress_bar.update(len(tokens))
 
-        if self._arguments_service.initialize_randomly:
+        # if self._arguments_service.initialize_randomly:
             # TODO
-            result = self._word_alignment_service.align_word_embeddings(result)
+            # result = self._word_alignment_service.align_word_embeddings(result)
 
         return result

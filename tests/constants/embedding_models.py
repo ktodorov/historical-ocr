@@ -25,6 +25,9 @@ configurations = {
         },
         Configuration.CBOW: {
             1e-3: {
+                True: [
+                    OCROutputType.GroundTruth
+                ],
                 False: [
                     OCROutputType.GroundTruth,
                     OCROutputType.Raw,

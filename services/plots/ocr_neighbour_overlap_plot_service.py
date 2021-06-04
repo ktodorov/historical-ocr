@@ -37,6 +37,7 @@ class OCRNeighbourOverlapPlotService:
             'Generating OCR vs Ground Truth overlap plots')
 
         output_folder = self._get_output_folder()
+        output_config_folder = self._file_service.combine_path(output_folder, 'configurations', create_if_missing=True)
         overlaps_by_config = self._neighbourhood_overlap_process_service.get_overlaps(
             overlap_types=[OverlapType.GTvsOCR], include_randomly_initialized=True)
         ax = self._plot_service.create_plot()
@@ -63,17 +64,42 @@ class OCRNeighbourOverlapPlotService:
                             avg_values = [x[0] for x in list(overlap_line.values())]
                             min_values = [x[1] for x in list(overlap_line.values())]
                             max_values = [x[2] for x in list(overlap_line.values())]
+
+                            plot_options = self._get_distribution_plot_options(
+                                ax,
+                                configuration,
+                                randomly_initialized,
+                                learning_rate,
+                                value_summary)
+
                             ax = self._plot_service.plot_line_variance(
                                 x_values=list(overlap_line.keys()),
                                 max_y_values=max_values,
                                 min_y_values=min_values,
                                 avg_y_values=avg_values,
-                                plot_options=self._get_distribution_plot_options(
-                                    ax,
-                                    configuration,
-                                    randomly_initialized,
-                                    learning_rate,
-                                    value_summary))
+                                plot_options=plot_options)
+
+                            # Save the plot also individually
+                            # plot_options._ax = None
+                            # rnd_initialized_str = 'random' if randomly_initialized else 'pretrained'
+                            # title_suffix = f' [{rnd_initialized_str}, LR: {learning_rate}]'
+                            # filename_suffix = f'-{rnd_initialized_str}-{learning_rate}'
+                            # if configuration == Configuration.PPMI:
+                            #     title_suffix = ''
+                            #     filename_suffix = ''
+
+                            # plot_options.legend_options._show_legend = False
+                            # plot_options._figure_options = FigureOptions(
+                            #     title=f'{Configuration.get_friendly_name(configuration)}{title_suffix}',
+                            #     save_path=output_config_folder,
+                            #     filename=f'{configuration}{filename_suffix}')
+
+                            # self._plot_service.plot_line_variance(
+                            #     x_values=list(overlap_line.keys()),
+                            #     max_y_values=max_values,
+                            #     min_y_values=min_values,
+                            #     avg_y_values=avg_values,
+                            #     plot_options=plot_options)
 
             self._plot_service.set_plot_properties(
                 ax=ax,
@@ -82,7 +108,7 @@ class OCRNeighbourOverlapPlotService:
 
         self._plot_service.save_plot(
             save_path=output_folder,
-            filename=f'neighbourhood-overlaps-{self._arguments_service.neighbourhood_set_size}')
+            filename=f'neighbourhood-overlaps')
 
     def _get_output_folder(self):
         experiments_folder = self._file_service.get_experiments_path()
@@ -205,8 +231,10 @@ class OCRNeighbourOverlapPlotService:
             f'{Configuration.BERT.value}-0.0001': 'aggressive',
             f'{Configuration.BERT.value}-0.00001': 'slow',
             f'{Configuration.CBOW.value}-0.001': 'aggressive',
+            f'{Configuration.CBOW.value}-0.025': 'aggressive',
             f'{Configuration.CBOW.value}-0.0001': 'slow',
             f'{Configuration.SkipGram.value}-0.001': 'aggressive',
+            f'{Configuration.SkipGram.value}-0.025': 'aggressive',
             f'{Configuration.SkipGram.value}-0.0001': 'slow',
             f'{Configuration.PPMI.value}': 'aggressive'
         }
@@ -225,7 +253,7 @@ class OCRNeighbourOverlapPlotService:
             lr_label = lr_type
 
         if randomly_initialized:
-            lr_label = 'randomly initialized'
+            lr_label += ', randomly initialized'
 
         result = PlotOptions(
             color=colors[configuration][value_summary],
