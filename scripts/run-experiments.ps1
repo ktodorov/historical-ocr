@@ -1,10 +1,10 @@
-$language = 'dutch'
+$language = 'english'
 
-$seeds = @(13, 42)
+$seeds = @(13)#, 42)
 $lrs = @(0.001, 0.0001)
 $bert_lrs = @(0.0001, 0.00001)
 $configurations = @('skip-gram', 'cbow')
-$neigh_set_sizes = @(100, 500, 1000)
+$neigh_set_sizes = @(100)#, 500, 1000)
 
 iex 'conda activate ocr-uva'
 
