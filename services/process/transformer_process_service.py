@@ -32,7 +32,7 @@ class TransformerProcessService(ProcessServiceBase):
         self._cache_service = cache_service
         self._log_service = log_service
 
-        self._preprocess_max_string_length = 500
+        self._preprocess_max_string_length = 128
 
     def get_entries(self, ocr_output_type: OCROutputType):
         entries = None
