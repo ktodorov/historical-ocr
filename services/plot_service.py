@@ -1,4 +1,5 @@
 from matplotlib.figure import Figure
+import pandas as pd
 from utils.math_utils import get_square, is_square
 from entities.plot.histogram_options import HistogramOptions
 from entities.plot.label_options import LabelOptions
@@ -213,27 +214,19 @@ class PlotService:
 
     def plot_line_variance(
             self,
-            x_values: list,
-            avg_y_values: list,
-            min_y_values: list,
-            max_y_values: list,
+            pd_dataframe: pd.DataFrame,
+            x: str,
+            y: str,
             plot_options: PlotOptions):
 
         ax = self.create_plot(plot_options)
 
-        ax.fill_between(
-            x_values,
-            min_y_values,
-            max_y_values,
-            color=plot_options.color,
-            alpha=0.2)
-
-        ax.plot(
-            x_values,
-            avg_y_values,
+        ax = sns.lineplot(
+            data=pd_dataframe,
+            x=x,
+            y=y,
             label=plot_options.label,
-            linestyle=plot_options.linestyle.value,
-            color=plot_options.color)
+            ax=ax)
 
         self._add_properties(ax, plot_options)
 

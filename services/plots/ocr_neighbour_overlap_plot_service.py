@@ -16,6 +16,7 @@ from services.arguments.ocr_evaluation_arguments_service import OCREvaluationArg
 from services.file_service import FileService
 from matplotlib.axes import Axes
 import numpy as np
+import pandas as pd
 
 
 class OCRNeighbourOverlapPlotService:
@@ -49,35 +50,22 @@ class OCRNeighbourOverlapPlotService:
                         if all(x is None for x in list(overlaps_by_seed.values())):
                             continue
 
-                        combined_overlaps = self._combine_seed_overlaps(
+                        pd_dataframe = self._combine_seed_overlaps(
                             overlaps_by_seed,
                             total_words_count=total_words_count)
 
-                        value_summaries = self._extract_value_summaries(
-                            combined_overlaps)
+                        plot_options = self._get_distribution_plot_options(
+                            ax,
+                            configuration,
+                            randomly_initialized,
+                            learning_rate,
+                            ValueSummary.Average)
 
-                        for value_summary, overlap_line in value_summaries.items():
-                            # Skip max and min value summaries
-                            if value_summary != ValueSummary.Average:
-                                continue
-
-                            avg_values = [x[0] for x in list(overlap_line.values())]
-                            min_values = [x[1] for x in list(overlap_line.values())]
-                            max_values = [x[2] for x in list(overlap_line.values())]
-
-                            plot_options = self._get_distribution_plot_options(
-                                ax,
-                                configuration,
-                                randomly_initialized,
-                                learning_rate,
-                                value_summary)
-
-                            ax = self._plot_service.plot_line_variance(
-                                x_values=list(overlap_line.keys()),
-                                max_y_values=max_values,
-                                min_y_values=min_values,
-                                avg_y_values=avg_values,
-                                plot_options=plot_options)
+                        ax = self._plot_service.plot_line_variance(
+                            pd_dataframe,
+                            x='percentage of total data',
+                            y='percentage overlap',
+                            plot_options=plot_options)
 
                             # Save the plot also individually
                             # plot_options._ax = None
@@ -146,9 +134,7 @@ class OCRNeighbourOverlapPlotService:
         if all(x is None for x in overlaps_by_seed.values()):
             return None
 
-        avg_overlaps = {}
-        min_overlaps = {}
-        max_overlaps = {}
+        overlaps_by_percentage = {}
 
         for overlaps_by_set_percentage in overlaps_by_seed.values():
             if overlaps_by_set_percentage is None:
@@ -158,26 +144,19 @@ class OCRNeighbourOverlapPlotService:
                 total_words_for_current_percentage = int(total_words_count * (percentage / 100.0))
 
                 overlap_values = list(current_overlaps.values())
-                avg_overlap = np.mean(overlap_values)
 
-                min_overlap = np.mean([x for x in overlap_values if x <= avg_overlap])
-                max_overlap = np.mean([x for x in overlap_values if x >= avg_overlap])
+                overlap_values = [x[0] if isinstance(x, list) else x for x in overlap_values]
+                overlap_values = [(x / total_words_for_current_percentage) * 100 for x in overlap_values]
 
-                percentage_avg_overlap = (avg_overlap / total_words_for_current_percentage) * 100
-                percentage_min_overlap = (min_overlap / total_words_for_current_percentage) * 100
-                percentage_max_overlap = (max_overlap / total_words_for_current_percentage) * 100
+                if percentage not in overlaps_by_percentage.items():
+                    overlaps_by_percentage[percentage] = []
 
-                if percentage not in avg_overlaps.items():
-                    avg_overlaps[percentage] = []
-                    min_overlaps[percentage] = []
-                    max_overlaps[percentage] = []
+                overlaps_by_percentage[percentage].extend(overlap_values)
 
-                avg_overlaps[percentage].append(percentage_avg_overlap)
-                min_overlaps[percentage].append(percentage_min_overlap)
-                max_overlaps[percentage].append(percentage_max_overlap)
-
-        return avg_overlaps, min_overlaps, max_overlaps
-
+        flatten_overlaps = [(percentage, overlap) for percentage, overlaps in overlaps_by_percentage.items() for overlap in overlaps]
+        result = pd.DataFrame(flatten_overlaps)
+        result.columns = ['percentage of total data', 'percentage overlap']
+        return result
 
     def _get_distribution_plot_options(
             self,
