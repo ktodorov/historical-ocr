@@ -1,12 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=ft-ocr
+#SBATCH --job-name=tr-ocr
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
 #SBATCH --ntasks-per-node=1
 #SBATCH --time=72:00:00
-#SBATCH --mem=60000M
-#SBATCH -p gpu_shared
-#SBATCH --gres=gpu:1
+#SBATCH -p gpu
+#SBATCH --gpus=2
 
 module purge
 module load 2020
