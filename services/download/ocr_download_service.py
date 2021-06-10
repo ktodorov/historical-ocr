@@ -1,3 +1,4 @@
+from genericpath import isdir
 from services.arguments.arguments_service_base import ArgumentsServiceBase
 from entities.cache.cache_options import CacheOptions
 import os
@@ -39,6 +40,28 @@ class OCRDownloadService:
         ]
 
         self._datasets = arguments_service.datasets
+
+    def get_downloaded_file_paths(self, language: Language) -> List[str]:
+        folder_paths = []
+        prefixes = self._get_folder_language_prefixes(language)
+
+        if language in self._languages_2017:
+            folder_paths_2017 = [os.path.join('data', 'newseye', '2017', 'full', prefix) for prefix in prefixes]
+            folder_paths.extend([x for x in folder_paths_2017 if os.path.exists(x)])
+
+        folder_paths_2019 = [os.path.join('data', 'newseye', '2019', 'full', prefix) for prefix in prefixes]
+        folder_paths.extend([x for x in folder_paths_2019 if os.path.exists(x)])
+
+        result = []
+        for folder_path in folder_paths:
+            if not os.path.isdir(folder_path):
+                result.append(folder_path)
+                continue
+
+            inner_level_names = os.listdir(folder_path)
+            folder_paths.extend([os.path.join(folder_path, x) for x in inner_level_names])
+
+        return result
 
     def download_data(self, language: Language, max_string_length: int = None):
         key_length_suffix = ''

@@ -22,6 +22,7 @@ from losses.cross_entropy_loss import CrossEntropyLoss
 
 from models.model_base import ModelBase
 from models.transformers.bert import BERT
+from models.transformers.albert import ALBERT
 from models.transformers.xlnet import XLNet
 from models.transformers.bart import BART
 from models.simple.cbow import CBOW
@@ -56,6 +57,7 @@ from services.test_service import TestService
 
 from services.tokenize.base_tokenize_service import BaseTokenizeService
 from services.tokenize.bert_tokenize_service import BERTTokenizeService
+from services.tokenize.albert_tokenize_service import ALBERTTokenizeService
 from services.tokenize.xlnet_tokenize_service import XLNetTokenizeService
 from services.tokenize.bart_tokenize_service import BARTTokenizeService
 from services.tokenize.camembert_tokenize_service import CamembertTokenizeService
@@ -141,6 +143,16 @@ class IocContainer(containers.DeclarativeContainer):
         log_service=log_service
     )
 
+    string_process_service = providers.Factory(StringProcessService)
+
+    ocr_download_service = providers.Factory(
+        OCRDownloadService,
+        arguments_service=arguments_service,
+        data_service=data_service,
+        string_process_service=string_process_service,
+        cache_service=cache_service,
+        log_service=log_service)
+
     tokenize_service_selector = providers.Callable(
         get_tokenize_service,
         arguments_service=arguments_service)
@@ -150,6 +162,11 @@ class IocContainer(containers.DeclarativeContainer):
         bert=providers.Singleton(
             BERTTokenizeService,
             arguments_service=arguments_service),
+        albert=providers.Singleton(
+            ALBERTTokenizeService,
+            arguments_service=arguments_service,
+            file_service=file_service,
+            ocr_download_service=ocr_download_service),
         xlnet=providers.Singleton(
             XLNetTokenizeService,
             arguments_service=arguments_service),
@@ -177,17 +194,7 @@ class IocContainer(containers.DeclarativeContainer):
 
     metrics_service = providers.Factory(MetricsService)
 
-    string_process_service = providers.Factory(StringProcessService)
-
     tagging_service = providers.Factory(TaggingService)
-
-    ocr_download_service = providers.Factory(
-        OCRDownloadService,
-        arguments_service=arguments_service,
-        data_service=data_service,
-        string_process_service=string_process_service,
-        cache_service=cache_service,
-        log_service=log_service)
 
     process_service_selector = providers.Callable(
         get_process_service,
@@ -259,6 +266,12 @@ class IocContainer(containers.DeclarativeContainer):
             tokenize_service=tokenize_service),
         bert=providers.Singleton(
             BERT,
+            arguments_service=arguments_service,
+            data_service=data_service,
+            log_service=log_service,
+            tokenize_service=tokenize_service),
+        albert=providers.Singleton(
+            ALBERT,
             arguments_service=arguments_service,
             data_service=data_service,
             log_service=log_service,

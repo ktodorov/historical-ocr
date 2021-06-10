@@ -24,7 +24,7 @@ class TransformerBase(ModelBase):
 
         self._output_hidden_states = output_hidden_states
 
-        if not overwrite_initialization and (arguments_service.resume_training or arguments_service.evaluate or arguments_service.run_experiments):
+        if overwrite_initialization:
             self._log_service.log_debug('Skipping the initialization of the transformer model due to configuration settings')
             self._transformer_model = None
         else:

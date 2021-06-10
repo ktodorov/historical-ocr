@@ -32,7 +32,15 @@ class TransformerLMDataset(DocumentDatasetBase):
         return len(self._entries)
 
     @overrides
-    def __getitem__(self, ids):
+    def __getitem__(self, id):
+        return id
+
+    @overrides
+    def use_collate_function(self) -> bool:
+        return True
+
+    @overrides
+    def collate_function(self, ids):
         entries = [self._entries[idx] for idx in ids]
         batch_size = len(ids)
 
