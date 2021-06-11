@@ -9,6 +9,7 @@ class Configuration(ArgumentEnum):
     CBOW = 'cbow'
     SkipGram = 'skip-gram'
     PPMI = 'ppmi'
+    GloVe = 'glove'
 
     @staticmethod
     def get_friendly_name(configuration) -> str:
