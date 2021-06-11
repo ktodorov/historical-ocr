@@ -24,6 +24,7 @@ class ALBERT(TransformerBase):
         super().__init__(arguments_service, data_service, log_service, output_hidden_states, overwrite_initialization=True)
 
         self._tokenize_service = tokenize_service
+        # self._transformer_model = torch.nn.DataParallel(AlbertForMaskedLM(config=AlbertConfig()))
         self._transformer_model = AlbertForMaskedLM(config=AlbertConfig())
 
     @overrides

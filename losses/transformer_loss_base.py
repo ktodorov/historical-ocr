@@ -8,6 +8,8 @@ class TransformerLossBase(LossBase):
 
     @overrides
     def backward(self, model_output):
+        # print(model_output)
+        # model_output.mean().backward()
         model_output.backward()
 
         return model_output.item()

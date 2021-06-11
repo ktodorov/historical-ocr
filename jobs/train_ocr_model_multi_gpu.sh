@@ -3,8 +3,9 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
 #SBATCH --ntasks-per-node=1
-#SBATCH --time=98:00:00
+#SBATCH --time=00:05:00
 #SBATCH -p gpu
+#SBATCH --gpus=4
 
 module purge
 module load 2020
