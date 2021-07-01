@@ -7,7 +7,7 @@ from overrides import overrides
 import torch
 
 from models.transformers.transformer_base import TransformerBase
-from transformers import BertForMaskedLM
+from transformers import BertForMaskedLM, BertConfig
 
 from services.arguments.pretrained_arguments_service import PretrainedArgumentsService
 from services.data_service import DataService
@@ -21,10 +21,12 @@ class BERT(TransformerBase):
             log_service: LogService,
             tokenize_service: BaseTokenizeService,
             output_hidden_states: bool = False,
-            overwrite_initialization: bool = False):
-        super().__init__(arguments_service, data_service, log_service, output_hidden_states, overwrite_initialization)
+            overwrite_initialization: bool = True):
+        super().__init__(arguments_service, data_service, log_service, output_hidden_states, overwrite_initialization=True)
 
         self._tokenize_service = tokenize_service
+
+        self._transformer_model = BertForMaskedLM(config=BertConfig())
 
     @overrides
     def forward(self, input_batch, **kwargs):

@@ -6,29 +6,50 @@ from overrides import overrides
 
 from tokenizers import BertWordPieceTokenizer
 
+from tokenizers.implementations import ByteLevelBPETokenizer
+from tokenizers.processors import BertProcessing
+
+
 import sentencepiece as spm
 
 from enums.configuration import Configuration
 from services.arguments.pretrained_arguments_service import PretrainedArgumentsService
 
 from services.tokenize.base_tokenize_service import BaseTokenizeService
+from services.file_service import FileService
+from services.download.ocr_download_service import OCRDownloadService
 
 class BERTTokenizeService(BaseTokenizeService):
     def __init__(
             self,
-            arguments_service: PretrainedArgumentsService):
+            arguments_service: PretrainedArgumentsService,
+            file_service: FileService,
+            ocr_download_service: OCRDownloadService):
         super().__init__()
 
-        pretrained_weights = arguments_service.pretrained_weights
-        configuration = arguments_service.configuration
-
         self._arguments_service = arguments_service
-        vocabulary_path = os.path.join(arguments_service.data_folder, 'vocabularies', f'{pretrained_weights}-vocab.txt')
-        if not os.path.exists(vocabulary_path):
-            raise Exception(f'Vocabulary not found in {vocabulary_path}')
+        self._file_service = file_service
+        self._ocr_download_service = ocr_download_service
 
-        self._tokenizer: BertWordPieceTokenizer = BertWordPieceTokenizer(
-            vocabulary_path, lowercase=False)
+        pretrained_weights = self._arguments_service.pretrained_weights
+
+        pretrained_weights = arguments_service.pretrained_weights
+        self._tokenizer = self._load_tokenizer(pretrained_weights)
+        if self._tokenizer is None:
+            self._tokenizer = self._train_tokenizer(pretrained_weights)
+
+        self._tokenizer._tokenizer.post_processor = BertProcessing(
+            ("[SEP]", self._tokenizer.token_to_id("[SEP]")),
+            ("[CLS]", self._tokenizer.token_to_id("[CLS]")),
+        )
+
+        # self._arguments_service = arguments_service
+        # vocabulary_path = os.path.join(arguments_service.data_folder, 'vocabularies', f'{pretrained_weights}-vocab.txt')
+        # if not os.path.exists(vocabulary_path):
+        #     raise Exception(f'Vocabulary not found in {vocabulary_path}')
+
+        # self._tokenizer: BertWordPieceTokenizer = BertWordPieceTokenizer(
+        #     vocabulary_path, lowercase=False)
 
     @overrides
     def encode_tokens(self, tokens: List[str]) -> List[int]:
@@ -69,3 +90,35 @@ class BERTTokenizeService(BaseTokenizeService):
     @overrides
     def vocabulary_size(self) -> int:
         return self._tokenizer.get_vocab_size()
+
+    def _load_tokenizer(self, pretrained_weights: str) -> ByteLevelBPETokenizer:
+        result = None
+        vocabulary_path = os.path.join(
+            self._arguments_service.data_folder, 'vocabularies', self._arguments_service.language.value, f'{pretrained_weights}-vocab.json')
+        merges_path = os.path.join(
+            self._arguments_service.data_folder, 'vocabularies', self._arguments_service.language.value, f'{pretrained_weights}-merges.txt')
+
+        if os.path.exists(vocabulary_path) and os.path.exists(merges_path):
+            result = ByteLevelBPETokenizer(vocabulary_path, merges_path)
+
+        return result
+
+    def _train_tokenizer(self, pretrained_weights: str) -> ByteLevelBPETokenizer:
+        file_paths = self._ocr_download_service.get_downloaded_file_paths(self._arguments_service.language)
+        tokenizer = ByteLevelBPETokenizer()
+
+        tokenizer.train(
+            files=file_paths,
+            min_frequency=2,
+            special_tokens=[
+                "[PAD]",
+                "[CLS]",
+                "[SEP]",
+                "[UNK]",
+                "[MASK]",
+            ])
+
+        save_path = self._file_service.combine_path(self._arguments_service.data_folder, 'vocabularies', self._arguments_service.language.value, create_if_missing=True)
+        tokenizer.save_model(save_path, pretrained_weights)
+
+        return tokenizer

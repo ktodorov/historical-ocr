@@ -57,7 +57,9 @@ class EvaluationProcessService(ProcessServiceBase):
             Configuration.BERT,
             Configuration.XLNet,
             Configuration.BART,
-            Configuration.RoBERTa]
+            Configuration.RoBERTa,
+            Configuration.GloVe,
+            Configuration.ALBERT]
 
         result = None
 

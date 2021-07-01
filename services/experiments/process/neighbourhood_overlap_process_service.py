@@ -59,7 +59,7 @@ class NeighbourhoodOverlapProcessService:
         overlap_types: List[OverlapType],
         include_randomly_initialized: bool = False) -> Dict[Configuration, Dict[str, Dict[OverlapType, Dict[int, dict]]]]:
         lrs = ['0.01', '0.001', '0.0001', '0.00001']
-        configs = [Configuration.BERT, Configuration.SkipGram, Configuration.CBOW, Configuration.PPMI]
+        configs = [Configuration.BERT, Configuration.ALBERT, Configuration.SkipGram, Configuration.CBOW, Configuration.PPMI]
         seeds = [1, 7, 13, 42]
         randomly_initializations = [False]
         if include_randomly_initialized:

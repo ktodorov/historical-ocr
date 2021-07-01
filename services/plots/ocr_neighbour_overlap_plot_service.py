@@ -63,8 +63,8 @@ class OCRNeighbourOverlapPlotService:
 
                         ax = self._plot_service.plot_line_variance(
                             pd_dataframe,
-                            x='percentage of total data',
-                            y='percentage overlap',
+                            x='neighbours',
+                            y='overlap',
                             plot_options=plot_options)
 
                             # Save the plot also individually
@@ -92,7 +92,7 @@ class OCRNeighbourOverlapPlotService:
             self._plot_service.set_plot_properties(
                 ax=ax,
                 figure_options=FigureOptions(
-                    title=f'Neighbourhood overlaps [GT vs. OCR] ({self._arguments_service.language.value.capitalize()})'))
+                    title=f'Neighbourhood overlap ({self._arguments_service.language.value.capitalize()})'))
 
         self._plot_service.save_plot(
             save_path=output_folder,
@@ -146,16 +146,16 @@ class OCRNeighbourOverlapPlotService:
                 overlap_values = list(current_overlaps.values())
 
                 overlap_values = [x[0] if isinstance(x, list) else x for x in overlap_values]
-                overlap_values = [(x / total_words_for_current_percentage) * 100 for x in overlap_values]
+                overlap_values = [(x / total_words_for_current_percentage) for x in overlap_values]
 
                 if percentage not in overlaps_by_percentage.items():
                     overlaps_by_percentage[percentage] = []
 
                 overlaps_by_percentage[percentage].extend(overlap_values)
 
-        flatten_overlaps = [(percentage, overlap) for percentage, overlaps in overlaps_by_percentage.items() for overlap in overlaps]
+        flatten_overlaps = [((percentage / 100.0), overlap) for percentage, overlaps in overlaps_by_percentage.items() for overlap in overlaps]
         result = pd.DataFrame(flatten_overlaps)
-        result.columns = ['percentage of total data', 'percentage overlap']
+        result.columns = ['neighbours', 'overlap']
         return result
 
     def _get_distribution_plot_options(
@@ -189,6 +189,11 @@ class OCRNeighbourOverlapPlotService:
                 ValueSummary.Average: 'goldenrod',
                 ValueSummary.Minimum: 'white',
             },
+            Configuration.ALBERT: {
+                ValueSummary.Maximum: 'goldenrod',
+                ValueSummary.Average: 'goldenrod',
+                ValueSummary.Minimum: 'white',
+            },
             Configuration.CBOW: {
                 ValueSummary.Maximum: 'cadetblue',
                 ValueSummary.Average: 'cadetblue',
@@ -209,6 +214,8 @@ class OCRNeighbourOverlapPlotService:
         lr_types = {
             f'{Configuration.BERT.value}-0.0001': 'aggressive',
             f'{Configuration.BERT.value}-0.00001': 'slow',
+            f'{Configuration.ALBERT.value}-0.0001': 'aggressive',
+            f'{Configuration.ALBERT.value}-0.00001': 'slow',
             f'{Configuration.CBOW.value}-0.001': 'aggressive',
             f'{Configuration.CBOW.value}-0.025': 'aggressive',
             f'{Configuration.CBOW.value}-0.0001': 'slow',
@@ -231,8 +238,8 @@ class OCRNeighbourOverlapPlotService:
             lr_type = lr_types[line_style_key]
             lr_label = lr_type
 
-        if randomly_initialized:
-            lr_label += ', randomly initialized'
+        # if randomly_initialized:
+        #     lr_label += ', randomly initialized'
 
         result = PlotOptions(
             color=colors[configuration][value_summary],
@@ -242,8 +249,8 @@ class OCRNeighbourOverlapPlotService:
             alpha=alpha_values[value_summary],
             line_width=linewidths[value_summary],
             ax=ax,
-            ylim=(0, 100),
-            xlim=(0, 20),
-            legend_options=LegendOptions(show_legend=True))
+            ylim=(0, 1),
+            xlim=(0, 1),
+            legend_options=LegendOptions(show_legend=True, marker_scale=10))
 
         return result

@@ -25,7 +25,11 @@ class ALBERT(TransformerBase):
 
         self._tokenize_service = tokenize_service
         # self._transformer_model = torch.nn.DataParallel(AlbertForMaskedLM(config=AlbertConfig()))
-        self._transformer_model = AlbertForMaskedLM(config=AlbertConfig())
+        self._transformer_model = AlbertForMaskedLM(config=AlbertConfig(
+            hidden_size=768,
+            num_hidden_layers=12,
+            num_attention_heads=12,
+            intermediate_size=3072))
 
     @overrides
     def forward(self, input_batch, **kwargs):

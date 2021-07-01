@@ -296,11 +296,11 @@ class WordNeighbourhoodService:
         common_words_indices = [
             i
             for i, word_evaluation in enumerate(word_evaluations)
-            if word_evaluation.contains_all_embeddings()]
+            if word_evaluation.contains_all_embeddings(overlap_type)]
 
-        percentages = list(range(1, 21, 1))  # 1..20
+        percentages = list(range(1, 101, 1))  # 1..20
         words_amounts = [
-            int(len(common_words_indices) * (float(percentage)/ 100))
+            int(len(common_words_indices) * (float(percentage)/ 100)) - (1 if percentage == 100 else 0)
             for percentage in percentages]
 
         result = {

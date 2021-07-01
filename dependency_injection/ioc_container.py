@@ -161,7 +161,9 @@ class IocContainer(containers.DeclarativeContainer):
         tokenize_service_selector,
         bert=providers.Singleton(
             BERTTokenizeService,
-            arguments_service=arguments_service),
+            arguments_service=arguments_service,
+            file_service=file_service,
+            ocr_download_service=ocr_download_service),
         albert=providers.Singleton(
             ALBERTTokenizeService,
             arguments_service=arguments_service,

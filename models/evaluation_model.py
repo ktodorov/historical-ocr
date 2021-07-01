@@ -26,6 +26,7 @@ from entities.batch_representation import BatchRepresentation
 
 from models.model_base import ModelBase
 from models.transformers.bert import BERT
+from models.transformers.albert import ALBERT
 from models.simple.cbow import CBOW
 
 from services.arguments.ocr_evaluation_arguments_service import OCREvaluationArgumentsService
@@ -58,37 +59,37 @@ class EvaluationModel(ModelBase):
         self._inner_models: List[ModelBase] = torch.nn.ModuleList([
             self._create_model(self._arguments_service.configuration, ocr_output_type) for ocr_output_type in self._ocr_output_types])
 
-        self._inner_models.append(
-            # BASE
-            SkipGram(
-                arguments_service=self._arguments_service,
-                vocabulary_service=VocabularyService(
-                    self._data_service,
-                    file_service,
-                    cache_service,
-                    log_service,
-                    overwrite_configuration=Configuration.SkipGram),
-                data_service=self._data_service,
-                log_service=self._log_service,
-                ocr_output_type=OCROutputType.GroundTruth)
-        )
+        # self._inner_models.append(
+        #     # BASE
+        #     SkipGram(
+        #         arguments_service=self._arguments_service,
+        #         vocabulary_service=VocabularyService(
+        #             self._data_service,
+        #             file_service,
+        #             cache_service,
+        #             log_service,
+        #             overwrite_configuration=Configuration.SkipGram),
+        #         data_service=self._data_service,
+        #         log_service=self._log_service,
+        #         ocr_output_type=OCROutputType.GroundTruth)
+        # )
 
-        if self._arguments_service.configuration in [Configuration.SkipGram, Configuration.CBOW, Configuration.BERT]:
-            pretrained_matrix = None
-            if self._arguments_service.configuration in [Configuration.SkipGram, Configuration.CBOW]:
-                pretrained_matrix = cache_service.get_item_from_cache(
-                    CacheOptions(
-                        f'word-matrix-{self._arguments_service.get_dataset_string()}-{OCROutputType.GroundTruth.value}',
-                        seed_specific=True))
+        # if self._arguments_service.configuration in [Configuration.SkipGram, Configuration.CBOW, Configuration.BERT]:
+            # pretrained_matrix = None
+            # if self._arguments_service.configuration in [Configuration.SkipGram, Configuration.CBOW]:
+            #     pretrained_matrix = cache_service.get_item_from_cache(
+            #         CacheOptions(
+            #             f'word-matrix-{self._arguments_service.get_dataset_string()}-{OCROutputType.GroundTruth.value}',
+            #             seed_specific=True))
 
-                pretrained_matrix = pretrained_matrix.to(self._arguments_service.device)
+            #     pretrained_matrix = pretrained_matrix.to(self._arguments_service.device)
 
-            self._inner_models.append(
-                self._create_model(
-                    self._arguments_service.configuration,
-                    OCROutputType.GroundTruth,
-                    pretrained_matrix=pretrained_matrix,
-                    overwrite_initialization=True))
+            # self._inner_models.append(
+            #     self._create_model(
+            #         self._arguments_service.configuration,
+            #         OCROutputType.GroundTruth,
+            #         pretrained_matrix=pretrained_matrix,
+            #         overwrite_initialization=True))
 
     @overrides
     def forward(self, tokens: torch.Tensor):
@@ -119,6 +120,12 @@ class EvaluationModel(ModelBase):
                 log_service=self._log_service,
                 tokenize_service=self._tokenize_service,
                 overwrite_initialization=overwrite_initialization)
+        elif configuration == Configuration.ALBERT:
+            result = ALBERT(
+                arguments_service=self._arguments_service,
+                data_service=self._data_service,
+                log_service=self._log_service,
+                tokenize_service=self._tokenize_service)
         elif configuration == Configuration.CBOW:
             result = CBOW(
                 arguments_service=self._arguments_service,
@@ -171,22 +178,23 @@ class EvaluationModel(ModelBase):
                 use_checkpoint_name=use_checkpoint_name,
                 checkpoint_name=checkpoint_name)
 
-        skip_gram_model = self._inner_models[2]
-        skip_gram_overwrite_args = {
-            'initialize_randomly': True,
-            'configuration': Configuration.SkipGram.value,
-            'learning_rate': 1e-3,# if self._arguments_service.language == Language.English else 1e-2,
-            'minimal_occurrence_limit': 5
-        }
+        if len(self._inner_models) > 2:
+            skip_gram_model = self._inner_models[2]
+            skip_gram_overwrite_args = {
+                'initialize_randomly': True,
+                'configuration': Configuration.SkipGram.value,
+                'learning_rate': 1e-3,# if self._arguments_service.language == Language.English else 1e-2,
+                'minimal_occurrence_limit': 5
+            }
 
-        skip_gram_model.load(
-            path=path.replace(self._arguments_service.configuration.value, Configuration.SkipGram.value),
-            name_prefix=name_prefix,
-            name_suffix=f'-{ocr_output_type_str}',
-            load_model_dict=load_model_dict,
-            use_checkpoint_name=use_checkpoint_name,
-            checkpoint_name=checkpoint_name,
-            overwrite_args=skip_gram_overwrite_args)
+            skip_gram_model.load(
+                path=path.replace(self._arguments_service.configuration.value, Configuration.SkipGram.value),
+                name_prefix=name_prefix,
+                name_suffix=f'-{ocr_output_type_str}',
+                load_model_dict=load_model_dict,
+                use_checkpoint_name=use_checkpoint_name,
+                checkpoint_name=checkpoint_name,
+                overwrite_args=skip_gram_overwrite_args)
 
         self._log_service.log_debug('Loading joint models succeeded')
         return None

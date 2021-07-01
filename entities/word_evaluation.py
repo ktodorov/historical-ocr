@@ -42,7 +42,10 @@ class WordEvaluation:
             result = len(self._embeddings) >= 3 and all([x is not None for x in self._embeddings])
             return result
 
-        result = len(self._embeddings) >= 3 and self._embeddings[2] is not None
+        # result = len(self._embeddings) >= 3 and self._embeddings[2] is not None
+        result = True
+        if overlap_type != OverlapType.GTvsOCR:
+            result = len(self._embeddings) >= 3 and self._embeddings[2] is not None
 
         if overlap_type == OverlapType.BASEvsGT:
             return (result and self._embeddings[1] is not None)

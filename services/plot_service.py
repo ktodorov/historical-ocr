@@ -44,7 +44,7 @@ class PlotService:
             self,
             data_service: DataService):
         sns.set()
-        # sns.set(font_scale=2)  # crazy big
+        sns.set(font_scale=2)  # crazy big
         # sns.set_style("ticks")
 
         self._data_service = data_service
@@ -226,7 +226,8 @@ class PlotService:
             x=x,
             y=y,
             label=plot_options.label,
-            ax=ax)
+            ax=ax,
+            markersize=14)
 
         self._add_properties(ax, plot_options)
 
@@ -486,6 +487,7 @@ class PlotService:
 
         bbox_to_anchor = None
         legend_location = None
+        lg_obj = None
 
         if legend_options.legend_position == PlotLegendPosition.Outside:
             bbox_to_anchor = (1.04, 1)
@@ -498,10 +500,10 @@ class PlotService:
             legend_lines = self._create_legend_lines(
                 legend_options.legend_colors)
             if legend_options.legend_labels is not None and len(legend_options.legend_labels) > 0:
-                ax.legend(legend_lines, legend_options.legend_labels,
+                lg_obj = ax.legend(legend_lines, legend_options.legend_labels,
                           bbox_to_anchor=bbox_to_anchor, loc=legend_location)
             else:
-                ax.legend(legend_lines, bbox_to_anchor=bbox_to_anchor,
+                lg_obj = ax.legend(legend_lines, bbox_to_anchor=bbox_to_anchor,
                           loc=legend_location)
         elif legend_options.legend_title_options is not None:
             sub_title_pairs = legend_options.legend_title_options.get_sub_titles()
@@ -511,9 +513,13 @@ class PlotService:
                     handles.insert(position_id, text)
                     labels.insert(position_id, '')
 
-                ax.legend(handles, labels, handler_map={str: legend_options.legend_title_options},handlelength=10)
+                lg_obj = ax.legend(handles, labels, handler_map={str: legend_options.legend_title_options},handlelength=10, markerscale=100)
         else:
-            ax.legend()
+            lg_obj = ax.legend()
+
+        if lg_obj is not None and legend_options.marker_scale is not None:
+            leg_lines = lg_obj.get_lines()
+            plt.setp(leg_lines, linewidth=legend_options.marker_scale)
 
     def save_plot(self, save_path: str, filename: str, figure: Figure = None):
         self._data_service.save_figure(save_path, filename, fig=figure)
