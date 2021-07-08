@@ -1,5 +1,9 @@
 from collections import defaultdict
-from typing import Dict, List
+
+from matplotlib import pyplot as plt
+from entities.plot.grouping import Grouping
+from entities.plot.handlers.grouping_handler import GroupingHandler
+from typing import Dict, List, Tuple
 from entities.plot.plot_options import PlotOptions
 from enums.plots.line_style import LineStyle
 from services.log_service import LogService
@@ -17,6 +21,7 @@ from services.file_service import FileService
 from matplotlib.axes import Axes
 import numpy as np
 import pandas as pd
+from copy import deepcopy
 
 
 class OCRNeighbourOverlapPlotService:
@@ -38,11 +43,22 @@ class OCRNeighbourOverlapPlotService:
             'Generating OCR vs Ground Truth overlap plots')
 
         output_folder = self._get_output_folder()
-        output_config_folder = self._file_service.combine_path(output_folder, 'configurations', create_if_missing=True)
         overlaps_by_config = self._neighbourhood_overlap_process_service.get_overlaps(
             overlap_types=[OverlapType.GTvsOCR], include_randomly_initialized=True)
         ax = self._plot_service.create_plot()
 
+        ax2 = plt.axes([.37, .17, .25, .25])#, facecolor='y')
+        # sns.lineplot(data=may_flights, x="year", y="passengers", ax=ax2, legend=False)
+        # sns.lineplot(data=june_flights, x="year", y="passengers", ax=ax2, legend=False)
+        # g2 = sns.lineplot(data=oct_flights, x="year", y="passengers", ax=ax2, legend=False)
+        # g2.set(yticklabels=[])
+        # g2.set(xlabel=None)
+        # g2.set(ylabel=None)
+        # ax2.set_title('zoomed')
+        # ax2.set_xlim([0.1, 0.3])
+        # ax2.set_ylim([100,200])
+
+        groupings = []
         for configuration, overlaps_by_type in overlaps_by_config.items():
             for _, overlaps_by_random_initialization in overlaps_by_type.items():
                 for randomly_initialized, overlaps_by_lr in overlaps_by_random_initialization.items():
@@ -54,12 +70,14 @@ class OCRNeighbourOverlapPlotService:
                             overlaps_by_seed,
                             total_words_count=total_words_count)
 
-                        plot_options = self._get_distribution_plot_options(
+                        plot_options, grouping = self._get_distribution_plot_options(
                             ax,
                             configuration,
                             randomly_initialized,
                             learning_rate,
                             ValueSummary.Average)
+
+                        groupings.append(grouping)
 
                         ax = self._plot_service.plot_line_variance(
                             pd_dataframe,
@@ -67,32 +85,46 @@ class OCRNeighbourOverlapPlotService:
                             y='overlap',
                             plot_options=plot_options)
 
-                            # Save the plot also individually
-                            # plot_options._ax = None
-                            # rnd_initialized_str = 'random' if randomly_initialized else 'pretrained'
-                            # title_suffix = f' [{rnd_initialized_str}, LR: {learning_rate}]'
-                            # filename_suffix = f'-{rnd_initialized_str}-{learning_rate}'
-                            # if configuration == Configuration.PPMI:
-                            #     title_suffix = ''
-                            #     filename_suffix = ''
+                        plot_options_mini = PlotOptions(
+                            ax2,
+                            legend_options = LegendOptions(show_legend=False),
+                            xlim = (0.01, 0.2),
+                            ylim=(0.15, 0.9),
+                            # ylim=(0.2, 0.8), # English
+                            color=plot_options.color,
+                            linestyle=plot_options.linestyle)
 
-                            # plot_options.legend_options._show_legend = False
-                            # plot_options._figure_options = FigureOptions(
-                            #     title=f'{Configuration.get_friendly_name(configuration)}{title_suffix}',
-                            #     save_path=output_config_folder,
-                            #     filename=f'{configuration}{filename_suffix}')
+                        ax2 = self._plot_service.plot_line_variance(
+                            pd_dataframe,
+                            x='neighbours',
+                            y='overlap',
+                            plot_options=plot_options_mini)
 
-                            # self._plot_service.plot_line_variance(
-                            #     x_values=list(overlap_line.keys()),
-                            #     max_y_values=max_values,
-                            #     min_y_values=min_values,
-                            #     avg_y_values=avg_values,
-                            #     plot_options=plot_options)
+                        ax2.set(xlabel=None)
+                        ax2.set(ylabel=None)
 
-            self._plot_service.set_plot_properties(
-                ax=ax,
-                figure_options=FigureOptions(
-                    title=f'Neighbourhood overlap ({self._arguments_service.language.value.capitalize()})'))
+            #             break
+            #         break
+            #     break
+            # break
+
+        self._plot_service.set_plot_properties(
+            ax=ax,
+            figure_options=FigureOptions(
+                title=f'Neighbourhood overlap ({self._arguments_service.language.value.capitalize()})'))
+
+        self._plot_service.set_plot_properties(
+            ax=ax2,
+            figure_options=FigureOptions(
+                title=f'Zoom-in'))
+
+        filtered_groupings = list({x.group_name : x for x in groupings}.values())
+        ax.legend(
+            filtered_groupings,
+            ['' for _ in filtered_groupings],
+            loc='lower right',
+            handler_map={Grouping: GroupingHandler()},
+            handlelength=13.3)
 
         self._plot_service.save_plot(
             save_path=output_folder,
@@ -141,6 +173,9 @@ class OCRNeighbourOverlapPlotService:
                 continue
 
             for percentage, current_overlaps in overlaps_by_set_percentage.items():
+                # if percentage > 50:
+                #     break
+
                 total_words_for_current_percentage = int(total_words_count * (percentage / 100.0))
 
                 overlap_values = list(current_overlaps.values())
@@ -164,7 +199,7 @@ class OCRNeighbourOverlapPlotService:
             configuration: Configuration,
             randomly_initialized: bool,
             learning_rate_str: str,
-            value_summary: ValueSummary) -> PlotOptions:
+            value_summary: ValueSummary) -> Tuple[PlotOptions, Grouping]:
         alpha_values = {
             ValueSummary.Maximum: .3,
             ValueSummary.Average: 1,
@@ -190,8 +225,8 @@ class OCRNeighbourOverlapPlotService:
                 ValueSummary.Minimum: 'white',
             },
             Configuration.ALBERT: {
-                ValueSummary.Maximum: 'goldenrod',
-                ValueSummary.Average: 'goldenrod',
+                ValueSummary.Maximum: 'forestgreen',
+                ValueSummary.Average: 'forestgreen',
                 ValueSummary.Minimum: 'white',
             },
             Configuration.CBOW: {
@@ -208,32 +243,38 @@ class OCRNeighbourOverlapPlotService:
                 ValueSummary.Maximum: 'black',
                 ValueSummary.Average: 'black',
                 ValueSummary.Minimum: 'white',
+            },
+            Configuration.GloVe: {
+                ValueSummary.Maximum: 'darkmagenta',
+                ValueSummary.Average: 'darkmagenta',
+                ValueSummary.Minimum: 'white',
             }
         }
 
         lr_types = {
-            f'{Configuration.BERT.value}-0.0001': 'aggressive',
+            f'{Configuration.BERT.value}-0.0001': 'fast',
             f'{Configuration.BERT.value}-0.00001': 'slow',
-            f'{Configuration.ALBERT.value}-0.0001': 'aggressive',
+            f'{Configuration.ALBERT.value}-0.0001': 'fast',
             f'{Configuration.ALBERT.value}-0.00001': 'slow',
-            f'{Configuration.CBOW.value}-0.001': 'aggressive',
-            f'{Configuration.CBOW.value}-0.025': 'aggressive',
+            f'{Configuration.CBOW.value}-0.001': 'fast',
+            f'{Configuration.CBOW.value}-0.025': 'fast',
             f'{Configuration.CBOW.value}-0.0001': 'slow',
-            f'{Configuration.SkipGram.value}-0.001': 'aggressive',
-            f'{Configuration.SkipGram.value}-0.025': 'aggressive',
+            f'{Configuration.SkipGram.value}-0.001': 'fast',
+            f'{Configuration.SkipGram.value}-0.025': 'fast',
             f'{Configuration.SkipGram.value}-0.0001': 'slow',
-            f'{Configuration.PPMI.value}': 'aggressive'
+            f'{Configuration.PPMI.value}': 'fast',
+            f'{Configuration.GloVe.value}': 'fast'
         }
 
         line_styles_per_lr_type = {
-            'aggressive': LineStyle.Solid,
+            'fast': LineStyle.Solid,
             'slow': LineStyle.Dashed
         }
 
         line_style_key = f'{configuration.value}'
         lr_label = 'default'
-        lr_type = 'aggressive'
-        if configuration != Configuration.PPMI:
+        lr_type = 'fast'
+        if configuration != Configuration.PPMI and configuration != Configuration.GloVe:
             line_style_key = f'{line_style_key}-{learning_rate_str}'
             lr_type = lr_types[line_style_key]
             lr_label = lr_type
@@ -251,6 +292,6 @@ class OCRNeighbourOverlapPlotService:
             ax=ax,
             ylim=(0, 1),
             xlim=(0, 1),
-            legend_options=LegendOptions(show_legend=True, marker_scale=10))
+            legend_options=LegendOptions(show_legend=True, marker_scale=6))
 
-        return result
+        return result, Grouping(Configuration.get_friendly_name(configuration), colors[configuration][value_summary])

@@ -23,5 +23,7 @@ class Configuration(ArgumentEnum):
             return 'CBOW'
         elif configuration == Configuration.PPMI:
             return 'PPMI'
+        elif configuration == Configuration.GloVe:
+            return 'GloVe'
 
         return None

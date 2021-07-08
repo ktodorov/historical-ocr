@@ -59,7 +59,7 @@ class NeighbourhoodOverlapProcessService:
         overlap_types: List[OverlapType],
         include_randomly_initialized: bool = False) -> Dict[Configuration, Dict[str, Dict[OverlapType, Dict[int, dict]]]]:
         lrs = ['0.01', '0.001', '0.0001', '0.00001']
-        configs = [Configuration.BERT, Configuration.ALBERT, Configuration.SkipGram, Configuration.CBOW, Configuration.PPMI]
+        configs = [Configuration.BERT, Configuration.ALBERT, Configuration.SkipGram, Configuration.CBOW, Configuration.PPMI, Configuration.GloVe]
         seeds = [1, 7, 13, 42]
         randomly_initializations = [False]
         if include_randomly_initialized:
@@ -84,8 +84,8 @@ class NeighbourhoodOverlapProcessService:
                                 CacheOptions(
                                     'neighbourhood-overlaps',
                                     key_suffixes=[
-                                        '-lr' if config != Configuration.PPMI else '',
-                                        lr if config != Configuration.PPMI else '',
+                                        '-lr' if (config != Configuration.PPMI and config != Configuration.GloVe) else '',
+                                        lr if (config != Configuration.PPMI and config != Configuration.GloVe) else '',
                                         '-',
                                         str(overlap_type.value),
                                         '-rnd' if randomly_initialized else ''
@@ -97,7 +97,7 @@ class NeighbourhoodOverlapProcessService:
                             result[config][overlap_type][randomly_initialized][lr][seed] = overlaps
 
                         # If we are processing PPMI, we only have one LR so we break
-                        if config == Configuration.PPMI:
+                        if config == Configuration.PPMI or config == Configuration.GloVe:
                             break
 
         return result

@@ -227,7 +227,10 @@ class PlotService:
             y=y,
             label=plot_options.label,
             ax=ax,
-            markersize=14)
+            markersize=14,
+            color=plot_options.color,
+            linestyle=plot_options.linestyle.value,
+            ci=95)
 
         self._add_properties(ax, plot_options)
 
