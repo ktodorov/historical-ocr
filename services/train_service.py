@@ -247,7 +247,6 @@ class TrainService:
                 self._log_service.log_evaluation(
                     metric,
                     validation_metric,
-                    batches_passed,
                     epoch_num,
                     i,
                     data_loader_length,

@@ -27,7 +27,6 @@ class LogServiceFake(LogService):
             self,
             train_metric: Metric,
             validation_metric: Metric,
-            batches_done: int,
             epoch: int,
             iteration: int,
             iterations: int,

@@ -223,7 +223,7 @@ class OCRDownloadService:
 
         for cache_item_key in cache_item_keys:
             # Get the downloaded file from the cache, process it and add it to the total collection of items
-            file_content: str = self._cache_service.load_file_from_cache(
+            file_content: str = self._cache_service.get_item_from_cache(
                 CacheOptions(
                     cache_item_key,
                     configuration_specific=False)

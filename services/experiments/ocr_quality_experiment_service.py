@@ -92,10 +92,6 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                 word_evaluations,
                 result[ExperimentType.CosineDistance])
 
-        # # Euclidean distances
-        # self._load_experiment_result(ExperimentType.EuclideanDistance, experiment_types,
-        #                              result, lambda: self._load_euclidean_distances(word_evaluations))
-
         # Save final results and generate plots
         self._save_experiment_results(result, word_evaluations)
 
@@ -147,8 +143,8 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         result = {}
         for overlap_type in OverlapType:
             if ((self._arguments_service.initialize_randomly and overlap_type != OverlapType.GTvsOCR) or
-                (self._arguments_service.configuration == Configuration.PPMI and overlap_type == OverlapType.BASEvsOG) or 
-                (overlap_type == OverlapType.BASEvsOG)):
+                (self._arguments_service.configuration == Configuration.PPMI and overlap_type == OverlapType.BASEvsOG) or
+                    (overlap_type == OverlapType.BASEvsOG)):
                 continue
 
             result[overlap_type] = self._cache_service.get_item_from_cache(

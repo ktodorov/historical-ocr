@@ -3,7 +3,6 @@ import os
 from services.file_service import FileService
 
 from torch._C import dtype
-import gensim
 import numpy as np
 import torch
 from tqdm import tqdm

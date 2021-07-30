@@ -12,6 +12,15 @@ class FitTransformationService:
         self,
         number_of_components: int,
         vectors: list):
+        """Fits a list of vectors using TSNE into `number_of_components`
+
+        :param number_of_components: The number of components the vectors will be fitted into
+        :type number_of_components: int
+        :param vectors: The vectors to be fitted in
+        :type vectors: list
+        :return: Returns the TSNE result
+        :rtype: [type]
+        """
 
         tsne = TSNE(
             n_components=number_of_components,

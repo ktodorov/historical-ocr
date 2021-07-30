@@ -66,6 +66,17 @@ class LogService:
             all_steps: int,
             epoch_num: int = None,
             evaluation: bool = False):
+        """Logs current progress of the training process
+
+        :param current_step: Current step of the training process
+        :type current_step: int
+        :param all_steps: Amount of total steps in one epoch
+        :type all_steps: int
+        :param epoch_num: Current epoch number, defaults to None
+        :type epoch_num: int, optional
+        :param evaluation: Whether current progress is part of evaluation or training, defaults to False
+        :type evaluation: bool, optional
+        """
 
         prefix = 'Train'
         if evaluation:
@@ -89,16 +100,28 @@ class LogService:
             self,
             train_metric: Metric,
             validation_metric: Metric,
-            batches_done: int,
             epoch: int,
             iteration: int,
             iterations: int,
             new_best: bool,
             metric_log_key: str = None):
-        """
-        logs progress to user through tensorboard and terminal
-        """
+        """Logs current evaluation results
 
+        :param train_metric: Metric of the training iterations
+        :type train_metric: Metric
+        :param validation_metric: Metric of the validation iterations
+        :type validation_metric: Metric
+        :param epoch: Current epoch number
+        :type epoch: int
+        :param iteration: Current iteration number
+        :type iteration: int
+        :param iterations: Total amount of iterations to perform
+        :type iterations: int
+        :param new_best: Whether the current result is a new best result
+        :type new_best: bool
+        :param metric_log_key: Whether a specific metric key should be used to display results. If None is provided, then accuracy is used, defaults to None
+        :type metric_log_key: str, optional
+        """
         self._current_epoch = epoch
         self._current_iteration = iteration
         self._all_iterations = iterations
@@ -187,6 +210,11 @@ class LogService:
         wandb.run.summary[key] = value
 
     def log_batch_results(self, data_output_log: DataOutputLog):
+        """Logs batch results, using a data output log
+
+        :param data_output_log: The data output log which contains the data to be logged
+        :type data_output_log: DataOutputLog
+        """
         if not self._external_logging_enabled or data_output_log is None:
             return
 

@@ -19,6 +19,14 @@ class FileService:
     def get_data_path(
         self,
         language: Language = None) -> str:
+        """Get the data path that is provided using input arguments
+
+        :param language: Language to be used. If None is provided, the one provided from the arguments will be used, defaults to None
+        :type language: Language, optional
+        :return: The path to the data
+        :rtype: str
+        """
+
         data_path = self.get_challenge_path()
 
         data_model_path = os.path.join(
@@ -41,6 +49,11 @@ class FileService:
         return data_language_path
 
     def get_checkpoints_path(self) -> str:
+        """Get the path to the checkpoints
+
+        :return: Path to the checkpoints
+        :rtype: str
+        """
         if not self._arguments_service.checkpoint_folder:
             output_path = self._arguments_service.output_folder
         else:
@@ -72,6 +85,11 @@ class FileService:
         return model_path
 
     def get_challenge_path(self) -> str:
+        """Get the path for the initialized challenge. This would a path inside the data folder
+
+        :return: The challenge path
+        :rtype: str
+        """
         data_path = self._arguments_service.data_folder
 
         if not os.path.exists(data_path):
@@ -86,6 +104,11 @@ class FileService:
         return data_path
 
     def get_pickles_path(self) -> str:
+        """Get the generic path to where the pickles are stored for this challenge
+
+        :return: The pickles path
+        :rtype: str
+        """
         data_path = self.get_challenge_path()
 
         data_pickles_path = os.path.join(data_path, 'pickles')
@@ -96,6 +119,11 @@ class FileService:
         return data_pickles_path
 
     def get_experiments_path(self) -> str:
+        """Get the path where experiments are being saved
+
+        :return: The experiments path
+        :rtype: str
+        """
         experiments_path = self._arguments_service.experiments_folder
 
         if not os.path.exists(experiments_path):
@@ -104,6 +132,16 @@ class FileService:
         return experiments_path
 
     def combine_path(self, path: str, *paths: str, create_if_missing: bool = False) -> str:
+        """Combine multiple paths and optionally create all folders along the path if they are missing
+
+        :param path: The original path
+        :type path: str
+        :param create_if_missing: Create all folders along the path if they are missing, defaults to False
+        :type create_if_missing: bool, optional
+        :raises Exception: If the path does not exist and the create_if_missing is False
+        :return: The concatenated path
+        :rtype: str
+        """
         if create_if_missing and not os.path.exists(path):
             os.mkdir(path)
 

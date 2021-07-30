@@ -23,20 +23,8 @@ from collections import Counter
 
 
 plt.rcParams["figure.figsize"] = (15, 10)
-# plt.rcParams["text.usetex"] = True
-# plt.rcParams['text.latex.preamble'] = [
-#     r'\usepackage[utf8]{inputenc}'
-#     r'\usepackage[cm]{sfmath}'
-# ]
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = 'cm'
-# plt.rcParams['text.latex.preamble'] = [
-#        r'\usepackage{siunitx}',   # i need upright \micro symbols, but you need...
-#        r'\sisetup{detect-all}',   # ...this to force siunitx to actually use your fonts
-#        r'\usepackage{helvet}',    # set the normal font here
-#        r'\usepackage{sansmath}',  # load up the sansmath so that math -> helvet
-#        r'\sansmath'               # <- tricky! -- gotta actually tell tex to use!
-# ]
 
 
 class PlotService:
@@ -59,10 +47,10 @@ class PlotService:
             sns.set_style('ticks')
 
         fig = plt.figure()
-        # workaround for Exception in Tkinter callback
-        fig.canvas.start_event_loop(sys.float_info.min)
+
+        fig.canvas.start_event_loop(sys.float_info.min) # workaround for Exception in Tkinter callback
+
         ax = fig.add_subplot(1, 1, 1)
-        # ax = plt.subplot()
         return ax
 
     def create_plots(self, plots_count: int, share_x_coords: bool = False, share_y_coords: bool = False) -> List[Axes]:
@@ -112,11 +100,14 @@ class PlotService:
             if height == 0:
                 continue
 
-            ax.annotate('{}'.format(height),
-                        xy=(rect.get_x() + rect.get_width() / 2, height),
-                        xytext=(0, y_offset),  # 3 points vertical offset
-                        textcoords="offset points",
-                        ha='center', va='bottom', rotation=rotation)
+            ax.annotate(
+                '{}'.format(height),
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(0, y_offset),  # 3 points vertical offset
+                textcoords="offset points",
+                ha='center',
+                va='bottom',
+                rotation=rotation)
 
     def plot_counters_histogram(
             self,
@@ -197,13 +188,9 @@ class PlotService:
             data=counts_list,
             color=plot_options.color,
             fill=plot_options.fill,
-            # bw_adjust=.5,
-            # cut=0,
             linestyle=plot_options.linestyle.value,
             label=plot_options.label,
             legend=plot_options.legend_options.show_legend,
-            # palette="crest",
-            # common_norm=True,
             linewidth=plot_options.line_width,
             alpha=plot_options.alpha,
             ax=ax)

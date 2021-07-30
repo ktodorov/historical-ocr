@@ -28,6 +28,7 @@ class CacheService:
         self._data_service = data_service
         self._log_service = log_service
 
+        # Init the different levels of cache folders
         self._global_cache_folder = self._file_service.combine_path(
             self._arguments_service.cache_folder,
             create_if_missing=True)
@@ -56,6 +57,15 @@ class CacheService:
             self,
             cache_options: CacheOptions,
             callback_function: Callable = None) -> Any:
+        """Loads a cached item using the provided options
+
+        :param cache_options: Options to locate the cached item
+        :type cache_options: CacheOptions
+        :param callback_function: Callback function to use and cache the item if it is not found, defaults to None
+        :type callback_function: Callable, optional
+        :return: The cached item
+        :rtype: Any
+        """
         cached_object = None
         if self.item_exists(cache_options):
             cache_folder = self._get_cache_folder_path(cache_options)
@@ -80,15 +90,16 @@ class CacheService:
 
         return cached_object
 
-    def load_file_from_cache(self, cache_options) -> object:
-        cache_folder = self._get_cache_folder_path(cache_options)
-
-        filepath = os.path.join(cache_folder, cache_options.get_item_key())
-        with open(filepath, 'rb') as cached_file:
-            result = cached_file.read()
-            return result
-
     def cache_item(self, item: object, cache_options: CacheOptions, overwrite: bool = True):
+        """Cache item using the provided options
+
+        :param item: The item to be cached
+        :type item: object
+        :param cache_options: Options how and where to cache the object
+        :type cache_options: CacheOptions
+        :param overwrite: Whether to overwrite an already existing cached item at the same location, defaults to True
+        :type overwrite: bool, optional
+        """
         self._log_service.log_debug(
             f'Attempting to cached object item with key {cache_options.get_item_key()} [config-specific: {cache_options.configuration_specific} | challenge-specific: {cache_options.challenge_specific}]')
         if not overwrite and self.item_exists(cache_options):
@@ -106,6 +117,13 @@ class CacheService:
             self._log_service.log_debug('Object was not cached successfully')
 
     def item_exists(self, cache_options: CacheOptions) -> bool:
+        """Check if a cached item already exists at the same location
+
+        :param cache_options: Options to locate the cached object
+        :type cache_options: CacheOptions
+        :return: Whether the object exists in the cache
+        :rtype: bool
+        """
         cache_folder = self._get_cache_folder_path(cache_options)
 
         result = self._data_service.check_python_object(
@@ -119,6 +137,17 @@ class CacheService:
             download_url: str,
             cache_options: CacheOptions,
             overwrite: bool = True,) -> bool:
+        """Download file from the provided URL and cache it
+
+        :param download_url: The URL from where to download the data
+        :type download_url: str
+        :param cache_options: Options for caching
+        :type cache_options: CacheOptions
+        :param overwrite: Whether to overwrite the cached object if it already exists on the selected location, defaults to True
+        :type overwrite: bool, optional
+        :return: Whether the download and caching was successful
+        :rtype: bool
+        """
         if not overwrite and self.item_exists(cache_options):
             return True
 

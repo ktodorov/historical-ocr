@@ -47,16 +47,7 @@ class OCRNeighbourOverlapPlotService:
             overlap_types=[OverlapType.GTvsOCR], include_randomly_initialized=True)
         ax = self._plot_service.create_plot()
 
-        ax2 = plt.axes([.37, .17, .25, .25])#, facecolor='y')
-        # sns.lineplot(data=may_flights, x="year", y="passengers", ax=ax2, legend=False)
-        # sns.lineplot(data=june_flights, x="year", y="passengers", ax=ax2, legend=False)
-        # g2 = sns.lineplot(data=oct_flights, x="year", y="passengers", ax=ax2, legend=False)
-        # g2.set(yticklabels=[])
-        # g2.set(xlabel=None)
-        # g2.set(ylabel=None)
-        # ax2.set_title('zoomed')
-        # ax2.set_xlim([0.1, 0.3])
-        # ax2.set_ylim([100,200])
+        ax2 = plt.axes([.37, .17, .25, .25])
 
         groupings = []
         for configuration, overlaps_by_type in overlaps_by_config.items():
@@ -89,8 +80,7 @@ class OCRNeighbourOverlapPlotService:
                             ax2,
                             legend_options = LegendOptions(show_legend=False),
                             xlim = (0.01, 0.2),
-                            ylim=(0.15, 0.9),
-                            # ylim=(0.2, 0.8), # English
+                            ylim=(0.1, 0.85),
                             color=plot_options.color,
                             linestyle=plot_options.linestyle)
 
@@ -102,11 +92,6 @@ class OCRNeighbourOverlapPlotService:
 
                         ax2.set(xlabel=None)
                         ax2.set(ylabel=None)
-
-            #             break
-            #         break
-            #     break
-            # break
 
         self._plot_service.set_plot_properties(
             ax=ax,
@@ -173,9 +158,6 @@ class OCRNeighbourOverlapPlotService:
                 continue
 
             for percentage, current_overlaps in overlaps_by_set_percentage.items():
-                # if percentage > 50:
-                #     break
-
                 total_words_for_current_percentage = int(total_words_count * (percentage / 100.0))
 
                 overlap_values = list(current_overlaps.values())
@@ -278,9 +260,6 @@ class OCRNeighbourOverlapPlotService:
             line_style_key = f'{line_style_key}-{learning_rate_str}'
             lr_type = lr_types[line_style_key]
             lr_label = lr_type
-
-        # if randomly_initialized:
-        #     lr_label += ', randomly initialized'
 
         result = PlotOptions(
             color=colors[configuration][value_summary],

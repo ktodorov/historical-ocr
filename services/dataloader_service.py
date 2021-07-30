@@ -71,14 +71,6 @@ class DataLoaderService:
         self._log_service.log_debug(
             f'Initializing dataset for run type \'{run_type.value}\'')
         dataset = self._dataset_service.initialize_dataset(run_type)
-        # if isinstance(dataset, DocumentDatasetBase):
-        #     data_loader: DataLoader = DataLoader(
-        #         dataset,
-        #         sampler=DocumentSampler(
-        #             dataset,
-        #             shuffle=shuffle,
-        #             batch_size=batch_size))
-        # else:
         data_loader: DataLoader = DataLoader(
             dataset,
             batch_size=batch_size,
