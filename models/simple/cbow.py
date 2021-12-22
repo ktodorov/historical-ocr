@@ -68,7 +68,6 @@ class CBOW(ModelBase):
         self._linear = nn.Linear(
             embedding_size, self._vocabulary_service.vocabulary_size())
 
-    @overrides
     def forward(self, input_batch, **kwargs):
         context_tokens, targets = input_batch
         embedded_representation = self._embeddings.forward(context_tokens)
@@ -91,7 +90,6 @@ class CBOW(ModelBase):
 
         raise NotImplementedError()
 
-    @overrides
     def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> List[WordEvaluation]:
         vocab_ids = torch.Tensor([self._vocabulary_service.string_to_id(token) for token in tokens]).long().to(self._arguments_service.device)
 

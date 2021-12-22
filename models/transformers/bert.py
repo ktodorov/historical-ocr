@@ -28,7 +28,6 @@ class BERT(TransformerBase):
 
         self._transformer_model = BertForMaskedLM(config=BertConfig())
 
-    @overrides
     def forward(self, input_batch, **kwargs):
         input, labels, attention_masks = input_batch
         outputs = self.transformer_model.forward(
@@ -44,7 +43,6 @@ class BERT(TransformerBase):
     def transformer_model(self) -> BertForMaskedLM:
         return self._transformer_model
 
-    @overrides
     def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> List[WordEvaluation]:
         # encode the tokens
         encoded_sequences = self._tokenize_service.encode_sequences(tokens)

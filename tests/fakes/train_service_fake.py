@@ -27,7 +27,6 @@ class TrainServiceFake(TrainService):
                 model)
 
 
-    @overrides
     def _perform_batch_iteration(
             self,
             batch: torch.Tensor,

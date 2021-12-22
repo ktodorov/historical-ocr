@@ -1,0 +1,104 @@
+
+// DUTCH
+
+// BERT
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='dutch' SEED=42 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='dutch' SEED=42 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='dutch' SEED=6 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='dutch' SEED=6 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' BATCHSIZE=128 
+
+// ALBERT
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='dutch' SEED=42 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='dutch' SEED=42 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' BATCHSIZE=128 
+
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='dutch' SEED=6 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='dutch' SEED=6 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' BATCHSIZE=128 
+
+
+
+
+
+
+// ENGLISH
+
+// BERT
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='english' SEED=42 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='english' SEED=42 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='english' SEED=6 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='english' SEED=6 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' BATCHSIZE=128 
+
+// ALBERT
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='english' SEED=42 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='english' SEED=42 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' BATCHSIZE=128 
+
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='english' SEED=6 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='english' SEED=6 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' BATCHSIZE=128 
+
+
+
+
+
+// FRENCH
+
+// BERT
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='french' SEED=42 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='french' SEED=42 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='french' SEED=6 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='french' SEED=6 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' BATCHSIZE=128 
+
+// ALBERT
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='french' SEED=42 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='french' SEED=42 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' BATCHSIZE=128 
+
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='french' SEED=6 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='french' SEED=6 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' BATCHSIZE=128 
+
+
+
+
+// GERMAN
+
+// BERT
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='german' SEED=42 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='german' SEED=42 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='german' SEED=6 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='german' SEED=6 CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' BATCHSIZE=128 
+
+// ALBERT
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='german' SEED=42 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='german' SEED=42 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' BATCHSIZE=128 
+
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='german' SEED=6 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' BATCHSIZE=128 
+
+sh jobs/start_job.sh jobs/run_experiments.sh LANGUAGE='german' SEED=6 CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' BATCHSIZE=128 

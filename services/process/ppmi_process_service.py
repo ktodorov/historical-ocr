@@ -44,7 +44,6 @@ class PPMIProcessService(ICDARProcessService):
 
         return occurrence_stats
 
-    @overrides
     def _generate_corpora_entries(self, data_ids):
         token_stats = TokensOccurrenceStats(data_ids, self._vocabulary_service.vocabulary_size())
         return token_stats

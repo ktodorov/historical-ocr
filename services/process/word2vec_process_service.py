@@ -176,6 +176,5 @@ class Word2VecProcessService(ICDARProcessService):
 
         return corpus
 
-    @overrides
     def _generate_corpora_entries(self, data_ids):
         return Word2VecCorpus(data_ids, window_size=self._arguments_service.window_size)

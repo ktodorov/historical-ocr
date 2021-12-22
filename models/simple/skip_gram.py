@@ -58,7 +58,6 @@ class SkipGram(ModelBase):
 
         self._negative_samples = 10
 
-    @overrides
     def forward(self, input_batch, **kwargs):
         context_words, target_words = input_batch
         batch_size = target_words.size()[0]
@@ -80,7 +79,6 @@ class SkipGram(ModelBase):
             batch_size, self._negative_samples).to(self._arguments_service.device)
         return negative_examples
 
-    @overrides
     def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> List[WordEvaluation]:
         vocab_ids = torch.Tensor([self._vocabulary_service.string_to_id(
             token) for token in tokens]).long().to(self._arguments_service.device)

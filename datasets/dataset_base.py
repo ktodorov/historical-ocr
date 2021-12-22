@@ -9,7 +9,6 @@ class DatasetBase(Dataset):
     def __len__(self) -> int:
         return len(super())
 
-    @overrides
     def __getitem__(self, idx):
         return super().__getitem__(idx)
 

@@ -18,7 +18,6 @@ class SkipGramDatasetFake(SkipGramDataset):
 
         self._ids = []
 
-    @overrides
     def __getitem__(self, idx):
         document_ids = [x.document_index for x in self._text_corpus.get_entries(idx)]
         self._ids.extend(document_ids)

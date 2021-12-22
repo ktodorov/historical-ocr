@@ -178,7 +178,6 @@ class ModelBase(nn.Module):
 
         return result
 
-    @overrides
     def state_dict(self, destination=None, prefix='', keep_vars=False):
         if self.do_not_save:
             return None

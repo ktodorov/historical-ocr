@@ -43,26 +43,21 @@ class TransformerBase(ModelBase):
     def transformer_model(self) -> PreTrainedModel:
         return self._transformer_model
 
-    @overrides
     def forward(self, input_batch, **kwargs):
         pass
 
-    @overrides
     def named_parameters(self):
         return self._transformer_model.named_parameters()
 
-    @overrides
     def parameters(self):
         return self._transformer_model.parameters()
 
-    @overrides
     def compare_metric(self, best_metric: Metric, new_metrics: Metric) -> bool:
         if best_metric.is_new or best_metric.get_current_loss() > new_metrics.get_current_loss():
             return True
 
         return False
 
-    @overrides
     def save(
             self,
             path: str,
@@ -91,7 +86,6 @@ class TransformerBase(ModelBase):
 
         return saved
 
-    @overrides
     def load(
             self,
             path: str,

@@ -20,11 +20,9 @@ class EvaluationDataset(DatasetBase):
         self._target_tokens = self._process_service.get_target_tokens()
         self._log_service.log_debug(f'Loaded {len(self._target_tokens)} target tokens in evaluation dataset')
 
-    @overrides
     def __len__(self):
         return len(self._target_tokens)
 
-    @overrides
     def __getitem__(self, idx):
         target_token = self._target_tokens[idx]
         return target_token

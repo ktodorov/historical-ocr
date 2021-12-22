@@ -27,19 +27,15 @@ class TransformerLMDataset(DocumentDatasetBase):
         self._entries = process_service.get_entries(self._arguments_service.ocr_output_type)
         self._log_service.log_debug(f'Loaded {len(self._entries)} entries in transformer dataset')
 
-    @overrides
     def __len__(self):
         return len(self._entries)
 
-    @overrides
     def __getitem__(self, id):
         return id
 
-    @overrides
     def use_collate_function(self) -> bool:
         return True
 
-    @overrides
     def collate_function(self, ids):
         entries = [self._entries[idx] for idx in ids]
         batch_size = len(ids)
@@ -73,7 +69,6 @@ class TransformerLMDataset(DocumentDatasetBase):
         mask_tensor = masks[perm_idx]
         return self._mask_service.mask_tokens(seq_tensor, mask_tensor, seq_lengths)
 
-    @overrides
     def get_indices_per_document(self) -> Dict[int, List[int]]:
         total_documents = len(set([x.document_index for x in self._entries]))
         result = {

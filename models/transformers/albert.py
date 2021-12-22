@@ -31,7 +31,6 @@ class ALBERT(TransformerBase):
             num_attention_heads=12,
             intermediate_size=3072))
 
-    @overrides
     def forward(self, input_batch, **kwargs):
         input, labels, attention_masks = input_batch
         outputs = self.transformer_model.forward(
@@ -47,7 +46,6 @@ class ALBERT(TransformerBase):
     def transformer_model(self) -> AlbertForMaskedLM:
         return self._transformer_model
 
-    @overrides
     def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> List[WordEvaluation]:
         # encode the tokens
         encoded_sequences = self._tokenize_service.encode_sequences(tokens)

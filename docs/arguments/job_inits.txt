@@ -1,0 +1,103 @@
+// DUTCH
+
+// BERT
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='dutch' SEED=42 OUTPUTTYPE='ground-truth' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='dutch' SEED=42 OUTPUTTYPE='raw' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='dutch' SEED=6 OUTPUTTYPE='ground-truth' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='dutch' SEED=6 OUTPUTTYPE='raw' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+// ALBERT
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='dutch' SEED=42 OUTPUTTYPE='ground-truth' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='dutch' SEED=42 OUTPUTTYPE='raw' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='dutch' SEED=6 OUTPUTTYPE='ground-truth' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='dutch' SEED=6 OUTPUTTYPE='raw' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+
+
+
+
+
+// ENGLISH
+
+// BERT
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='english' SEED=42 OUTPUTTYPE='ground-truth' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='english' SEED=42 OUTPUTTYPE='raw' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='english' SEED=6 OUTPUTTYPE='ground-truth' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='english' SEED=6 OUTPUTTYPE='raw' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+// ALBERT
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='english' SEED=42 OUTPUTTYPE='ground-truth' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='english' SEED=42 OUTPUTTYPE='raw' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='english' SEED=6 OUTPUTTYPE='ground-truth' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='english' SEED=6 OUTPUTTYPE='raw' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-4' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+
+
+
+
+// FRENCH
+
+// BERT
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=42 OUTPUTTYPE='ground-truth' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=42 OUTPUTTYPE='raw' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=6 OUTPUTTYPE='ground-truth' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=6 OUTPUTTYPE='raw' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+// ALBERT
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=42 OUTPUTTYPE='ground-truth' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=42 OUTPUTTYPE='raw' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=6 OUTPUTTYPE='ground-truth' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=6 OUTPUTTYPE='raw' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+
+
+
+// GERMAN
+
+// BERT
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=42 OUTPUTTYPE='ground-truth' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=42 OUTPUTTYPE='raw' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=6 OUTPUTTYPE='ground-truth' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=6 OUTPUTTYPE='raw' CONFMODEL='bert' USEPRETR='yes' PRETRWEIGHTS='bert-base-custom-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+// ALBERT
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=42 OUTPUTTYPE='ground-truth' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=42 OUTPUTTYPE='raw' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=6 OUTPUTTYPE='ground-truth' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 
+
+sh jobs/start_job.sh jobs/train_ocr_model.sh LANGUAGE='french' SEED=6 OUTPUTTYPE='raw' CONFMODEL='albert' USEPRETR='yes' PRETRWEIGHTS='albert-base-cased' LR='1e-5' PATIENCE=15 EVALFREQ=1000 BATCHSIZE=8 

@@ -11,7 +11,6 @@ class CrossEntropyLoss(LossBase):
 
         self._criterion = nn.CrossEntropyLoss()
 
-    @overrides
     def backward(self, model_output):
         prediction, target = model_output
         loss = self._criterion.forward(prediction, target)
@@ -19,7 +18,6 @@ class CrossEntropyLoss(LossBase):
 
         return loss.item()
 
-    @overrides
     def calculate_loss(self, model_output) -> torch.Tensor:
         prediction, target = model_output
         loss = self._criterion.forward(prediction, target)
@@ -27,6 +25,5 @@ class CrossEntropyLoss(LossBase):
 
 
     @property
-    @overrides
     def criterion(self) -> nn.Module:
         return self._criterion

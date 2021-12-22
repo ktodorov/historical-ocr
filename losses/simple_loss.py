@@ -9,11 +9,9 @@ class SimpleLoss(LossBase):
     def __init__(self):
         super().__init__()
 
-    @overrides
     def backward(self, loss):
         loss.backward()
         return loss.item()
 
-    @overrides
     def calculate_loss(self, loss) -> torch.Tensor:
         return loss.item()

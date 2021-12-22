@@ -6,7 +6,6 @@ from services.process.process_service_base import ProcessServiceBase
 from entities.word_evaluation import WordEvaluation
 from typing import List
 from entities.tokens_occurrence_stats import TokensOccurrenceStats
-from overrides import overrides
 import numpy as np
 import math
 import torch
@@ -55,7 +54,6 @@ class PPMI(ModelBase):
              self._vocabulary_service.vocabulary_size()),
             dtype=np.float32)
 
-    @overrides
     def forward(self, stats: TokensOccurrenceStats):
         if self._initialized:
             return
@@ -87,7 +85,6 @@ class PPMI(ModelBase):
 
         return matrix
 
-    @overrides
     def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> List[WordEvaluation]:
         vocab_ids = np.array([np.array([self._vocabulary_service.string_to_id(token)]) for token in tokens])
 
@@ -104,7 +101,6 @@ class PPMI(ModelBase):
 
         return embeddings
 
-    @overrides
     def save(
             self,
             path: str,

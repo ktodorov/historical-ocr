@@ -9,13 +9,11 @@ class SkipGramLoss(LossBase):
     def __init__(self):
         super().__init__()
 
-    @overrides
     def backward(self, embeddings):
         loss = self._calculate_loss(embeddings)
         loss.backward()
         return loss.item()
 
-    @overrides
     def calculate_loss(self, embeddings) -> torch.Tensor:
         loss = self._calculate_loss(embeddings)
         return loss.item()

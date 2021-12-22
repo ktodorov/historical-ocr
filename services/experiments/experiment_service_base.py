@@ -4,7 +4,6 @@ from typing import List, Tuple
 import numpy as np
 import torch
 # import sklearn.manifold.t_sne
-from MulticoreTSNE import MulticoreTSNE as TSNE
 
 from enums.experiment_type import ExperimentType
 

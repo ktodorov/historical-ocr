@@ -8,11 +8,9 @@ class NonContextServiceFake(OCRQualityNonContextArgumentsService):
 
         self._custom_values = custom_values
 
-    @overrides
     def _parse_arguments(self):
         return
 
-    @overrides
     def _get_argument(self, key: str) -> object:
         if key not in self._custom_values.keys():
             return default_values[key]

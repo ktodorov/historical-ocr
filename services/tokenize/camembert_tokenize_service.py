@@ -29,27 +29,22 @@ class CamembertTokenizeService(BaseTokenizeService):
         self._sign_tokens = [',', '.', ';']
         self._subword_prefix_symbol = '▁'
 
-    @overrides
     def encode_tokens(self, tokens: List[str]) -> List[int]:
         result = self._tokenizer.convert_tokens_to_ids(tokens)
         return result
 
-    @overrides
     def decode_tokens(self, character_ids: List[int]) -> List[str]:
         result = self._tokenizer.convert_ids_to_tokens(character_ids)
         return result
 
-    @overrides
     def decode_string(self, character_ids: List[int]) -> List[str]:
         result = self._tokenizer.decode(character_ids)
         return result
 
-    @overrides
     def id_to_token(self, character_id: int) -> str:
         result = self._tokenizer.convert_ids_to_tokens([character_id])
         return result[0]
 
-    @overrides
     def encode_sequence(self, sequence: str) -> Tuple[List[int], List[str], List[Tuple[int,int]], List[int]]:
         tokens: List[str] = self._tokenizer.tokenize(sequence)
 
@@ -87,11 +82,9 @@ class CamembertTokenizeService(BaseTokenizeService):
             offsets_result,
             None)
 
-    @overrides
     def encode_sequences(self, sequences: List[str]) -> List[Tuple[List[int], List[str], List[Tuple[int,int]], List[int]]]:
         return [self.encode_sequence(sequence) for sequence in sequences]
 
     @property
-    @overrides
     def vocabulary_size(self) -> int:
         return self._tokenizer.vocab_size

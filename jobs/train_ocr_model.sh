@@ -9,7 +9,8 @@
 
 module purge
 module load 2020
-module load Python
+# module load Python
+module load Python/3.8.2-GCCcore-9.3.0
 
 echo 'PATH IS'
 printenv PATH

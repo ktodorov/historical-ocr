@@ -22,10 +22,8 @@ class AdamWTransformerOptimizer(OptimizerBase):
         optimizer = AdamW(self._model.optimizer_parameters(), lr=self._learning_rate, weight_decay=self._weight_decay)
         return optimizer
 
-    @overrides
     def step(self):
         self._optimizer.step()
 
-    @overrides
     def zero_grad(self):
         self._optimizer.zero_grad()

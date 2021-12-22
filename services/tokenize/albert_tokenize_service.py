@@ -39,28 +39,23 @@ class ALBERTTokenizeService(BaseTokenizeService):
             ("<s>", self._tokenizer.token_to_id("<s>")),
         )
 
-    @overrides
     def encode_tokens(self, tokens: List[str]) -> List[int]:
         result = [self._tokenizer.token_to_id(x) for x in tokens]
         return result
 
-    @overrides
     def decode_tokens(self, character_ids: List[int]) -> List[str]:
         result = [self._tokenizer.id_to_token(
             character_id) for character_id in character_ids]
         return result
 
-    @overrides
     def decode_string(self, character_ids: List[int]) -> List[str]:
         result = self._tokenizer.decode(character_ids)
         return result
 
-    @overrides
     def id_to_token(self, character_id: int) -> str:
         result = self._tokenizer.id_to_token(character_id)
         return result
 
-    @overrides
     def encode_sequence(self, sequence: str, add_special_tokens: bool = True) -> Tuple[List[int], List[str], List[Tuple[int, int]], List[int]]:
         encoded_representation = self._tokenizer.encode(
             sequence, add_special_tokens=add_special_tokens)
@@ -70,13 +65,11 @@ class ALBERTTokenizeService(BaseTokenizeService):
             encoded_representation.offsets,
             encoded_representation.special_tokens_mask)
 
-    @overrides
     def encode_sequences(self, sequences: List[str]) -> List[Tuple[List[int], List[str], List[Tuple[int, int]], List[int]]]:
         encoded_representations = self._tokenizer.encode_batch(sequences)
         return [(x.ids, x.tokens, x.offsets, x.special_tokens_mask) for x in encoded_representations]
 
     @property
-    @overrides
     def vocabulary_size(self) -> int:
         return self._tokenizer.get_vocab_size()
 

@@ -11,7 +11,6 @@ class DocumentDatasetBase(DatasetBase):
     def get_indices_per_document(self) -> Dict[int, List[int]]:
         return {}
 
-    @overrides
     def use_collate_function(self) -> bool:
         return True
 

@@ -103,7 +103,6 @@ class EmbeddingLayer(ModelBase):
 
         self._device = embedding_layer_options.device
 
-    @overrides
     def forward(
             self,
             batch_representation: BatchRepresentation, 

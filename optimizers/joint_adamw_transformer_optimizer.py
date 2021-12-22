@@ -24,12 +24,10 @@ class JointAdamWTransformerOptimizer(OptimizerBase):
         optimizer2 = AdamW(model2_parameters, lr=self._learning_rate, weight_decay=self._weight_decay)
         return (optimizer1, optimizer2)
 
-    @overrides
     def step(self):
         self._optimizer[0].step()
         self._optimizer[1].step()
 
-    @overrides
     def zero_grad(self):
         self._optimizer[0].zero_grad()
         self._optimizer[1].zero_grad()

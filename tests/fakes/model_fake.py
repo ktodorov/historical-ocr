@@ -17,7 +17,6 @@ class ModelFake(ModelBase):
             log_service: LogService):
         super().__init__(data_service, arguments_service, log_service)
 
-    @overrides
     def forward(self, input_batch, **kwargs):
         return None
 

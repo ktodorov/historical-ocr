@@ -24,10 +24,8 @@ class AdamWOptimizer(OptimizerBase):
 
         return optimizer
 
-    @overrides
     def step(self):
         self._optimizer.step()
 
-    @overrides
     def zero_grad(self):
         self._optimizer.zero_grad()

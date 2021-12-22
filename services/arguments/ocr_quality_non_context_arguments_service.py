@@ -11,7 +11,6 @@ class OCRQualityNonContextArgumentsService(OCRQualityArgumentsService):
     def __init__(self):
         super().__init__()
 
-    @overrides
     def get_configuration_name(self, overwrite_args: Dict[str, object] = None) -> str:
         result = super().get_configuration_name(overwrite_args)
 
@@ -35,7 +34,6 @@ class OCRQualityNonContextArgumentsService(OCRQualityArgumentsService):
 
         return result
 
-    @overrides
     def _add_specific_arguments(self, parser: argparse.ArgumentParser):
         super()._add_specific_arguments(parser)
 

@@ -133,12 +133,10 @@ class PretrainedRepresentationsLayer(ModelBase):
         return fasttext_tensor
 
     @property
-    @overrides
     def keep_frozen(self) -> bool:
         return not self._fine_tune_pretrained
 
 
-    @overrides
     def on_convergence(self) -> bool:
         if self._fine_tune_after_convergence and not self._fine_tune_pretrained:
             print('Starting to fine-tune pre-trained...')

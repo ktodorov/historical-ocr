@@ -91,12 +91,10 @@ class EvaluationModel(ModelBase):
             #         pretrained_matrix=pretrained_matrix,
             #         overwrite_initialization=True))
 
-    @overrides
     def forward(self, tokens: torch.Tensor):
         self._log_service.log_warning('Joint model currently does not have a forward pass implemented properly. Please use `get_embeddings` instead')
         raise NotImplementedError()
 
-    @overrides
     def get_embeddings(self, tokens: List[str], skip_unknown: bool = False) -> torch.Tensor:
         word_evaluation_sets = []
         for model in self._inner_models:
@@ -157,7 +155,6 @@ class EvaluationModel(ModelBase):
 
         return result
 
-    @overrides
     def load(
             self,
             path: str,

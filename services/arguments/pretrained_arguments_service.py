@@ -12,7 +12,6 @@ class PretrainedArgumentsService(ArgumentsServiceBase):
     def __init__(self, raise_errors_on_invalid_args=True):
         super().__init__(raise_errors_on_invalid_args)
 
-    @overrides
     def _add_specific_arguments(self, parser: argparse.ArgumentParser):
         super()._add_specific_arguments(parser)
 

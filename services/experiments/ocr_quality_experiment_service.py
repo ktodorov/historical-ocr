@@ -67,7 +67,6 @@ class OCRQualityExperimentService(ExperimentServiceBase):
         self._separate_suffix = '-sep' if self._arguments_service.separate_neighbourhood_vocabularies else ''
         self._lr_suffix = f'-lr{self._arguments_service.get_learning_rate_str()}' if self._arguments_service.configuration != Configuration.PPMI else ''
 
-    @overrides
     def execute_experiments(self, experiment_types: List[ExperimentType]):
         experiment_types_str = ', '.join([x.value for x in experiment_types])
         self._log_service.log_debug(
@@ -87,10 +86,10 @@ class OCRQualityExperimentService(ExperimentServiceBase):
                                      result, lambda: self._load_neighbourhood_overlaps(word_evaluations))
 
         # Neighbourhood plots
-        if ExperimentType.CosineDistance in experiment_types and ExperimentType.NeighbourhoodOverlap in experiment_types:
-            self._word_neighbourhood_service.generate_neighbourhood_plots(
-                word_evaluations,
-                result[ExperimentType.CosineDistance])
+        # if ExperimentType.CosineDistance in experiment_types and ExperimentType.NeighbourhoodOverlap in experiment_types:
+        #     self._word_neighbourhood_service.generate_neighbourhood_plots(
+        #         word_evaluations,
+        #         result[ExperimentType.CosineDistance])
 
         # Save final results and generate plots
         self._save_experiment_results(result, word_evaluations)

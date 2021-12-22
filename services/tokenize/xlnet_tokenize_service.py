@@ -12,6 +12,5 @@ class XLNetTokenizeService(TransformerTokenizeService):
         super().__init__(arguments_service)
 
     @property
-    @overrides
     def _tokenizer_type(self) -> type:
         return XLNetTokenizerFast
